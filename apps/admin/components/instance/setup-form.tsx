@@ -144,8 +144,8 @@ export function InstanceSetupForm() {
       <div className="mt-10 flex w-full flex-grow flex-col items-center justify-center py-6">
         <div className="relative flex w-full max-w-[22.5rem] flex-col gap-6">
           <FormHeader
-            heading="Setup your Plane Instance"
-            subHeading="Post setup you will be able to manage this Plane instance."
+            heading="Setup your TFC PMS Instance"
+            subHeading="Post setup you will be able to manage this TFC PMS instance."
           />
           {errorData.type &&
             errorData?.message &&

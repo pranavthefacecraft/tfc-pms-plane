@@ -18,7 +18,7 @@ import {
   MenuTrigger,
 } from "@makeplane/propel/components/menu";
 import { WorkspaceAvatar } from "@makeplane/propel/components/workspace-avatar";
-import { AccessAndRolesOutline, LogOutOutline, PaletteOutline } from "@makeplane/propel/icons";
+import { LogOutOutline, PaletteOutline } from "@makeplane/propel/icons";
 // plane internal packages
 import { API_BASE_URL } from "@plane/constants";
 import { AuthService } from "@plane/services";
@@ -102,8 +102,8 @@ export const AdminSidebarDropdown = observer(function AdminSidebarDropdown() {
                     "cursor-default": !isSidebarCollapsed,
                   })}
                 >
-                  <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-sm bg-layer-1">
-                    <AccessAndRolesOutline className="size-5 text-primary" />
+                  <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-sm bg-layer-1 p-1">
+                    <img src="/god-mode/tfc-pms-logo.png" alt="TFC PMS" className="size-6 object-contain" />
                   </div>
                 </button>
               }

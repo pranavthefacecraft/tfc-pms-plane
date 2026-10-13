@@ -33,6 +33,7 @@ class S3Storage(S3Boto3Storage):
         self.aws_region = os.environ.get("AWS_REGION")
         # Use the AWS_S3_ENDPOINT_URL environment variable for the endpoint URL
         self.aws_s3_endpoint_url = os.environ.get("AWS_S3_ENDPOINT_URL") or os.environ.get("MINIO_ENDPOINT_URL")
+        self.aws_s3_public_endpoint_url = os.environ.get("AWS_S3_PUBLIC_ENDPOINT_URL")
         # Use the SIGNED_URL_EXPIRATION environment variable for the expiration time (default: 3600 seconds)
         self.signed_url_expiration = int(os.environ.get("SIGNED_URL_EXPIRATION", "3600"))
 
@@ -62,6 +63,18 @@ class S3Storage(S3Boto3Storage):
                 config=boto3.session.Config(signature_version="s3v4"),
             )
 
+        if self.aws_s3_public_endpoint_url:
+            self.public_s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                region_name=self.aws_region,
+                endpoint_url=self.aws_s3_public_endpoint_url,
+                config=boto3.session.Config(signature_version="s3v4"),
+            )
+        else:
+            self.public_s3_client = self.s3_client
+
     def generate_presigned_post(self, object_name, file_type, file_size, expiration=None):
         """Generate a presigned URL to upload an S3 object"""
         if expiration is None:
@@ -84,7 +97,7 @@ class S3Storage(S3Boto3Storage):
         # Generate the presigned POST URL
         try:
             # Generate a presigned URL for the S3 object
-            response = self.s3_client.generate_presigned_post(
+            response = self.public_s3_client.generate_presigned_post(
                 Bucket=self.aws_storage_bucket_name,
                 Key=object_name,
                 Fields=fields,
@@ -122,7 +135,7 @@ class S3Storage(S3Boto3Storage):
             expiration = self.signed_url_expiration
         content_disposition = self._get_content_disposition(disposition, filename)
         try:
-            response = self.s3_client.generate_presigned_url(
+            response = self.public_s3_client.generate_presigned_url(
                 "get_object",
                 Params={
                     "Bucket": self.aws_storage_bucket_name,

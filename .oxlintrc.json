@@ -39,6 +39,11 @@
     "unicorn/filename-case": "off",
     "unicorn/no-null": "off",
     "unicorn/prevent-abbreviations": "off",
+    "import/no-unassigned-import": "off",
+    "jsx-a11y/no-autofocus": "off",
+    "promise/always-return": "off",
+    "no-unneeded-ternary": "off",
+    "no-shadow": "off",
     "no-unused-vars": [
       "warn",
       {

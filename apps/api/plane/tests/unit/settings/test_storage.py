@@ -222,3 +222,54 @@ class TestS3StorageObjectMetadata:
 
         assert S3Storage().get_object_metadata("ws/missing.png") is None
         assert mock_log.called is logged
+
+
+@pytest.mark.unit
+class TestS3StoragePublicEndpoint:
+    """Test custom public endpoint URL for presigned operations."""
+
+    @patch.dict(
+        os.environ,
+        {
+            "AWS_S3_ENDPOINT_URL": "http://plane-minio:9000",
+            "AWS_S3_PUBLIC_ENDPOINT_URL": "http://localhost:9000",
+        },
+        clear=True,
+    )
+    @patch("plane.settings.storage.boto3")
+    def test_public_endpoint_used_for_presigned_post(self, mock_boto3):
+        internal_client = Mock()
+        public_client = Mock()
+        public_client.generate_presigned_post.return_value = {"url": "http://localhost:9000/uploads"}
+        mock_boto3.client.side_effect = [internal_client, public_client]
+
+        storage = S3Storage()
+        assert storage.public_s3_client == public_client
+        assert storage.s3_client == internal_client
+
+        res = storage.generate_presigned_post("avatar.png", "image/png", 1024)
+        assert res["url"] == "http://localhost:9000/uploads"
+        public_client.generate_presigned_post.assert_called_once()
+        internal_client.generate_presigned_post.assert_not_called()
+
+    @patch.dict(
+        os.environ,
+        {
+            "AWS_S3_ENDPOINT_URL": "http://plane-minio:9000",
+            "AWS_S3_PUBLIC_ENDPOINT_URL": "http://localhost:9000",
+        },
+        clear=True,
+    )
+    @patch("plane.settings.storage.boto3")
+    def test_public_endpoint_used_for_presigned_url(self, mock_boto3):
+        internal_client = Mock()
+        public_client = Mock()
+        public_client.generate_presigned_url.return_value = "http://localhost:9000/uploads/avatar.png"
+        mock_boto3.client.side_effect = [internal_client, public_client]
+
+        storage = S3Storage()
+        res = storage.generate_presigned_url("avatar.png")
+        assert res == "http://localhost:9000/uploads/avatar.png"
+        public_client.generate_presigned_url.assert_called_once()
+        internal_client.generate_presigned_url.assert_not_called()
+
