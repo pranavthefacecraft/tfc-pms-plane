@@ -155,6 +155,42 @@ class ProjectPage(BaseModel):
         return f"{self.project.name} {self.page.name}"
 
 
+class PageEntityLink(BaseModel):
+    """Attaches a workspace page (Tool → Pages) to a single project or work item."""
+
+    ENTITY_PROJECT = "project"
+    ENTITY_ISSUE = "issue"
+    ENTITY_TYPE_CHOICES = ((ENTITY_PROJECT, "Project"), (ENTITY_ISSUE, "Issue"))
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="page_entity_links")
+    page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="entity_links")
+    entity_type = models.CharField(max_length=30, choices=ENTITY_TYPE_CHOICES)
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="page_entity_links")
+    issue = models.ForeignKey(
+        "db.Issue",
+        on_delete=models.CASCADE,
+        related_name="page_entity_links",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["page"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="page_entity_link_unique_page_when_deleted_at_null",
+            )
+        ]
+        verbose_name = "Page Entity Link"
+        verbose_name_plural = "Page Entity Links"
+        db_table = "page_entity_links"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.page_id} -> {self.entity_type}"
+
+
 class PageVersion(BaseModel):
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="page_versions")
     page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="page_versions")

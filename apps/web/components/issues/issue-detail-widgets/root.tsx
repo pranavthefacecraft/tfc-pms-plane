@@ -6,7 +6,10 @@
 
 import React from "react";
 // plane imports
+import { EIssueServiceType } from "@plane/types";
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+// components
+import { IssueAttachedPages } from "@/components/workspace-pages/issue-attached-pages";
 // local imports
 import { IssueDetailWidgetActionButtons } from "./action-buttons";
 import { IssueDetailWidgetCollapsibles } from "./issue-detail-widget-collapsibles";
@@ -52,6 +55,9 @@ export function IssueDetailWidgets(props: Props) {
           issueServiceType={issueServiceType}
           hideWidgets={hideWidgets}
         />
+        {issueServiceType === EIssueServiceType.ISSUES && (
+          <IssueAttachedPages workspaceSlug={workspaceSlug} issueId={issueId} disabled={disabled} />
+        )}
       </div>
       {renderWidgetModals && (
         <IssueDetailWidgetModals

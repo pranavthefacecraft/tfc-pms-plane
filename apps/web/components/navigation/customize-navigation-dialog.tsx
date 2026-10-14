@@ -37,6 +37,7 @@ import {
 } from "@/hooks/use-navigation-preferences";
 // helpers
 import { getSidebarNavigationItemIcon } from "@/components/workspace/sidebar/helper";
+import { IS_STICKIES_SIDEBAR_ENABLED } from "@/components/workspace/sidebar/feature-flags";
 // types
 import type { TPersonalNavigationItemKey } from "@plane/types";
 
@@ -90,7 +91,7 @@ export const CustomizeNavigationDialog = observer(function CustomizeNavigationDi
   const [projectCountInput, setProjectCountInput] = useState(projectPreferences.limitedProjectsCount.toString());
 
   // Filter personal items by feature flags
-  const filteredPersonalItems = PERSONAL_ITEMS;
+  const filteredPersonalItems = PERSONAL_ITEMS.filter((item) => IS_STICKIES_SIDEBAR_ENABLED || item.key !== "stickies");
 
   // Filter workspace items by permissions and feature flags, then get pinned/unpinned items
   const workspaceItems = useMemo(() => {

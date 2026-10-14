@@ -25,7 +25,9 @@ import {
   usePersonalNavigationPreferences,
   useWorkspaceNavigationPreferences,
 } from "@/hooks/use-navigation-preferences";
+import { IS_STICKIES_SIDEBAR_ENABLED } from "./feature-flags";
 import { SidebarItemBase } from "./sidebar-item";
+import { SidebarToolMenu } from "./sidebar-tool-menu";
 
 export const SidebarMenuItems = observer(function SidebarMenuItems() {
   // routers
@@ -53,7 +55,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
 
     // Add personal items based on preferences with their sort_order
     const stickiesItem = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["stickies"];
-    if (personalPreferences.items.stickies?.enabled && stickiesItem) {
+    if (IS_STICKIES_SIDEBAR_ENABLED && personalPreferences.items.stickies?.enabled && stickiesItem) {
       personalItems.push({
         ...stickiesItem,
         sort_order: personalPreferences.items.stickies.sort_order,
@@ -135,6 +137,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
           </SidebarNavItem>
         </div>
       </Collapsible>
+      <SidebarToolMenu />
     </>
   );
 });

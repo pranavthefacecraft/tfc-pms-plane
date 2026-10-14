@@ -11,9 +11,27 @@ from plane.app.views import (
     PagesDescriptionViewSet,
     PageVersionEndpoint,
     PageDuplicateEndpoint,
+    WorkspacePageEndpoint,
+    WorkspacePageDetailEndpoint,
+    WorkspacePageAttachmentEndpoint,
 )
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/workspace-pages/",
+        WorkspacePageEndpoint.as_view(),
+        name="workspace-pages",
+    ),
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/",
+        WorkspacePageDetailEndpoint.as_view(),
+        name="workspace-page-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/attachment/",
+        WorkspacePageAttachmentEndpoint.as_view(),
+        name="workspace-page-attachment",
+    ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages-summary/",
         PageViewSet.as_view({"get": "summary"}),
