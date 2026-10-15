@@ -5,6 +5,7 @@
  */
 
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { Links, Meta, Outlet, Scripts } from "react-router";
 import type { LinksFunction } from "react-router";
 import { ThemeProvider, useTheme } from "next-themes";
@@ -53,6 +54,16 @@ export const links: LinksFunction = () => [
   },
 ];
 
+function SystemThemePreference() {
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    if (theme === "system") setTheme("light");
+  }, [theme, setTheme]);
+
+  return null;
+}
+
 export function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -73,7 +84,20 @@ export function Layout({ children }: { children: ReactNode }) {
       <body suppressHydrationWarning>
         <div id="context-menu-portal" />
         <div id="editor-portal" />
-        <ThemeProvider themes={["light", "dark", "light-contrast", "dark-contrast", "custom"]} defaultTheme="system">
+        <ThemeProvider
+          themes={["light", "dark", "light-contrast", "dark-contrast", "custom"]}
+          defaultTheme="light"
+          enableSystem={false}
+          value={{
+            system: "light",
+            light: "light",
+            dark: "dark",
+            "light-contrast": "light-contrast",
+            "dark-contrast": "dark-contrast",
+            custom: "custom",
+          }}
+        >
+          <SystemThemePreference />
           {children}
         </ThemeProvider>
         <Scripts />

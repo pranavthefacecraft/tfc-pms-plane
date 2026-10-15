@@ -64,6 +64,9 @@ COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 
 # Copy full directory structure before fetch to ensure all package.json files are available
 COPY --from=builder /app/out/full/ .
+# packages/i18n/locales is a git symlink to src/locales; restore it in case the
+# build context came from a checkout without symlink support (e.g. Windows).
+RUN if [ -d packages/i18n/src/locales ] && [ ! -d packages/i18n/locales ]; then rm -f packages/i18n/locales && ln -s src/locales packages/i18n/locales; fi
 COPY turbo.json turbo.json
 
 # Fetch dependencies to cache store, then install offline with dev deps

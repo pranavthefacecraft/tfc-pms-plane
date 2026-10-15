@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 from django.urls import path
+from plane.app.views.page.documents import WhiteboardDocumentEndpoint
 
 
 from plane.app.views import (
@@ -17,6 +18,16 @@ from plane.app.views import (
 )
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/documents/",
+        WhiteboardDocumentEndpoint.as_view(http_method_names=["post", "options"]),
+        name="whiteboard-documents",
+    ),
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/documents/<uuid:asset_id>/",
+        WhiteboardDocumentEndpoint.as_view(http_method_names=["get", "head", "options"]),
+        name="whiteboard-document-detail",
+    ),
     path(
         "workspaces/<str:slug>/workspace-pages/",
         WorkspacePageEndpoint.as_view(),

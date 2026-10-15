@@ -29,6 +29,8 @@ import { useProject } from "@/hooks/store/use-project";
 import type { TWorkspacePage, TWorkspacePageEntityType } from "@/services/page/workspace-page.service";
 import { WorkspacePageService } from "@/services/page/workspace-page.service";
 import { WorkspaceService } from "@/services/workspace.service";
+// local imports
+import { TOOL_TYPE_LABELS } from "./helpers";
 
 const workspacePageService = new WorkspacePageService();
 const workspaceService = new WorkspaceService();
@@ -110,10 +112,16 @@ export const AttachWorkspacePageModal = observer(function AttachWorkspacePageMod
         entity_id: selection.id,
       });
       onAttached(updatedPage);
-      setToast({ type: "success", title: "Page attached", message: "The page was attached successfully." });
+      setToast({
+        type: "success",
+        title: "Attached",
+        message: `The ${TOOL_TYPE_LABELS[page.tool_type].singular} was attached.`,
+      });
       onClose();
     } catch (error: unknown) {
-      const message = (error as { error?: string } | undefined)?.error ?? "Could not attach the page.";
+      const message =
+        (error as { error?: string } | undefined)?.error ??
+        `Could not attach the ${TOOL_TYPE_LABELS[page.tool_type].singular}.`;
       setToast({ type: "error", title: "Error", message });
     } finally {
       setIsSubmitting(false);
@@ -145,7 +153,7 @@ export const AttachWorkspacePageModal = observer(function AttachWorkspacePageMod
         <DialogMain>
           <DialogHeader>
             <DialogHeading>
-              <DialogTitle>Attach page</DialogTitle>
+              <DialogTitle>Attach {TOOL_TYPE_LABELS[page.tool_type].singular}</DialogTitle>
             </DialogHeading>
           </DialogHeader>
           <DialogBody>

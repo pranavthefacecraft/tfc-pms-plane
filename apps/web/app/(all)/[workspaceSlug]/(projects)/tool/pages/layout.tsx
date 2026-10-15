@@ -7,12 +7,12 @@
 import { Outlet } from "react-router";
 import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
-import { WorkspaceToolPagesHeader } from "./header";
+import { WorkspaceToolHeader } from "@/components/workspace-pages/tool-header";
 
 export default function WorkspaceToolPagesLayout() {
   return (
     <>
-      <AppHeader header={<WorkspaceToolPagesHeader />} />
+      <AppHeader header={<WorkspaceToolHeader toolType="page" />} />
       <ContentWrapper>
         <Outlet />
       </ContentWrapper>

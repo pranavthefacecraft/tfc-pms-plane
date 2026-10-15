@@ -9,6 +9,8 @@ import { APIService } from "@/services/api.service";
 
 export type TWorkspacePageEntityType = "project" | "issue";
 
+export type TWorkspaceToolType = "page" | "whiteboard";
+
 export type TWorkspacePageUser = {
   id: string;
   display_name: string;
@@ -31,6 +33,7 @@ export type TWorkspacePageAttachment = {
 export type TWorkspacePage = {
   id: string;
   name: string;
+  tool_type: TWorkspaceToolType;
   access: 0 | 1;
   logo_props: Record<string, unknown>;
   owned_by: string;
@@ -41,9 +44,11 @@ export type TWorkspacePage = {
   updated_at: string;
   attachment: TWorkspacePageAttachment | null;
   description_html?: string;
+  description_json?: Record<string, unknown>;
 };
 
 export type TWorkspacePageListParams = {
+  type?: TWorkspaceToolType;
   query?: string;
   issue_id?: string;
   project_id?: string;
@@ -81,7 +86,7 @@ export class WorkspacePageService extends APIService {
 
   async create(
     workspaceSlug: string,
-    data: Partial<Pick<TWorkspacePage, "name" | "access" | "description_html">>
+    data: Partial<Pick<TWorkspacePage, "name" | "access" | "description_html" | "tool_type">>
   ): Promise<TWorkspacePage> {
     return this.post(this.baseUrl(workspaceSlug), data)
       .then((response) => response?.data)
@@ -93,7 +98,7 @@ export class WorkspacePageService extends APIService {
   async update(
     workspaceSlug: string,
     pageId: string,
-    data: Partial<Pick<TWorkspacePage, "name" | "access" | "description_html" | "logo_props">>
+    data: Partial<Pick<TWorkspacePage, "name" | "access" | "description_html" | "description_json" | "logo_props">>
   ): Promise<TWorkspacePage> {
     return this.patch(`${this.baseUrl(workspaceSlug)}${pageId}/`, data)
       .then((response) => response?.data)

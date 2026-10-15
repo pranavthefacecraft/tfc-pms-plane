@@ -1,5 +1,7 @@
 .git
 *.pyc
+# Local-only junction to packages/i18n/src/locales (not tracked in git)
+packages/i18n/locales
 .env
 venv
 .venv

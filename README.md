@@ -69,6 +69,27 @@ Getting started with Plane is simple. Choose the setup that works best for you:
 
 See [CONTRIBUTING](./CONTRIBUTING.md)
 
+## TFCPMS whiteboards
+
+Open **Tool > Whiteboard**, then use **Attach documents** or drop PDF, Word
+(`.docx`) and Excel (`.xlsx`) files onto the canvas. Documents become movable,
+resizable previews. Double-click a preview to interact with it, scroll, change
+PDF pages or select an Excel sheet. Images still use the existing image tool.
+Drop images separately from documents.
+
+- Save legacy `.doc` and `.xls` files as `.docx` and `.xlsx` before uploading.
+- The instance's `FILE_SIZE_LIMIT` applies (5 MB by default). Office documents
+  are also limited to 25 MB of expanded contents.
+- Word previews retain text, tables and images, not exact Word page layout.
+  Excel previews show cell text, up to 200 rows and 30 columns per sheet;
+  charts and full spreadsheet formatting are not reproduced.
+- Use **Download** to obtain the full original file. Previews run locally in
+  the browser without sending documents to third-party viewing services.
+- Select a single text element and choose **Add / edit text link**. Enter an
+  `https://`, `http://` or `mailto:` URL, or leave it blank to remove the link.
+- Attachments follow the whiteboard's visibility rules. Guests can view
+  accessible previews but cannot upload or edit the board.
+
 ## ⚙️ Built with
 
 [![React Router](https://img.shields.io/badge/-React%20Router-CA4245?logo=react-router&style=for-the-badge&logoColor=white)](https://reactrouter.com/)

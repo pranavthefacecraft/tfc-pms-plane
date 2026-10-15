@@ -4,6 +4,81 @@
 @import "./emoji.css";
 @plugin "@tailwindcss/typography";
 
+body:has(.auth-page) {
+  background-color: #fdfdfe;
+}
+
+.auth-page {
+  color-scheme: light;
+  --bg-canvas: #fdfdfe;
+  --bg-surface-1: #ffffff;
+  --bg-surface-2: #ffffff;
+  --bg-layer-1: #ffffff;
+  --bg-layer-2: #ffffff;
+  --bg-accent-primary: #135ddd;
+  --bg-accent-primary-hover: #104fc0;
+  --bg-accent-primary-active: #0d429f;
+  --txt-primary: #111827;
+  --txt-secondary: #334155;
+  --txt-tertiary: #475569;
+  --txt-placeholder: #64748b;
+  --txt-inverse: #ffffff;
+  --txt-accent-primary: #135ddd;
+  --txt-accent-secondary: #135ddd;
+  --txt-icon-primary: #111827;
+  --border-subtle: #e2e8f0;
+  --border-subtle-1: #cbd5e1;
+  --border-strong: #94a3b8;
+  --border-accent-strong: #135ddd;
+  background-color: #fdfdfe;
+  color: #111827;
+}
+
+.auth-page .auth-card {
+  max-width: 26.5rem;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background-color: #ffffff;
+}
+
+:is(button, a)[data-size]:is(
+    [data-variant="primary"],
+    [data-variant="secondary"],
+    [data-variant="tertiary"],
+    [data-variant="ghost"]
+  ):not([role="tab"], [role="menuitem"], [role="option"]) {
+  background-color: #135ddd;
+  color: #ffffff;
+  border-radius: 100px;
+  border-color: #135ddd;
+}
+
+:is(button, a)[data-size]:is(
+    [data-variant="primary"],
+    [data-variant="secondary"],
+    [data-variant="tertiary"],
+    [data-variant="ghost"]
+  ):not([role="tab"], [role="menuitem"], [role="option"]):hover {
+  background-color: #104fc0;
+}
+
+:is(button, a)[data-size]:is(
+    [data-variant="primary"],
+    [data-variant="secondary"],
+    [data-variant="tertiary"],
+    [data-variant="ghost"]
+  ):not([role="tab"], [role="menuitem"], [role="option"]):is(:disabled, [aria-disabled="true"], [aria-busy="true"]) {
+  background-color: #135ddd;
+  color: #ffffff;
+  opacity: 0.5;
+}
+
+.auth-page img[src="/tfc-pms-logo.png"] {
+  filter: brightness(0) saturate(100%) invert(26%) sepia(96%) saturate(2403%) hue-rotate(214deg) brightness(91%)
+    contrast(91%);
+}
+
 /* stickies and editor colors
  * Text colors and the themed light/dark background ramps come from
  * @plane/editor/styles (imported above), which is their single source of truth.

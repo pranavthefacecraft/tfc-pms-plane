@@ -110,6 +110,13 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/tool/pages", "./(all)/[workspaceSlug]/(projects)/tool/pages/page.tsx"),
           route(":workspaceSlug/tool/pages/:pageId", "./(all)/[workspaceSlug]/(projects)/tool/pages/[pageId]/page.tsx"),
         ]),
+        layout("./(all)/[workspaceSlug]/(projects)/tool/whiteboards/layout.tsx", [
+          route(":workspaceSlug/tool/whiteboards", "./(all)/[workspaceSlug]/(projects)/tool/whiteboards/page.tsx"),
+          route(
+            ":workspaceSlug/tool/whiteboards/:pageId",
+            "./(all)/[workspaceSlug]/(projects)/tool/whiteboards/[pageId]/page.tsx"
+          ),
+        ]),
 
         // Workspace Views
         layout("./(all)/[workspaceSlug]/(projects)/workspace-views/layout.tsx", [

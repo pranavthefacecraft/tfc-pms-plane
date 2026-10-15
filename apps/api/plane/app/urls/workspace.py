@@ -34,6 +34,7 @@ from plane.app.views import (
     QuickLinkViewSet,
     UserRecentVisitViewSet,
     WorkspaceHomePreferenceViewSet,
+    WorkspaceMyTasksEndpoint,
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
 )
@@ -153,6 +154,11 @@ urlpatterns = [
         "workspaces/<str:slug>/user-issues/<uuid:user_id>/",
         WorkspaceUserProfileIssuesEndpoint.as_view(),
         name="workspace-user-profile-issues",
+    ),
+    path(
+        "workspaces/<str:slug>/my-tasks/",
+        WorkspaceMyTasksEndpoint.as_view(),
+        name="workspace-my-tasks",
     ),
     path(
         "workspaces/<str:slug>/labels/",

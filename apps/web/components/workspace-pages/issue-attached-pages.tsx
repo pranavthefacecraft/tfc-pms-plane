@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import useSWR, { mutate as globalMutate } from "swr";
 // plane imports
-import { AddOutline, PagesOutline } from "@makeplane/propel/icons";
+import { AddOutline } from "@makeplane/propel/icons";
 import { setToast } from "@plane/blocks/toast";
 import { calculateTimeAgo } from "@plane/utils";
 // hooks
@@ -20,6 +20,7 @@ import { WorkspacePageService } from "@/services/page/workspace-page.service";
 import {
   ISSUE_WORKSPACE_PAGES_SWR_KEY,
   WORKSPACE_PAGES_SWR_KEY,
+  getToolTypeIcon,
   getWorkspacePageHref,
   getWorkspacePageName,
 } from "./helpers";
@@ -78,23 +79,26 @@ export const IssueAttachedPages = observer(function IssueAttachedPages({ workspa
       </div>
       {pages && pages.length > 0 ? (
         <div className="flex flex-col gap-0.5">
-          {pages.map((page) => (
-            <Link
-              key={page.id}
-              href={getWorkspacePageHref(workspaceSlug, page.id)}
-              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 text-secondary hover:bg-layer-1-hover"
-            >
-              <PagesOutline className="size-4 flex-shrink-0 text-tertiary" />
-              <span className="truncate">{getWorkspacePageName(page)}</span>
-              <span className="ml-auto flex-shrink-0 text-11 text-placeholder">
-                {calculateTimeAgo(page.updated_at)}
-              </span>
-            </Link>
-          ))}
+          {pages.map((page) => {
+            const Icon = getToolTypeIcon(page.tool_type);
+            return (
+              <Link
+                key={page.id}
+                href={getWorkspacePageHref(workspaceSlug, page.id, page.tool_type)}
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 text-secondary hover:bg-layer-1-hover"
+              >
+                <Icon className="size-4 flex-shrink-0 text-tertiary" />
+                <span className="truncate">{getWorkspacePageName(page)}</span>
+                <span className="ml-auto flex-shrink-0 text-11 text-placeholder">
+                  {calculateTimeAgo(page.updated_at)}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <p className="text-12 text-placeholder">
-          No pages attached. Create one here or attach an existing page from Tool → Pages.
+          No pages or whiteboards attached. Create a page here, or attach one from Tool → Pages or Tool → Whiteboard.
         </p>
       )}
     </div>

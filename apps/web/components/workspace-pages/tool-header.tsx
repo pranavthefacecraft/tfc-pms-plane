@@ -9,23 +9,35 @@ import { useParams } from "next/navigation";
 import useSWR from "swr";
 // plane imports
 import { Button } from "@makeplane/propel/components/button";
-import { PagesOutline, ToolOutline } from "@makeplane/propel/icons";
+import { ToolOutline } from "@makeplane/propel/icons";
 import { Breadcrumbs } from "@plane/blocks/breadcrumb";
 import { Header } from "@plane/blocks/layout";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-import { getWorkspacePageName } from "@/components/workspace-pages/helpers";
-import { WORKSPACE_PAGE_DETAIL_SWR_KEY } from "@/components/workspace-pages/page-detail-root";
-import { useCreateWorkspacePage } from "@/components/workspace-pages/use-create-page";
 // services
-import type { TWorkspacePage } from "@/services/page/workspace-page.service";
+import type { TWorkspacePage, TWorkspaceToolType } from "@/services/page/workspace-page.service";
+// local imports
+import {
+  TOOL_TYPE_LABELS,
+  WORKSPACE_PAGE_DETAIL_SWR_KEY,
+  getToolTypeIcon,
+  getWorkspacePageName,
+  getWorkspaceToolListHref,
+} from "./helpers";
+import { useCreateWorkspacePage } from "./use-create-page";
 
-export const WorkspaceToolPagesHeader = observer(function WorkspaceToolPagesHeader() {
+type Props = {
+  toolType: TWorkspaceToolType;
+};
+
+export const WorkspaceToolHeader = observer(function WorkspaceToolHeader({ toolType }: Props) {
   const { workspaceSlug, pageId } = useParams();
   const slug = workspaceSlug?.toString() ?? "";
   const currentPageId = pageId?.toString();
+  const labels = TOOL_TYPE_LABELS[toolType];
+  const ToolIcon = getToolTypeIcon(toolType);
   // hooks
-  const { createPage, isCreating } = useCreateWorkspacePage(slug);
+  const { createPage, isCreating } = useCreateWorkspacePage(slug, toolType);
   // the detail view populates this cache entry; the header only reads it
   const { data: page } = useSWR<TWorkspacePage>(
     currentPageId ? WORKSPACE_PAGE_DETAIL_SWR_KEY(slug, currentPageId) : null,
@@ -42,9 +54,9 @@ export const WorkspaceToolPagesHeader = observer(function WorkspaceToolPagesHead
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
-                label="Pages"
-                href={currentPageId ? `/${slug}/tool/pages/` : undefined}
-                icon={<PagesOutline className="size-4 text-tertiary" />}
+                label={labels.plural}
+                href={currentPageId ? getWorkspaceToolListHref(slug, toolType) : undefined}
+                icon={<ToolIcon className="size-4 text-tertiary" />}
               />
             }
           />
@@ -59,7 +71,7 @@ export const WorkspaceToolPagesHeader = observer(function WorkspaceToolPagesHead
             variant="primary"
             size="md"
             stretch="auto"
-            label="Create page"
+            label={`Create ${labels.singular}`}
             loading={isCreating}
             onClick={() => void createPage()}
           />

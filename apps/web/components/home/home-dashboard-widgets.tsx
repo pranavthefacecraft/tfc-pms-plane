@@ -19,10 +19,10 @@ import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-ro
 import { useHome } from "@/hooks/store/use-home";
 import { useProject } from "@/hooks/store/use-project";
 // local imports
-import { StickiesWidget } from "../stickies/widget";
 import { HomeLoader, NoProjectsEmptyState, RecentActivityWidget } from "./widgets";
 import { DashboardQuickLinks } from "./widgets/links";
 import { ManageWidgetsModal } from "./widgets/manage";
+import { MyTasksWidget } from "./widgets/my-tasks/root";
 
 export const HOME_WIDGETS_LIST: {
   [key in THomeWidgetKeys]: {
@@ -41,8 +41,9 @@ export const HOME_WIDGETS_LIST: {
     fullWidth: false,
     title: "home.recents.title",
   },
+  // Stickies are hidden for now; restore `StickiesWidget` from "../stickies/widget" to bring them back.
   my_stickies: {
-    component: StickiesWidget,
+    component: null,
     fullWidth: false,
     title: "stickies.title",
   },
@@ -66,13 +67,15 @@ export const DashboardWidgets = observer(function DashboardWidgets() {
   // theme hook
   const { resolvedTheme } = useTheme();
   // store hooks
-  const { toggleWidgetSettings, widgetsMap, showWidgetSettings, orderedWidgets, isAnyWidgetEnabled, loading } =
-    useHome();
+  const { toggleWidgetSettings, widgetsMap, showWidgetSettings, orderedWidgets, loading } = useHome();
   const { loader } = useProject();
   // plane hooks
   const { t } = useTranslation();
   // derived values
   const noWidgetsResolvedPath = resolvedTheme === "light" ? lightWidgetsAsset : darkWidgetsAsset;
+  const isAnyWidgetEnabled = orderedWidgets.some(
+    (key) => !!HOME_WIDGETS_LIST[key]?.component && !!widgetsMap[key]?.is_enabled
+  );
 
   // derived values
   const isWikiApp = pathname.includes(`/${workspaceSlug.toString()}/pages`);
@@ -87,6 +90,8 @@ export const DashboardWidgets = observer(function DashboardWidgets() {
         handleOnClose={() => toggleWidgetSettings(false)}
       />
       {!isWikiApp && <NoProjectsEmptyState />}
+
+      {!isWikiApp && <MyTasksWidget workspaceSlug={workspaceSlug.toString()} />}
 
       {isAnyWidgetEnabled ? (
         <div className="flex flex-col">

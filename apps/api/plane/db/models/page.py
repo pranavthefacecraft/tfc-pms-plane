@@ -25,6 +25,10 @@ class Page(BaseModel):
     PUBLIC_ACCESS = 0
     DEFAULT_SORT_ORDER = 65535
 
+    TOOL_TYPE_PAGE = "page"
+    TOOL_TYPE_WHITEBOARD = "whiteboard"
+    TOOL_TYPE_CHOICES = ((TOOL_TYPE_PAGE, "Page"), (TOOL_TYPE_WHITEBOARD, "Whiteboard"))
+
     ACCESS_CHOICES = ((PRIVATE_ACCESS, "Private"), (PUBLIC_ACCESS, "Public"))
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="pages")
@@ -49,6 +53,8 @@ class Page(BaseModel):
     view_props = models.JSONField(default=get_view_props)
     logo_props = models.JSONField(default=dict)
     is_global = models.BooleanField(default=False)
+    # Kind of workspace Tool page (only used when is_global=True); whiteboards store their scene in description_json.
+    tool_type = models.CharField(max_length=20, choices=TOOL_TYPE_CHOICES, default=TOOL_TYPE_PAGE)
     projects = models.ManyToManyField("db.Project", related_name="pages", through="db.ProjectPage")
     moved_to_page = models.UUIDField(null=True, blank=True)
     moved_to_project = models.UUIDField(null=True, blank=True)

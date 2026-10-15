@@ -21,6 +21,7 @@ from plane.db.models import Issue, Page, PageEntityLink, ProjectMember, Workspac
 from ..base import BaseAPIView
 
 EDITABLE_FIELDS = ("name", "description_html", "logo_props")
+TOOL_TYPES = (Page.TOOL_TYPE_PAGE, Page.TOOL_TYPE_WHITEBOARD)
 
 
 def _is_uuid(value):
@@ -80,6 +81,7 @@ def serialize_workspace_page(page, member_project_ids, include_description=False
     data = {
         "id": str(page.id),
         "name": page.name,
+        "tool_type": page.tool_type,
         "access": page.access,
         "logo_props": page.logo_props,
         "owned_by": str(page.owned_by_id),
@@ -91,7 +93,10 @@ def serialize_workspace_page(page, member_project_ids, include_description=False
         "attachment": _serialize_attachment(links[0] if links else None, member_project_ids),
     }
     if include_description:
-        data["description_html"] = page.description_html
+        if page.tool_type == Page.TOOL_TYPE_WHITEBOARD:
+            data["description_json"] = page.description_json
+        else:
+            data["description_html"] = page.description_html
     return data
 
 
@@ -126,6 +131,12 @@ class WorkspacePageEndpoint(WorkspacePageMixin, BaseAPIView):
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
         pages = self.get_pages(request, slug)
+
+        tool_type = request.query_params.get("type")
+        if tool_type:
+            if tool_type not in TOOL_TYPES:
+                return Response({"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
+            pages = pages.filter(tool_type=tool_type)
 
         query = request.query_params.get("query")
         if query:
@@ -162,6 +173,9 @@ class WorkspacePageEndpoint(WorkspacePageMixin, BaseAPIView):
         access = request.data.get("access", Page.PUBLIC_ACCESS)
         if access not in (Page.PUBLIC_ACCESS, Page.PRIVATE_ACCESS):
             return Response({"error": "Invalid access value"}, status=status.HTTP_400_BAD_REQUEST)
+        tool_type = request.data.get("tool_type", Page.TOOL_TYPE_PAGE)
+        if tool_type not in TOOL_TYPES:
+            return Response({"error": "Invalid tool_type value"}, status=status.HTTP_400_BAD_REQUEST)
 
         page = Page.objects.create(
             workspace=workspace,
@@ -170,6 +184,7 @@ class WorkspacePageEndpoint(WorkspacePageMixin, BaseAPIView):
             access=access,
             owned_by=request.user,
             is_global=True,
+            tool_type=tool_type,
         )
         page = self.get_pages(request, slug).get(pk=page.id)
         return Response(
@@ -208,6 +223,11 @@ class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
         for field in EDITABLE_FIELDS:
             if field in request.data:
                 setattr(page, field, request.data[field] if request.data[field] is not None else "")
+        if page.tool_type == Page.TOOL_TYPE_WHITEBOARD and "description_json" in request.data:
+            scene = request.data["description_json"]
+            if not isinstance(scene, dict):
+                return Response({"error": "description_json must be an object"}, status=status.HTTP_400_BAD_REQUEST)
+            page.description_json = scene
         page.save()
 
         page = self.get_pages(request, slug).get(pk=page.id)

@@ -8,14 +8,17 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { Collapsible } from "@makeplane/propel/components/collapsible";
-import { PagesOutline, ToolOutline } from "@makeplane/propel/icons";
+import { PagesOutline, PenToolOutline, ToolOutline } from "@makeplane/propel/icons";
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useLocalStorage from "@/hooks/use-local-storage";
 
-const TOOL_ITEMS = [{ key: "pages", label: "Pages", path: "tool/pages", icon: PagesOutline }];
+const TOOL_ITEMS = [
+  { key: "pages", label: "Pages", path: "tool/pages", icon: PagesOutline },
+  { key: "whiteboards", label: "Whiteboard", path: "tool/whiteboards", icon: PenToolOutline },
+];
 
 export const SidebarToolMenu = observer(function SidebarToolMenu() {
   const { workspaceSlug } = useParams();

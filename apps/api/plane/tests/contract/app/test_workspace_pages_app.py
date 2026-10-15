@@ -181,3 +181,50 @@ class TestWorkspacePages:
         response = session_client.delete(_pages_url(workspace.slug, page.id))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.contract
+class TestWorkspaceWhiteboards:
+    @pytest.mark.django_db
+    def test_create_whiteboard_and_filter_by_type(self, session_client, workspace):
+        board = session_client.post(
+            _pages_url(workspace.slug), {"name": "Retro", "tool_type": "whiteboard"}, format="json"
+        ).json()
+        page = session_client.post(_pages_url(workspace.slug), {"name": "Notes"}, format="json").json()
+
+        assert board["tool_type"] == "whiteboard"
+        assert board["description_json"] == {}
+        assert "description_html" not in board
+        assert page["tool_type"] == "page"
+
+        boards = session_client.get(_pages_url(workspace.slug), {"type": "whiteboard"}).json()
+        pages = session_client.get(_pages_url(workspace.slug), {"type": "page"}).json()
+        assert [b["id"] for b in boards] == [board["id"]]
+        assert [p["id"] for p in pages] == [page["id"]]
+        assert session_client.get(_pages_url(workspace.slug), {"type": "bogus"}).status_code == 400
+
+    @pytest.mark.django_db
+    def test_invalid_tool_type_rejected(self, session_client, workspace):
+        response = session_client.post(_pages_url(workspace.slug), {"tool_type": "canvas"}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_save_whiteboard_scene(self, session_client, workspace):
+        board = session_client.post(_pages_url(workspace.slug), {"tool_type": "whiteboard"}, format="json").json()
+        scene = {"elements": [{"id": "a", "type": "rectangle"}], "appState": {}, "files": {}}
+
+        response = session_client.patch(
+            _pages_url(workspace.slug, board["id"]), {"description_json": scene}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["description_json"] == scene
+        assert Page.objects.get(pk=board["id"]).description_json == scene
+
+        bad = session_client.patch(_pages_url(workspace.slug, board["id"]), {"description_json": [1]}, format="json")
+        assert bad.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_scene_ignored_for_regular_pages(self, session_client, workspace):
+        page = session_client.post(_pages_url(workspace.slug), {"name": "Doc"}, format="json").json()
+        session_client.patch(_pages_url(workspace.slug, page["id"]), {"description_json": {"x": 1}}, format="json")
+        assert Page.objects.get(pk=page["id"]).description_json == {}

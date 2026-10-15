@@ -11,12 +11,13 @@ import { setToast } from "@plane/blocks/toast";
 import { useAppRouter } from "@/hooks/use-app-router";
 // services
 import { WorkspacePageService } from "@/services/page/workspace-page.service";
+import type { TWorkspaceToolType } from "@/services/page/workspace-page.service";
 // local imports
-import { WORKSPACE_PAGES_SWR_KEY, getWorkspacePageHref } from "./helpers";
+import { TOOL_TYPE_LABELS, WORKSPACE_PAGES_SWR_KEY, getWorkspacePageHref } from "./helpers";
 
 const workspacePageService = new WorkspacePageService();
 
-export const useCreateWorkspacePage = (workspaceSlug: string) => {
+export const useCreateWorkspacePage = (workspaceSlug: string, toolType: TWorkspaceToolType = "page") => {
   const router = useAppRouter();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -24,16 +25,18 @@ export const useCreateWorkspacePage = (workspaceSlug: string) => {
     if (!workspaceSlug) return;
     setIsCreating(true);
     try {
-      const page = await workspacePageService.create(workspaceSlug, { name: "" });
-      await mutate(WORKSPACE_PAGES_SWR_KEY(workspaceSlug));
-      router.push(getWorkspacePageHref(workspaceSlug, page.id));
+      const page = await workspacePageService.create(workspaceSlug, { name: "", tool_type: toolType });
+      await mutate(WORKSPACE_PAGES_SWR_KEY(workspaceSlug, toolType));
+      router.push(getWorkspacePageHref(workspaceSlug, page.id, toolType));
     } catch (error: unknown) {
-      const message = (error as { error?: string } | undefined)?.error ?? "Could not create the page.";
+      const message =
+        (error as { error?: string } | undefined)?.error ??
+        `Could not create the ${TOOL_TYPE_LABELS[toolType].singular}.`;
       setToast({ type: "error", title: "Error", message });
     } finally {
       setIsCreating(false);
     }
-  }, [router, workspaceSlug]);
+  }, [router, toolType, workspaceSlug]);
 
   return { createPage, isCreating };
 };

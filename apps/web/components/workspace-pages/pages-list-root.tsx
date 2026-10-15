@@ -12,19 +12,21 @@ import useSWR from "swr";
 import { Avatar } from "@makeplane/propel/components/avatar";
 import { Button } from "@makeplane/propel/components/button";
 import { Input, InputGroup } from "@makeplane/propel/components/input";
-import { DeleteOutline, GlobeOutline, LockOutline, PagesOutline } from "@makeplane/propel/icons";
+import { DeleteOutline, GlobeOutline, LockOutline } from "@makeplane/propel/icons";
 import { setToast } from "@plane/blocks/toast";
 import { calculateTimeAgo, getFileURL } from "@plane/utils";
 // hooks
 import { useUser } from "@/hooks/store/user";
 // services
-import type { TWorkspacePage, TWorkspacePageUser } from "@/services/page/workspace-page.service";
+import type { TWorkspacePage, TWorkspacePageUser, TWorkspaceToolType } from "@/services/page/workspace-page.service";
 import { WORKSPACE_PAGE_ACCESS, WorkspacePageService } from "@/services/page/workspace-page.service";
 // local imports
 import {
+  TOOL_TYPE_LABELS,
   WORKSPACE_PAGES_SWR_KEY,
   getAttachmentHref,
   getAttachmentLabel,
+  getToolTypeIcon,
   getWorkspacePageHref,
   getWorkspacePageName,
 } from "./helpers";
@@ -34,6 +36,7 @@ const workspacePageService = new WorkspacePageService();
 
 type Props = {
   workspaceSlug: string;
+  toolType?: TWorkspaceToolType;
 };
 
 const UserCell = ({ user }: { user: TWorkspacePageUser | null }) => {
@@ -51,20 +54,25 @@ const UserCell = ({ user }: { user: TWorkspacePageUser | null }) => {
   );
 };
 
-export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({ workspaceSlug }: Props) {
+export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
+  workspaceSlug,
+  toolType = "page",
+}: Props) {
+  const labels = TOOL_TYPE_LABELS[toolType];
+  const ToolIcon = getToolTypeIcon(toolType);
   // states
   const [search, setSearch] = useState("");
   // store hooks
   const { data: currentUser } = useUser();
-  const { createPage, isCreating } = useCreateWorkspacePage(workspaceSlug);
+  const { createPage, isCreating } = useCreateWorkspacePage(workspaceSlug, toolType);
   // fetch
   const {
     data: pages,
     isLoading,
     mutate,
   } = useSWR(
-    workspaceSlug ? WORKSPACE_PAGES_SWR_KEY(workspaceSlug) : null,
-    workspaceSlug ? () => workspacePageService.list(workspaceSlug) : null,
+    workspaceSlug ? WORKSPACE_PAGES_SWR_KEY(workspaceSlug, toolType) : null,
+    workspaceSlug ? () => workspacePageService.list(workspaceSlug, { type: toolType }) : null,
     { revalidateOnFocus: false }
   );
 
@@ -79,9 +87,9 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
     try {
       await workspacePageService.destroy(workspaceSlug, page.id);
       await mutate((current) => current?.filter((item) => item.id !== page.id), { revalidate: false });
-      setToast({ type: "success", title: "Page deleted", message: "The page was deleted." });
+      setToast({ type: "success", title: "Deleted", message: `The ${labels.singular} was deleted.` });
     } catch (error: unknown) {
-      const message = (error as { error?: string } | undefined)?.error ?? "Could not delete the page.";
+      const message = (error as { error?: string } | undefined)?.error ?? `Could not delete the ${labels.singular}.`;
       setToast({ type: "error", title: "Error", message });
     }
   };
@@ -96,8 +104,8 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search pages"
-              aria-label="Search pages"
+              placeholder={`Search ${labels.plural.toLowerCase()}`}
+              aria-label={`Search ${labels.plural.toLowerCase()}`}
             />
           </InputGroup>
         </div>
@@ -120,7 +128,7 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
             {isLoading && (
               <tr>
                 <td colSpan={7} className="px-4 py-6 text-center text-placeholder">
-                  Loading pages...
+                  Loading {labels.plural.toLowerCase()}...
                 </td>
               </tr>
             )}
@@ -128,20 +136,24 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
               <tr>
                 <td colSpan={7} className="px-4 py-12">
                   <div className="flex flex-col items-center gap-3 text-center">
-                    <PagesOutline className="size-8 text-placeholder" />
+                    <ToolIcon className="size-8 text-placeholder" />
                     <p className="text-14 font-medium text-primary">
-                      {search ? "No pages match your search" : "No pages yet"}
+                      {search
+                        ? `No ${labels.plural.toLowerCase()} match your search`
+                        : `No ${labels.plural.toLowerCase()} yet`}
                     </p>
                     {!search && (
                       <>
                         <p className="max-w-sm text-13 text-tertiary">
-                          Create a page to write docs, specs or notes, then attach it to a task or project.
+                          {toolType === "whiteboard"
+                            ? "Create a whiteboard to sketch ideas, diagrams or flows, then attach it to a task or project."
+                            : "Create a page to write docs, specs or notes, then attach it to a task or project."}
                         </p>
                         <Button
                           variant="primary"
                           size="md"
                           stretch="auto"
-                          label="Create page"
+                          label={`Create ${labels.singular}`}
                           loading={isCreating}
                           onClick={() => void createPage()}
                         />
@@ -160,10 +172,10 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
                 <tr key={page.id} className="group border-t border-subtle hover:bg-layer-1-hover">
                   <td className="px-4 py-2.5">
                     <Link
-                      href={getWorkspacePageHref(workspaceSlug, page.id)}
+                      href={getWorkspacePageHref(workspaceSlug, page.id, toolType)}
                       className="flex min-w-0 items-center gap-2 font-medium text-primary"
                     >
-                      <PagesOutline className="size-4 flex-shrink-0 text-tertiary" />
+                      <ToolIcon className="size-4 flex-shrink-0 text-tertiary" />
                       <span className="truncate">{getWorkspacePageName(page)}</span>
                     </Link>
                   </td>

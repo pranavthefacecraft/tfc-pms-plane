@@ -13,6 +13,7 @@ import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 import { setToast } from "@plane/blocks/toast";
 import { useHome } from "@/hooks/store/use-home";
+import { HOME_WIDGETS_LIST } from "../../home-dashboard-widgets";
 import { WidgetItem } from "./widget-item";
 import type { TargetData } from "./widget.helpers";
 import { getInstructionFromPayload } from "./widget.helpers";
@@ -20,6 +21,7 @@ import { getInstructionFromPayload } from "./widget.helpers";
 export const WidgetList = observer(function WidgetList({ workspaceSlug }: { workspaceSlug: string }) {
   const { orderedWidgets, reorderWidget, toggleWidget } = useHome();
   const { t } = useTranslation();
+  const visibleWidgets = orderedWidgets.filter((key) => !!HOME_WIDGETS_LIST[key]?.component);
 
   const handleDrop = (self: DropTargetRecord, source: ElementDragPayload, location: DragLocationHistory) => {
     const dropTargets = location?.current?.dropTargets ?? [];
@@ -56,11 +58,11 @@ export const WidgetList = observer(function WidgetList({ workspaceSlug }: { work
 
   return (
     <div className="my-4">
-      {orderedWidgets.map((widget, index) => (
+      {visibleWidgets.map((widget, index) => (
         <WidgetItem
           key={widget}
           widgetId={widget}
-          isLastChild={index === orderedWidgets.length - 1}
+          isLastChild={index === visibleWidgets.length - 1}
           handleDrop={handleDrop}
           handleToggle={toggleWidget}
         />

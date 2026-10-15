@@ -1,0 +1,203 @@
+# TFC PMS production stack.
+#
+# CloudPanel's nginx terminates TLS for the domain and forwards everything to
+# the Plane proxy below, which only listens on 127.0.0.1:${LISTEN_HTTP_PORT}.
+# Images are built on a workstation and streamed to the server (see README.md),
+# so the `build` sections are only used on the build machine.
+name: tfcpms
+
+x-db-env: &db-env
+  PGHOST: plane-db
+  PGDATABASE: ${POSTGRES_DB:-plane}
+  POSTGRES_USER: ${POSTGRES_USER:-plane}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  POSTGRES_DB: ${POSTGRES_DB:-plane}
+  POSTGRES_PORT: 5432
+  PGDATA: /var/lib/postgresql/data
+
+x-redis-env: &redis-env
+  REDIS_HOST: plane-redis
+  REDIS_PORT: 6379
+  REDIS_URL: redis://plane-redis:6379/
+
+x-minio-env: &minio-env
+  MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID}
+  MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
+
+x-aws-s3-env: &aws-s3-env
+  AWS_REGION: ${AWS_REGION:-}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+  AWS_S3_ENDPOINT_URL: http://plane-minio:9000
+  AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
+
+x-proxy-env: &proxy-env
+  APP_DOMAIN: ${APP_DOMAIN}
+  FILE_SIZE_LIMIT: ${FILE_SIZE_LIMIT:-5242880}
+  BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
+  # Plain HTTP only: TLS is handled by CloudPanel's nginx in front of this proxy.
+  SITE_ADDRESS: ":80"
+
+x-mq-env: &mq-env
+  RABBITMQ_HOST: plane-mq
+  RABBITMQ_PORT: 5672
+  RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-plane}
+  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+  RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-plane}
+  RABBITMQ_VHOST: ${RABBITMQ_VHOST:-plane}
+
+x-app-env: &app-env
+  WEB_URL: ${WEB_URL}
+  DEBUG: 0
+  CORS_ALLOWED_ORIGINS: ${WEB_URL}
+  GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+  USE_MINIO: 1
+  MINIO_ENDPOINT_SSL: ${MINIO_ENDPOINT_SSL:-1}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-plane}:${POSTGRES_PASSWORD}@plane-db/${POSTGRES_DB:-plane}
+  SECRET_KEY: ${SECRET_KEY}
+  AMQP_URL: amqp://${RABBITMQ_USER:-plane}:${RABBITMQ_PASSWORD}@plane-mq:5672/${RABBITMQ_VHOST:-plane}
+  API_KEY_RATE_LIMIT: ${API_KEY_RATE_LIMIT:-60/minute}
+  LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+
+x-backend: &backend
+  image: tfcpms/plane-backend:${APP_RELEASE:-latest}
+  build:
+    context: ../../apps/api
+    dockerfile: Dockerfile.api
+  restart: unless-stopped
+  environment:
+    <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env, *mq-env]
+  depends_on:
+    - plane-db
+    - plane-redis
+    - plane-mq
+
+services:
+  web:
+    image: tfcpms/plane-frontend:${APP_RELEASE:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/web/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  space:
+    image: tfcpms/plane-space:${APP_RELEASE:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/space/Dockerfile.space
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  admin:
+    image: tfcpms/plane-admin:${APP_RELEASE:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/admin/Dockerfile.admin
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  live:
+    image: tfcpms/plane-live:${APP_RELEASE:-latest}
+    build:
+      context: ../../
+      dockerfile: apps/live/Dockerfile.live
+    restart: unless-stopped
+    environment:
+      <<: *redis-env
+      API_BASE_URL: http://api:8000
+      LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+    depends_on:
+      - api
+
+  api:
+    <<: *backend
+    command: ./bin/docker-entrypoint-api.sh
+    volumes:
+      - logs_api:/code/plane/logs
+
+  worker:
+    <<: *backend
+    command: ./bin/docker-entrypoint-worker.sh
+    volumes:
+      - logs_worker:/code/plane/logs
+
+  beat-worker:
+    <<: *backend
+    command: ./bin/docker-entrypoint-beat.sh
+    volumes:
+      - logs_beat-worker:/code/plane/logs
+
+  migrator:
+    <<: *backend
+    command: ./bin/docker-entrypoint-migrator.sh
+    restart: on-failure
+    volumes:
+      - logs_migrator:/code/plane/logs
+
+  plane-db:
+    image: postgres:15.7-alpine
+    command: postgres -c 'max_connections=200'
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  plane-redis:
+    image: valkey/valkey:7.2.11-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+  plane-mq:
+    image: rabbitmq:3.13.6-management-alpine
+    restart: unless-stopped
+    environment:
+      <<: *mq-env
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  plane-minio:
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    command: server /export --console-address ":9090"
+    restart: unless-stopped
+    environment:
+      <<: *minio-env
+    volumes:
+      - uploads:/export
+
+  proxy:
+    image: tfcpms/plane-proxy:${APP_RELEASE:-latest}
+    build:
+      context: ../../apps/proxy
+      dockerfile: Dockerfile.ce
+    restart: unless-stopped
+    environment:
+      <<: *proxy-env
+    ports:
+      - "127.0.0.1:${LISTEN_HTTP_PORT:-8090}:80"
+    volumes:
+      - proxy_config:/config
+      - proxy_data:/data
+    depends_on:
+      - web
+      - api
+      - space
+      - admin
+      - live
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  logs_api:
+  logs_worker:
+  logs_beat-worker:
+  logs_migrator:
+  rabbitmq_data:
+  proxy_config:
+  proxy_data:
