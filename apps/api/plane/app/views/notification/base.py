@@ -19,6 +19,8 @@ from plane.db.models import (
     IssueAssignee,
     IssueSubscriber,
     Notification,
+    Page,
+    ProjectMember,
     UserNotificationPreference,
     WorkspaceMember,
 )
@@ -28,6 +30,28 @@ from plane.app.permissions import allow_permission, ROLE
 
 # Module imports
 from ..base import BaseAPIView, BaseViewSet
+
+
+def visible_notification_entities(user, slug):
+    boards = Page.objects.filter(
+        workspace__slug=slug,
+        tool_type=Page.TOOL_TYPE_WHITEBOARD,
+        is_global=True,
+        parent__isnull=True,
+        archived_at__isnull=True,
+    ).filter(Q(access=Page.PUBLIC_ACCESS) | Q(owned_by=user))
+    visible_issues = Issue.objects.filter(
+        workspace__slug=slug,
+        project_id__in=ProjectMember.objects.filter(
+            member=user,
+            is_active=True,
+            role__in=[15, 20],
+            project__archived_at__isnull=True,
+        ).values("project_id"),
+    )
+    return (~Q(entity_name="whiteboard") | Q(entity_identifier__in=boards.values("id"))) & (
+        ~Q(sender="custom_field.updated") | Q(entity_identifier__in=visible_issues.values("id"))
+    )
 
 
 class NotificationViewSet(BaseViewSet, BasePaginator):
@@ -42,6 +66,7 @@ class NotificationViewSet(BaseViewSet, BasePaginator):
                 workspace__slug=self.kwargs.get("slug"),
                 receiver_id=self.request.user.id,
             )
+            .filter(visible_notification_entities(self.request.user, self.kwargs.get("slug")))
             .select_related("workspace", "project", "triggered_by", "receiver")
         )
 
@@ -63,7 +88,8 @@ class NotificationViewSet(BaseViewSet, BasePaginator):
 
         notifications = (
             Notification.objects.filter(workspace__slug=slug, receiver_id=request.user.id)
-            .filter(entity_name="issue")
+            .filter(entity_name__in=["issue", "whiteboard"])
+            .filter(visible_notification_entities(request.user, slug))
             .annotate(is_inbox_issue=Exists(intake_issue))
             .annotate(is_intake_issue=Exists(intake_issue))
             .annotate(
@@ -212,18 +238,23 @@ class UnreadNotificationEndpoint(BaseAPIView):
                 archived_at__isnull=True,
                 snoozed_till__isnull=True,
             )
+            .filter(visible_notification_entities(request.user, slug))
             .exclude(sender__icontains="mentioned")
             .count()
         )
 
-        mention_notifications_count = Notification.objects.filter(
-            workspace__slug=slug,
-            receiver_id=request.user.id,
-            read_at__isnull=True,
-            archived_at__isnull=True,
-            snoozed_till__isnull=True,
-            sender__icontains="mentioned",
-        ).count()
+        mention_notifications_count = (
+            Notification.objects.filter(
+                workspace__slug=slug,
+                receiver_id=request.user.id,
+                read_at__isnull=True,
+                archived_at__isnull=True,
+                snoozed_till__isnull=True,
+                sender__icontains="mentioned",
+            )
+            .filter(visible_notification_entities(request.user, slug))
+            .count()
+        )
 
         return Response(
             {

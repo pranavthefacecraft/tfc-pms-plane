@@ -90,6 +90,65 @@ Drop images separately from documents.
 - Attachments follow the whiteboard's visibility rules. Guests can view
   accessible previews but cannot upload or edit the board.
 
+### Canvas comments
+
+Choose the **Add comment** speech-bubble icon in the drawing toolbar, then click
+a canvas location to start a pinned thread. Click the icon again or press Escape
+to cancel placement. When the drawing toolbar is hidden (including read-only
+boards), the icon remains available beside **Comments**.
+Pins remain anchored while panning and zooming. Open a pin to reply, or use
+**Comments** to find threads and optionally show resolved discussions. Any
+workspace member or guest who can view the whiteboard can comment, resolve and
+reopen threads; this does not grant drawing-edit permissions.
+
+Type `@` in the composer and select a workspace member to mention them.
+Mentioned users receive an in-app **Inbox > Mentions** notification linking to
+the thread, subject to their mention preference and current board access.
+Email notifications are not sent for whiteboard comments. Threads refresh every
+15 seconds and when the browser regains focus.
+
+Comments support up to 10 downloadable attachments: PDF, Word (`.doc`, `.docx`),
+Excel (`.xls`, `.xlsx`), PNG, JPG, TXT, CSV and ZIP. Each file uses the instance's
+upload size limit. These are downloaded as originals, not rendered inline.
+Comments are stored independently from the drawing so saving a scene cannot
+overwrite a discussion.
+
+### Task details
+
+Task previews and full-page details show **Assignees**, **Due date** and
+**Dependencies** directly below the title, before the description. Editable titles
+show a subtle border on hover and while focused. The summary uses
+the existing task fields and permissions; assignee and due-date controls have
+moved from the lower Properties section. Dependencies use **Blocked by** for
+prerequisites and **Blocking** for tasks waiting on this one. Use the edit icon
+to add a dependency and the remove icon on a dependency chip to unlink it.
+The existing Relations section remains available for all relation types.
+
+### Project custom fields
+
+On a project's Work Items page, open **Customize > Fields > Add field > Create
+new**. Project admins and members can create, edit and remove fields for that
+project only. Supported types are single-select, multi-select (both with colored
+options), text, number and date. Every existing and new project starts with
+editable **Stage** and **Status** single-select fields; these do not replace
+Plane's built-in State or Priority.
+
+Fields appear below Dependencies and before Description in task previews and
+full-page details, not on board cards or as list columns. Select values save
+immediately; text, number and date values use **Save** and **Cancel**. Archived
+tasks and projects are read-only, and guests can only read values on tasks they
+can access.
+
+Field types cannot change after creation. Renaming or recoloring an option
+preserves its saved selections. Clear task values before removing an option in
+use. Removing a field hides it and its values throughout the project.
+
+Enable **Notify task collaborators when this field changes** on a field to send
+in-app Inbox notifications to the task creator, assignees and subscribers who
+are active project/workspace members or admins. The person making the change
+is excluded, and property-change notification preferences are respected.
+Notifications are off by default; no email is sent.
+
 ## ⚙️ Built with
 
 [![React Router](https://img.shields.io/badge/-React%20Router-CA4245?logo=react-router&style=for-the-badge&logoColor=white)](https://reactrouter.com/)

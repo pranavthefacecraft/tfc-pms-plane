@@ -7,6 +7,7 @@ from .api import APIActivityLog, APIToken
 from .asset import FileAsset
 from .base import BaseModel
 from .cycle import Cycle, CycleIssue, CycleUserProperties
+from .custom_field import ProjectCustomField, IssueCustomFieldValue
 from .deploy_board import DeployBoard
 from .draft import (
     DraftIssue,
@@ -48,7 +49,16 @@ from .issue import (
 )
 from .module import Module, ModuleIssue, ModuleLink, ModuleMember, ModuleUserProperties
 from .notification import EmailNotificationLog, Notification, UserNotificationPreference
-from .page import Page, PageEntityLink, PageLabel, PageLog, ProjectPage, PageVersion
+from .page import (
+    Page,
+    PageEntityLink,
+    PageLabel,
+    PageLog,
+    ProjectPage,
+    PageVersion,
+    WhiteboardThread,
+    WhiteboardComment,
+)
 from .project import (
     Project,
     ProjectBaseModel,

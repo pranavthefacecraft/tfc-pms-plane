@@ -10,10 +10,8 @@ import { useTranslation } from "@plane/i18n";
 // ui
 import {
   CyclesOutline,
-  DueDateOutline,
   EstimateOutline,
   LabelsOutline,
-  MembersOutline,
   ModuleOutline,
   ParentOutline,
   PriorityOutline,
@@ -22,11 +20,10 @@ import {
   UserOutline,
 } from "@makeplane/propel/icons";
 import { DateSelect } from "@plane/blocks/property-select";
-import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import { getDate, renderFormattedPayloadDate } from "@plane/utils";
 // components
 import { EstimateSelect } from "@/components/dropdowns/estimate/estimate-select";
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
-import { MemberSelect } from "@/components/dropdowns/member/member-select";
 import { PrioritySelect } from "@/components/dropdowns/priority/priority-select";
 import { StateSelect } from "@/components/dropdowns/state/state-select";
 // hooks
@@ -34,7 +31,6 @@ import { useProjectEstimates } from "@/hooks/store/estimates";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
-import { useProjectState } from "@/hooks/store/use-project-state";
 import { useUserProfile } from "@/hooks/store/user";
 // components
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
@@ -62,7 +58,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
     issue: { getIssueById },
   } = useIssueDetail();
   const { getUserDetails } = useMember();
-  const { getStateById } = useProjectState();
   const { data: userProfile } = useUserProfile();
   const issue = getIssueById(issueId);
   if (!issue) return <></>;
@@ -71,10 +66,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
 
   // derived values
   const projectDetails = getProjectById(issue.project_id);
-  const stateDetails = getStateById(issue.state_id);
-
-  const minDate = issue.start_date ? getDate(issue.start_date) : null;
-  minDate?.setDate(minDate.getDate());
 
   const maxDate = issue.target_date ? getDate(issue.target_date) : null;
   maxDate?.setDate(maxDate.getDate());
@@ -94,21 +85,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 disabled={!isEditable}
                 variant="select-ghost-md"
                 tooltip
-              />
-            </SidebarPropertyListItem>
-
-            <SidebarPropertyListItem icon={MembersOutline} label={t("common.assignees")}>
-              <MemberSelect
-                testId="work-item-assignee-select"
-                value={issue?.assignee_ids ?? []}
-                onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { assignee_ids: val })}
-                disabled={!isEditable}
-                projectId={projectId}
-                placeholder={t("issue.add.assignee")}
-                multiple
-                variant="select-ghost-md"
-                showLabel={(issue?.assignee_ids?.length ?? 0) <= 1}
-                tooltip={{ heading: t("common.assignees") }}
               />
             </SidebarPropertyListItem>
 
@@ -150,31 +126,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 showTooltip
                 tooltipHeading={t("common.order_by.start_date")}
               />
-            </SidebarPropertyListItem>
-
-            <SidebarPropertyListItem icon={DueDateOutline} label={t("common.order_by.due_date")}>
-              <div className="flex w-full items-center gap-2">
-                <DateSelect
-                  testId="work-item-due-date-select"
-                  placeholder={t("issue.add.due_date")}
-                  value={getDate(issue.target_date) ?? null}
-                  onChange={(val) =>
-                    issueOperations.update(workspaceSlug, projectId, issueId, {
-                      target_date: val ? renderFormattedPayloadDate(val) : null,
-                    })
-                  }
-                  minDate={minDate ?? undefined}
-                  disabled={!isEditable}
-                  clearable
-                  className={cn({
-                    "text-danger-primary": shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group),
-                  })}
-                  weekStartsOn={userProfile?.start_of_the_week}
-                  variant="select-ghost-md"
-                  showTooltip
-                  tooltipHeading={t("common.order_by.due_date")}
-                />
-              </div>
             </SidebarPropertyListItem>
 
             {projectId && areEstimateEnabledByProjectId(projectId) && (

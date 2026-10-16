@@ -28,6 +28,9 @@ export type TNotificationIssueLite = {
 };
 
 export type TNotificationData = {
+  page_id?: string;
+  thread_id?: string;
+  custom_field_id?: string;
   issue: TNotificationIssueLite | undefined;
   issue_activity: {
     id: string | undefined;

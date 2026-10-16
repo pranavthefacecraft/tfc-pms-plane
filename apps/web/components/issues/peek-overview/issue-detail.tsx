@@ -14,6 +14,7 @@ import type { TNameDescriptionLoader } from "@plane/types";
 // components
 import { DescriptionVersionsRoot } from "@/components/core/description-versions";
 import { DescriptionInput } from "@/components/editor/rich-text/description-input";
+import { TaskCustomFields } from "@/components/projects/custom-fields/task-fields";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
@@ -28,6 +29,7 @@ import { WorkItemVersionService } from "@/services/issue";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueParentDetail } from "../issue-detail/parent";
 import { IssueReaction } from "../issue-detail/reactions";
+import { IssueSummaryProperties } from "../issue-detail/summary-properties";
 import { IssueTitleInput } from "../title-input";
 // services init
 const workItemVersionService = new WorkItemVersionService();
@@ -103,6 +105,21 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
         issueOperations={issueOperations}
         disabled={disabled || isArchived}
         value={issue.name}
+      />
+
+      <IssueSummaryProperties
+        workspaceSlug={workspaceSlug}
+        projectId={issue.project_id}
+        issueId={issueId}
+        issueOperations={issueOperations}
+        disabled={disabled || isArchived}
+      />
+
+      <TaskCustomFields
+        workspaceSlug={workspaceSlug}
+        projectId={issue.project_id}
+        issueId={issueId}
+        disabled={disabled || isArchived}
       />
 
       <DescriptionInput

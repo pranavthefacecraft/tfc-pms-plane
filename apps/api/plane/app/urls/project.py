@@ -3,6 +3,11 @@
 # See the LICENSE file for details.
 
 from django.urls import path
+from plane.app.views.project.custom_fields import (
+    ProjectCustomFieldsEndpoint,
+    ProjectCustomFieldEndpoint,
+    IssueCustomFieldValuesEndpoint,
+)
 
 from plane.app.views import (
     ProjectViewSet,
@@ -22,6 +27,21 @@ from plane.app.views import (
 
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/custom-fields/",
+        ProjectCustomFieldsEndpoint.as_view(),
+        name="project-custom-fields",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/custom-fields/<uuid:field_id>/",
+        ProjectCustomFieldEndpoint.as_view(),
+        name="project-custom-field",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/custom-field-values/",
+        IssueCustomFieldValuesEndpoint.as_view(),
+        name="issue-custom-field-values",
+    ),
     path(
         "workspaces/<str:slug>/projects/",
         ProjectViewSet.as_view({"get": "list", "post": "create"}),

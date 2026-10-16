@@ -174,6 +174,14 @@ class Project(BaseModel):
             workspace = Workspace.objects.get(id=self.workspace_id)
             self.timezone = workspace.timezone
 
+        if is_creating:
+            from django.db import transaction
+            from .custom_field import ProjectCustomField
+
+            with transaction.atomic():
+                result = super().save(*args, **kwargs)
+                ProjectCustomField.create_defaults(self)
+                return result
         return super().save(*args, **kwargs)
 
 

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { CloseOutline, EditOutline } from "@makeplane/propel/icons";
 // Plane
 import { setToast } from "@plane/blocks/toast";
+import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@makeplane/propel/components/tooltip";
 import type { ISearchIssueResponse } from "@plane/types";
 import { cn, generateWorkItemLink } from "@plane/utils";
@@ -33,11 +34,21 @@ type TIssueRelationSelect = {
   issueId: string;
   relationKey: TIssueRelationTypes;
   disabled?: boolean;
+  renderModal?: boolean;
 };
 
 export const IssueRelationSelect = observer(function IssueRelationSelect(props: TIssueRelationSelect) {
-  const { className = "", workspaceSlug, projectId, issueId, relationKey, disabled = false } = props;
+  const {
+    className = "",
+    workspaceSlug,
+    projectId,
+    issueId,
+    relationKey,
+    disabled = false,
+    renderModal = true,
+  } = props;
   // hooks
+  const { t } = useTranslation();
   const { getProjectById } = useProject();
   const {
     createRelation,
@@ -45,11 +56,21 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
     relation: { getRelationByIssueIdRelationType },
     isRelationModalOpen,
     toggleRelationModal,
+    setRelationKey,
   } = useIssueDetail();
   const { issueMap } = useIssues();
   const { isMobile } = usePlatformOS();
   const relationIssueIds = getRelationByIssueIdRelationType(issueId, relationKey);
   const ISSUE_RELATION_OPTIONS = useTimeLineRelationOptions();
+
+  const notifyError = (error: unknown) => {
+    console.error("Work item relation update failed", error);
+    setToast({
+      type: "error",
+      title: t("toast.error"),
+      message: t("entity.update.failed", { entity: t("common.dependencies") }),
+    });
+  };
 
   const onSubmit = async (data: ISearchIssueResponse[]) => {
     if (data.length === 0) {
@@ -61,15 +82,19 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
       return;
     }
 
-    await createRelation(
-      workspaceSlug,
-      projectId,
-      issueId,
-      relationKey,
-      data.map((i) => i.id)
-    );
-
-    toggleRelationModal(null, null);
+    try {
+      await createRelation(
+        workspaceSlug,
+        projectId,
+        issueId,
+        relationKey,
+        data.map((i) => i.id)
+      );
+      toggleRelationModal(null, null);
+    } catch (error) {
+      notifyError(error);
+      throw error;
+    }
   };
 
   if (!relationIssueIds) return null;
@@ -81,18 +106,19 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
 
   return (
     <>
-      <ExistingIssuesListModal
-        workspaceSlug={workspaceSlug}
-        projectId={projectId}
-        isOpen={isRelationKeyModalActive}
-        handleClose={() => toggleRelationModal(null, null)}
-        searchParams={{ issue_relation: true, issue_id: issueId }}
-        handleOnSubmit={onSubmit}
-        workspaceLevelToggle
-      />
+      {renderModal && (
+        <ExistingIssuesListModal
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          isOpen={isRelationKeyModalActive}
+          handleClose={() => toggleRelationModal(null, null)}
+          searchParams={{ issue_relation: true, issue_id: issueId }}
+          handleOnSubmit={onSubmit}
+          workspaceLevelToggle
+        />
+      )}
 
-      <button
-        type="button"
+      <div
         className={cn(
           "group flex items-center gap-2 rounded-sm px-2 py-0.5 outline-none",
           {
@@ -102,8 +128,6 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
           },
           className
         )}
-        onClick={() => toggleRelationModal(issueId, relationKey)}
-        disabled={disabled}
       >
         <div className="flex w-full items-start justify-between">
           {relationIssueIds.length > 0 ? (
@@ -138,16 +162,19 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                     </Tooltip>
                     {!disabled && (
                       <Tooltip label="Remove" side="bottom" disabled={isMobile}>
-                        {/* eslint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
-                        <span
+                        <button
+                          type="button"
+                          aria-label={`${t("common.remove")} ${projectDetails?.identifier}-${currentIssue.sequence_id}`}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            removeRelation(workspaceSlug, projectId, issueId, relationKey, relationIssueId);
+                            void removeRelation(workspaceSlug, projectId, issueId, relationKey, relationIssueId).catch(
+                              notifyError
+                            );
                           }}
                         >
                           <CloseOutline className="h-2.5 w-2.5 text-tertiary hover:text-danger-primary" />
-                        </span>
+                        </button>
                       </Tooltip>
                     )}
                   </div>
@@ -155,19 +182,25 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
               })}
             </div>
           ) : (
-            <span className="text-body-xs-regular text-placeholder">{currRelationOption?.placeholder}</span>
+            <span className="text-body-xs-regular text-placeholder">{t("common.none")}</span>
           )}
           {!disabled && (
-            <span
-              className={cn("flex-shrink-0 p-1 opacity-0 group-hover:opacity-100", {
+            <button
+              type="button"
+              aria-label={`${t("issue.add.relation")}: ${currRelationOption ? t(currRelationOption.i18n_label) : ""}`}
+              onClick={() => {
+                setRelationKey(relationKey);
+                toggleRelationModal(issueId, relationKey);
+              }}
+              className={cn("ml-2 flex-shrink-0 p-1", {
                 "text-placeholder": relationIssueIds.length === 0,
               })}
             >
               <EditOutline className="h-2.5 w-2.5 flex-shrink-0" />
-            </span>
+            </button>
           )}
         </div>
-      </button>
+      </div>
     </>
   );
 });

@@ -108,7 +108,7 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
         textarea.removeEventListener("blur", handleBlur);
       }
     };
-  }, [title, isSubmitting, setIsSubmitting]);
+  }, [title, isSubmitting, setIsSubmitting, value]);
 
   // Save on unmount if there are unsaved changes
   useEffect(
@@ -144,7 +144,12 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className={cn("relative", containerClassName)}>
+      <div
+        className={cn(
+          "relative -mx-[5px] rounded-sm p-[5px] focus-within:ring-1 focus-within:ring-strong focus-within:ring-inset hover:ring-1 hover:ring-strong hover:ring-inset",
+          containerClassName
+        )}
+      >
         <Field name="title" invalid={title?.length === 0}>
           <div className="flex w-full">
             <TextArea

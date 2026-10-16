@@ -83,6 +83,28 @@ class Page(BaseModel):
         super(Page, self).save(*args, **kwargs)
 
 
+class WhiteboardThread(BaseModel):
+    page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="whiteboard_threads")
+    x = models.FloatField()
+    y = models.FloatField()
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "whiteboard_threads"
+        ordering = ("created_at", "id")
+
+
+class WhiteboardComment(BaseModel):
+    thread = models.ForeignKey("db.WhiteboardThread", on_delete=models.CASCADE, related_name="comments")
+    body = models.TextField(blank=True)
+    mentions = models.JSONField(default=list)
+    attachments = models.ManyToManyField("db.FileAsset", blank=True, related_name="whiteboard_comments")
+
+    class Meta:
+        db_table = "whiteboard_comments"
+        ordering = ("created_at", "id")
+
+
 class PageLog(BaseModel):
     TYPE_CHOICES = (
         ("to_do", "To Do"),

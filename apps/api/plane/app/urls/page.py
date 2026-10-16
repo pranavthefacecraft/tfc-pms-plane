@@ -4,6 +4,7 @@
 
 from django.urls import path
 from plane.app.views.page.documents import WhiteboardDocumentEndpoint
+from plane.app.views.page.whiteboard_comments import WhiteboardThreadEndpoint, WhiteboardCommentAttachmentEndpoint
 
 
 from plane.app.views import (
@@ -18,6 +19,21 @@ from plane.app.views import (
 )
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/threads/",
+        WhiteboardThreadEndpoint.as_view(http_method_names=["get", "post", "options"]),
+        name="whiteboard-threads",
+    ),
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/threads/<uuid:thread_id>/",
+        WhiteboardThreadEndpoint.as_view(http_method_names=["post", "patch", "options"]),
+        name="whiteboard-thread-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/comment-attachments/",
+        WhiteboardCommentAttachmentEndpoint.as_view(http_method_names=["post", "options"]),
+        name="whiteboard-comment-attachments",
+    ),
     path(
         "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/documents/",
         WhiteboardDocumentEndpoint.as_view(http_method_names=["post", "options"]),

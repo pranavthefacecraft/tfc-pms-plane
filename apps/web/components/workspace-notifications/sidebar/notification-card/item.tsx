@@ -41,7 +41,7 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
   const issueId = notification?.data?.issue?.id || undefined;
   const workspace = getWorkspaceBySlug(workspaceSlug);
 
-  const notificationField = notification?.data?.issue_activity.field || undefined;
+  const notificationField = notification?.data?.issue_activity?.field || undefined;
   const notificationTriggeredBy = notification.triggered_by_details || undefined;
 
   const handleNotificationIssuePeekOverview = async () => {
@@ -65,6 +65,48 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
       }
     }
   };
+
+  if (notification?.entity_name === "whiteboard" && notification.data?.page_id) {
+    return (
+      <a
+        className={cn("block border-b border-subtle p-4 text-13 text-primary", {
+          "bg-accent-primary/5": notification.read_at === null,
+        })}
+        href={`/${workspaceSlug}/tool/whiteboards/${notification.data.page_id}/?thread=${notification.data.thread_id ?? ""}`}
+        onClick={() => {
+          if (notification.read_at === null)
+            void markNotificationAsRead(workspaceSlug).catch((error: unknown) => console.error(error));
+        }}
+      >
+        <p className="font-medium">{notification.title}</p>
+        <p className="mt-1 truncate text-secondary">{notification.message_stripped}</p>
+        <p className="mt-1 text-11 text-tertiary">
+          {notification.created_at && calculateTimeAgo(notification.created_at)}
+        </p>
+      </a>
+    );
+  }
+
+  if (notification?.data?.custom_field_id && issueId && projectId) {
+    return (
+      <a
+        className={cn("block border-b border-subtle p-4 text-13 text-primary", {
+          "bg-accent-primary/5": notification.read_at === null,
+        })}
+        href={`/${workspaceSlug}/projects/${projectId}/issues/${issueId}/`}
+        onClick={() => {
+          if (notification.read_at === null)
+            void markNotificationAsRead(workspaceSlug).catch((error: unknown) => console.error(error));
+        }}
+      >
+        <p className="font-medium">{notification.title}</p>
+        <p className="mt-1 truncate text-secondary">{notification.message_stripped}</p>
+        <p className="mt-1 text-11 text-tertiary">
+          {notification.data.issue?.identifier}-{notification.data.issue?.sequence_id} {notification.data.issue?.name}
+        </p>
+      </a>
+    );
+  }
 
   if (!workspaceSlug || !notificationId || !notification?.id || !notificationField || !workspace?.id || !projectId)
     return <></>;

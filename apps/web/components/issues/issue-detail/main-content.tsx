@@ -15,6 +15,7 @@ import { EFileAssetType, EIssueServiceType } from "@plane/types";
 import { DescriptionVersionsRoot } from "@/components/core/description-versions";
 import { DescriptionInput } from "@/components/editor/rich-text/description-input";
 import { IssueTypeSwitcher } from "@/components/issues/issue-type-switcher";
+import { TaskCustomFields } from "@/components/projects/custom-fields/task-fields";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
@@ -31,6 +32,7 @@ import { IssueTitleInput } from "../title-input";
 import { IssueActivity } from "./issue-activity";
 import { IssueParentDetail } from "./parent";
 import { IssueReaction } from "./reactions";
+import { IssueSummaryProperties } from "./summary-properties";
 import type { TIssueOperations } from "./root";
 // services init
 const workItemVersionService = new WorkItemVersionService();
@@ -104,6 +106,21 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
           issueOperations={issueOperations}
           disabled={isArchived || !isEditable}
           value={issue.name}
+        />
+
+        <IssueSummaryProperties
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          issueId={issueId}
+          issueOperations={issueOperations}
+          disabled={!isEditable || isArchived}
+        />
+
+        <TaskCustomFields
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          issueId={issueId}
+          disabled={!isEditable || isArchived}
         />
 
         <DescriptionInput

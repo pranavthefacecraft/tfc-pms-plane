@@ -26,6 +26,7 @@ import { Button } from "@makeplane/propel/components/button";
 import { setToast } from "@plane/blocks/toast";
 import { API_BASE_URL } from "@plane/constants";
 import { DocumentPreview } from "./document-preview";
+import { WhiteboardComments } from "./comments";
 import { documentPath, documentService, isWhiteboardDocument, safeTextLink } from "./documents";
 import "@excalidraw/excalidraw/index.css";
 
@@ -69,8 +70,10 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSaveRef = useRef(onSave);
   const onDirtyChangeRef = useRef(onDirtyChange);
-  onSaveRef.current = onSave;
-  onDirtyChangeRef.current = onDirtyChange;
+  useEffect(() => {
+    onSaveRef.current = onSave;
+    onDirtyChangeRef.current = onDirtyChange;
+  }, [onSave, onDirtyChange]);
 
   // Only computed once per board: Excalidraw owns the scene after mount.
   const initialData = useMemo<ExcalidrawInitialDataState>(
@@ -316,7 +319,7 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
           )}
         </div>
       )}
-      <div className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
         <Excalidraw
           excalidrawAPI={setApi}
           key={boardId}
@@ -375,6 +378,7 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
             <WelcomeScreen.Hints.HelpHint />
           </WelcomeScreen>
         </Excalidraw>
+        {api && <WhiteboardComments api={api} workspaceSlug={workspaceSlug} boardId={boardId} />}
       </div>
     </div>
   );
