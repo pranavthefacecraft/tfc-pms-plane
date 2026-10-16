@@ -140,7 +140,7 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
     [setIsSubmitting]
   );
 
-  if (disabled) return <div className="text-20 font-medium whitespace-pre-line">{title}</div>;
+  if (disabled) return <div className="text-24 leading-snug font-bold whitespace-pre-line">{title}</div>;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -151,7 +151,7 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
         )}
       >
         <Field name="title" invalid={title?.length === 0}>
-          <div className="flex w-full">
+          <div className="flex w-full [&_textarea]:min-h-[44px] [&_textarea]:py-1 [&_textarea]:text-24 [&_textarea]:leading-snug [&_textarea]:font-bold">
             <TextArea
               size="2xl"
               surface="inline"

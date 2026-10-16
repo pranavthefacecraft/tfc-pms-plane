@@ -14,6 +14,10 @@ import { IssueReactionService } from "@/services/issue";
 // types
 import type { IIssueDetail } from "./root.store";
 
+type TReactionRootStore = {
+  activity: Pick<IIssueDetail["activity"], "fetchActivities">;
+};
+
 export interface IIssueReactionStoreActions {
   // actions
   addReactions: (issueId: string, reactions: TIssueReaction[]) => void;
@@ -43,12 +47,12 @@ export class IssueReactionStore implements IIssueReactionStore {
   reactions: TIssueReactionIdMap = {};
   reactionMap: TIssueReactionMap = {};
   // root store
-  rootIssueDetailStore: IIssueDetail;
+  rootIssueDetailStore: TReactionRootStore;
   // services
   issueReactionService;
   serviceType;
 
-  constructor(rootStore: IIssueDetail, serviceType: TIssueServiceType) {
+  constructor(rootStore: TReactionRootStore, serviceType: TIssueServiceType) {
     makeObservable(this, {
       // observables
       reactions: observable,
@@ -146,14 +150,14 @@ export class IssueReactionStore implements IIssueReactionStore {
     const userReactions = this.reactionsByUser(issueId, userId);
     const currentReaction = find(userReactions, { actor: userId, reaction: reaction });
 
+    const response = await this.issueReactionService.deleteIssueReaction(workspaceSlug, projectId, issueId, reaction);
+
     if (currentReaction && currentReaction.id) {
       runInAction(() => {
         pull(this.reactions[issueId][reaction], currentReaction.id);
-        delete this.reactionMap[reaction];
+        delete this.reactionMap[currentReaction.id];
       });
     }
-
-    const response = await this.issueReactionService.deleteIssueReaction(workspaceSlug, projectId, issueId, reaction);
 
     // fetching activity
     this.rootIssueDetailStore.activity.fetchActivities(workspaceSlug, projectId, issueId);

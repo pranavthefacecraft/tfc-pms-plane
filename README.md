@@ -82,6 +82,14 @@ The sidebar's **Tool > Notepad** entry opens workspace pages; existing page URLs
 and content are unchanged. Project sidebars omit **Pages** and label **Cycles**
 as **Analytics**; the Analytics entry still opens the existing Cycles screen.
 
+## Task likes
+
+Task detail headers (side panel and full page) include a thumbs-up button to like
+or unlike a task and show its like count. Likes reuse the existing thumbs-up
+reaction, persist across reloads, and stay in sync with task emoji reactions.
+Archived tasks show likes read-only. Run the web component and reaction-store
+tests with `pnpm --filter web test`.
+
 ## TFCPMS whiteboards
 
 Open **Tool > Whiteboard**, then use **Attach documents** or drop PDF, Word
