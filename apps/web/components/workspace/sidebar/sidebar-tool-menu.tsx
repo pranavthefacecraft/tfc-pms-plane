@@ -16,7 +16,7 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useLocalStorage from "@/hooks/use-local-storage";
 
 const TOOL_ITEMS = [
-  { key: "pages", label: "Pages", path: "tool/pages", icon: PagesOutline },
+  { key: "pages", label: "Notepad", path: "tool/pages", icon: PagesOutline },
   { key: "whiteboards", label: "Whiteboard", path: "tool/whiteboards", icon: PenToolOutline },
 ];
 

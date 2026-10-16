@@ -76,6 +76,12 @@ loaded from `${WEB_URL}/tfc-pms-logo.png`; `WEB_URL` must be the public web
 application URL. Email clients may block remote images until the recipient
 allows them. Login codes, reset links and invitation links are unchanged.
 
+## TFCPMS navigation
+
+The sidebar's **Tool > Notepad** entry opens workspace pages; existing page URLs
+and content are unchanged. Project sidebars omit **Pages** and label **Cycles**
+as **Analytics**; the Analytics entry still opens the existing Cycles screen.
+
 ## TFCPMS whiteboards
 
 Open **Tool > Whiteboard**, then use **Attach documents** or drop PDF, Word
