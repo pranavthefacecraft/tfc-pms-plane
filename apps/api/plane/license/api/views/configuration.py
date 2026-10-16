@@ -26,6 +26,7 @@ from plane.license.models import InstanceConfiguration
 from plane.license.api.serializers import InstanceConfigurationSerializer
 from plane.license.utils.encryption import encrypt_data
 from plane.utils.cache import cache_response, invalidate_cache
+from plane.utils.email import generate_plain_text_from_html, render_email_template
 from plane.license.utils.instance_value import get_email_configuration
 
 
@@ -114,17 +115,18 @@ class EmailCredentialCheckEndpoint(BaseAPIView):
             use_ssl=EMAIL_USE_SSL == "1",
         )
         # Prepare email details
-        subject = "Email Notification from Plane"
-        message = "This is a sample email notification sent from Plane application."
+        subject = "Email Notification from TFC PMS"
         # Send the email
         try:
+            html_content = render_email_template("emails/test_email.html")
             msg = EmailMultiAlternatives(
                 subject=subject,
-                body=message,
+                body=generate_plain_text_from_html(html_content),
                 from_email=EMAIL_FROM,
                 to=[receiver_email],
                 connection=connection,
             )
+            msg.attach_alternative(html_content, "text/html")
             msg.send(fail_silently=False)
             return Response({"message": "Email successfully sent."}, status=status.HTTP_200_OK)
         except BadHeaderError:

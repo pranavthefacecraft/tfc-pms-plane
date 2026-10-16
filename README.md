@@ -69,6 +69,13 @@ Getting started with Plane is simple. Choose the setup that works best for you:
 
 See [CONTRIBUTING](./CONTRIBUTING.md)
 
+## TFC PMS email branding
+
+Application emails use the TFC PMS logo, product name and footer. The logo is
+loaded from `${WEB_URL}/tfc-pms-logo.png`; `WEB_URL` must be the public web
+application URL. Email clients may block remote images until the recipient
+allows them. Login codes, reset links and invitation links are unchanged.
+
 ## TFCPMS whiteboards
 
 Open **Tool > Whiteboard**, then use **Attach documents** or drop PDF, Word

@@ -7,7 +7,22 @@ import html
 import re
 
 # Django imports
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+
+
+def render_email_template(template_name, context=None):
+    if not settings.WEB_URL:
+        raise ImproperlyConfigured("WEB_URL is required to render application emails.")
+    return render_to_string(
+        template_name,
+        {
+            **(context or {}),
+            "email_logo_url": f"{settings.WEB_URL.rstrip('/')}/tfc-pms-logo.png",
+        },
+    )
 
 
 def generate_plain_text_from_html(html_content):

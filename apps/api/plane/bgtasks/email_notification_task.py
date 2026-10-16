@@ -11,7 +11,6 @@ from bs4 import BeautifulSoup
 # Third party imports
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives, get_connection
-from django.template.loader import render_to_string
 
 # Django imports
 from django.utils import timezone
@@ -20,7 +19,7 @@ from django.utils import timezone
 from plane.db.models import EmailNotificationLog, Issue, User
 from plane.license.utils.instance_value import get_email_configuration
 from plane.settings.redis import redis_instance
-from plane.utils.email import generate_plain_text_from_html
+from plane.utils.email import generate_plain_text_from_html, render_email_template
 from plane.utils.exception_logger import log_exception
 
 
@@ -259,7 +258,7 @@ def send_email_notification(issue_id, notification_data, receiver_id, email_noti
                 "comments": comments,
                 "entity_type": "issue",
             }
-            html_content = render_to_string("emails/notifications/issue-updates.html", context)
+            html_content = render_email_template("emails/notifications/issue-updates.html", context)
             text_content = generate_plain_text_from_html(html_content)
 
             try:
