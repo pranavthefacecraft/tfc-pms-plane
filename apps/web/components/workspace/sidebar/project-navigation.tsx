@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback, useMemo } from "react";
+import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -137,9 +138,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
     };
 
     // sort navigation items by sortOrder
-    const sortedNavigationItems = navigationItems(workspaceSlug, projectId).toSorted(
-      (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-    );
+    const sortedNavigationItems = sortBy(navigationItems(workspaceSlug, projectId), (item) => item.sortOrder || 0);
 
     return sortedNavigationItems;
   }, [workspaceSlug, projectId, baseNavigation, additionalNavigationItems]);
