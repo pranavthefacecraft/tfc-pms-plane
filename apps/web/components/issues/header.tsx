@@ -20,7 +20,6 @@ import { Header } from "@plane/blocks/layout";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { CountChip } from "@/components/common/count-chip";
-import { ProjectCustomFieldsManager } from "@/components/projects/custom-fields/manager";
 // constants
 import { HeaderFilters } from "@/components/issues/filters";
 // helpers
@@ -111,9 +110,6 @@ export const IssuesHeader = observer(function IssuesHeader() {
         )}
       </Header.LeftItem>
       <Header.RightItem>
-        {canUserCreateIssue && workspaceSlug && projectId && !currentProjectDetails?.archived_at && (
-          <ProjectCustomFieldsManager workspaceSlug={workspaceSlug.toString()} projectId={projectId.toString()} />
-        )}
         <div className="hidden gap-2 md:flex">
           <HeaderFilters
             projectId={projectId}

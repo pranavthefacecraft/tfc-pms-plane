@@ -51,7 +51,11 @@ export const SettingsMobileNav = observer(function SettingsMobileNav(props: Prop
       {/* path */}
       <div className="flex items-center gap-2">
         <ChevronRightOutline className="size-4 text-tertiary" />
-        <span className="text-13 font-medium text-secondary">{t(activePath)}</span>
+        <span className="text-13 font-medium text-secondary">
+          {activePath === "project_settings.custom_fields"
+            ? t(activePath, { defaultValue: "Custom fields" })
+            : t(activePath)}
+        </span>
       </div>
     </div>
   );

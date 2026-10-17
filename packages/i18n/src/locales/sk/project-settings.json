@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "Vlastné polia",
     "general": {
       "enter_project_id": "Zadajte ID projektu",
       "please_select_a_timezone": "Vyberte časové pásmo",

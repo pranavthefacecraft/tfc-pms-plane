@@ -41,6 +41,16 @@ export const useNavigationItems = ({
     // oxlint-disable-next-line no-shadow
     (workspaceSlug: string, projectId: string): TNavigationItem[] => [
       {
+        i18n_key: "common.overview",
+        key: "overview",
+        name: "Overview",
+        href: `/${workspaceSlug}/projects/${projectId}/overview`,
+        icon: ViewsOutline,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 0,
+      },
+      {
         i18n_key: "sidebar.work_items",
         key: "work_items",
         name: "Work items",

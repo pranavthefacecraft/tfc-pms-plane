@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "Özel alanlar",
     "general": {
       "enter_project_id": "Proje ID girin",
       "please_select_a_timezone": "Lütfen bir saat dilimi seçin",

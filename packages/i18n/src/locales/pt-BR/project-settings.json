@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "Campos personalizados",
     "general": {
       "enter_project_id": "Inserir ID do projeto",
       "please_select_a_timezone": "Por favor, selecione um fuso horário",

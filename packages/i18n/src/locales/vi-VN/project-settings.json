@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "Trường tùy chỉnh",
     "general": {
       "enter_project_id": "Nhập ID dự án",
       "please_select_a_timezone": "Vui lòng chọn múi giờ",

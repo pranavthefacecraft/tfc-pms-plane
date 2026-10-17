@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "自訂欄位",
     "general": {
       "enter_project_id": "輸入專案 ID",
       "please_select_a_timezone": "請選擇時區",

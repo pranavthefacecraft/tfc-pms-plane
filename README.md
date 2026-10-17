@@ -82,6 +82,27 @@ The sidebar's **Tool > Notepad** entry opens workspace pages; existing page URLs
 and content are unchanged. Project sidebars omit **Pages** and label **Cycles**
 as **Analytics**; the Analytics entry still opens the existing Cycles screen.
 
+## Project overview
+
+Click a project name in the sidebar or project directory to open **Overview**.
+The page shows the project's description, owner, members, key resource links,
+health, and task progress. Project/workspace admins can edit the description,
+assign an active project member as owner, set health to **On track**, **At risk**,
+or **Off track**, and add/remove resource links. Members and guests have read-only
+access; archived projects cannot be edited.
+
+For Notepad pages and whiteboards, copy the resource's full URL and use
+**Add resource**, select its type, enter a title, and paste the URL. Linking does
+not grant access to a private resource or delete it when the link is removed.
+Up to 50 resources can be linked per project.
+
+Progress counts active tasks only (excluding archived/deleted tasks, drafts,
+and Intake); cancelled tasks are listed separately from completed tasks. Guest
+counts follow their task visibility. Data refreshes every 30 seconds. Health is
+manually assigned, not inferred from task progress. AI summaries and milestones
+are not included. Apply backend migration `0128_project_overview` before running
+the updated app.
+
 ## Task likes
 
 Task detail headers (side panel and full page) include a thumbs-up button to like
@@ -190,8 +211,8 @@ Properties sidebar.
 
 ### Project custom fields
 
-On a project's Work Items page, open **Customize > Fields > Add field > Create
-new**. Project admins and members can create, edit and remove fields for that
+Open **Project settings > Work Structure > Custom fields > Add field**.
+Project admins and members can create, edit and remove fields for that
 project only. Supported types are single-select, multi-select (both with colored
 options), text, number and date. Every existing and new project starts with
 editable **Stage** and **Status** single-select fields; these do not replace

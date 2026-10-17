@@ -43,6 +43,15 @@ export interface IPartialProject {
 }
 
 export interface IProject extends IPartialProject {
+  health?: "" | "on_track" | "at_risk" | "off_track";
+  overview_resources?: TProjectOverviewResource[];
+  task_summary?: {
+    total: number;
+    completed: number;
+    cancelled: number;
+    started: number;
+    overdue: number;
+  };
   archive_in?: number;
   close_in?: number;
   // only for uploading the cover image
@@ -60,6 +69,12 @@ export interface IProject extends IPartialProject {
   timezone?: string;
   next_work_item_sequence?: number;
 }
+
+export type TProjectOverviewResource = {
+  title: string;
+  url: string;
+  kind: "link" | "notepad" | "whiteboard";
+};
 
 export type TProjectAnalyticsCountParams = {
   project_ids?: string;

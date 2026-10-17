@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "Пользовательские поля",
     "general": {
       "enter_project_id": "Введите ID проекта",
       "please_select_a_timezone": "Выберите часовой пояс",

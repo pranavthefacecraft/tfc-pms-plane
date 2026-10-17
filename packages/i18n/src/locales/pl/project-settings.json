@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "Pola niestandardowe",
     "general": {
       "enter_project_id": "Wpisz ID projektu",
       "please_select_a_timezone": "Wybierz strefę czasową",

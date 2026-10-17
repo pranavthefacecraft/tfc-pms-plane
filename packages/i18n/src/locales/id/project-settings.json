@@ -1,5 +1,6 @@
 {
   "project_settings": {
+    "custom_fields": "Kolom kustom",
     "general": {
       "enter_project_id": "Masukkan ID proyek",
       "please_select_a_timezone": "Silakan pilih zona waktu",

@@ -36,8 +36,7 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/comp
 import { DropIndicator, DragHandle } from "@plane/blocks/common";
 import { cn } from "@plane/utils";
 // components
-import { DEFAULT_TAB_KEY, getTabUrl } from "@/components/navigation/tab-navigation-utils";
-import { useTabPreferences } from "@/components/navigation/use-tab-preferences";
+import { getTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { LeaveProjectModal } from "@/components/project/leave-project-modal";
 import { PublishProjectModal } from "@/components/project/publish-project/modal";
 // hooks
@@ -50,7 +49,6 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
 import { ProjectNavigation } from "./project-navigation";
-import { useNavigationItems } from "@/components/navigation/use-navigation-items";
 
 type Props = {
   projectId: string;
@@ -103,21 +101,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   // derived values
   const project = getPartialProjectById(projectId);
 
-  // Get available navigation items for this project
-  const navigationItems = useNavigationItems({
-    workspaceSlug: workspaceSlug.toString(),
-    projectId,
-    project,
-    allowPermissions,
-  });
-  const availableTabKeys = navigationItems.map((item) => item.key);
-
-  // Get preferences from hook
-  const { tabPreferences } = useTabPreferences(workspaceSlug.toString(), projectId);
-  const defaultTabKey = tabPreferences.defaultTab;
-  // Validate that the default tab is available
-  const validatedDefaultTabKey = availableTabKeys.includes(defaultTabKey) ? defaultTabKey : DEFAULT_TAB_KEY;
-  const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, validatedDefaultTabKey) : "";
+  const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, "overview") : "";
 
   // toggle project list open
   const setIsProjectListOpen = useCallback(
@@ -272,10 +256,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
 
   const handleItemClick = () => {
     if (projectPreferences.navigationMode === "ACCORDION") {
-      setIsProjectListOpen(!isProjectListOpen);
-    } else {
-      router.push(defaultTabUrl);
+      setIsProjectListOpen(true);
     }
+    router.push(defaultTabUrl);
     // close the extended sidebar if it is open
     if (isExtendedProjectSidebarOpened && !isAccordionMode) {
       toggleExtendedProjectSidebar(false);
@@ -331,30 +314,12 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
             )}
             <>
               <ControlLink href={defaultTabUrl} className="flex flex-grow truncate" onClick={handleItemClick}>
-                {isAccordionMode ? (
-                  <button
-                    type="button"
-                    className="flex w-full flex-grow items-center gap-1.5 text-left select-none"
-                    aria-expanded={isProjectListOpen}
-                    aria-label={
-                      isProjectListOpen
-                        ? t("aria_labels.projects_sidebar.close_project_menu")
-                        : t("aria_labels.projects_sidebar.open_project_menu")
-                    }
-                  >
-                    <div className="grid size-4 flex-shrink-0 place-items-center">
-                      <Logo logo={project.logo_props} size={16} />
-                    </div>
-                    <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
-                  </button>
-                ) : (
-                  <div className="flex w-full flex-grow items-center gap-1.5 text-left select-none">
-                    <div className="grid size-4 flex-shrink-0 place-items-center">
-                      <Logo logo={project.logo_props} size={16} />
-                    </div>
-                    <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
+                <div className="flex w-full flex-grow items-center gap-1.5 text-left select-none">
+                  <div className="grid size-4 flex-shrink-0 place-items-center">
+                    <Logo logo={project.logo_props} size={16} />
                   </div>
-                )}
+                  <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
+                </div>
               </ControlLink>
               <div className="flex items-center gap-1">
                 <div
@@ -416,11 +381,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   </Menu>
                 </div>
                 {isAccordionMode && (
-                  <span
-                    className={cn("hidden text-placeholder group-hover/project-item:inline-flex", {
-                      "inline-flex": isMenuActive,
-                    })}
-                  >
+                  <span className="inline-flex text-placeholder">
                     <IconButton
                       variant="ghost"
                       size="xs"

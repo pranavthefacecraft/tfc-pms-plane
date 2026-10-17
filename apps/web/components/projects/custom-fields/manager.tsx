@@ -17,7 +17,6 @@ import {
   DialogTitle,
 } from "@makeplane/propel/components/dialog";
 import { InputField } from "@makeplane/propel/components/input-field";
-import { Drawer, DrawerPanel, DrawerTitle } from "@makeplane/propel/components/drawer";
 import { FIELD_TYPES, customFields, fieldError, useCustomFields } from "./service";
 import type { CustomField, FieldInput, FieldType } from "./service";
 
@@ -203,8 +202,16 @@ function FieldEditor({
   );
 }
 
-export function ProjectCustomFieldsManager({ workspaceSlug, projectId }: { workspaceSlug: string; projectId: string }) {
-  const [screen, setScreen] = useState<"closed" | "customize" | "fields" | "add" | "create" | "edit">("closed");
+export function ProjectCustomFieldsManager({
+  workspaceSlug,
+  projectId,
+  disabled = false,
+}: {
+  workspaceSlug: string;
+  projectId: string;
+  disabled?: boolean;
+}) {
+  const [screen, setScreen] = useState<"fields" | "create" | "edit">("fields");
   const [editing, setEditing] = useState<CustomField | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const { data, error, isLoading, mutate } = useCustomFields(workspaceSlug, projectId);
@@ -232,131 +239,75 @@ export function ProjectCustomFieldsManager({ workspaceSlug, projectId }: { works
   const isEditor = screen === "create" || screen === "edit";
   return (
     <>
-      <Button variant="secondary" size="md" stretch="auto" label="Customize" onClick={() => setScreen("customize")} />
-      <Drawer
-        modal
-        swipeDirection="right"
-        open={screen !== "closed" && !isEditor}
-        onOpenChange={(open) => {
-          if (!open) setScreen("closed");
-        }}
-      >
-        <DrawerPanel side="end" variant="overlay" size="sm" backdrop>
-          <div className="flex min-h-0 flex-1 flex-col">
-            <header className="border-b border-subtle p-4">
-              <DrawerTitle>{screen === "customize" ? "Customize project" : "Fields"}</DrawerTitle>
-            </header>
-            <div className="min-h-0 flex-1 overflow-auto p-4">
-              {screen === "customize" ? (
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded border border-subtle p-4 text-13"
-                  onClick={() => setScreen("fields")}
-                >
-                  <span>Fields</span>
-                  <span>{data?.length ?? 0} &gt;</span>
-                </button>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-13 font-medium">Added to project</h3>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      stretch="auto"
-                      label="Add field"
-                      disabled={isLoading || !!error || !!removing}
-                      onClick={() => setScreen(screen === "add" ? "fields" : "add")}
-                    />
-                  </div>
-                  {screen === "add" && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      stretch="auto"
-                      label="Create new"
-                      onClick={() => {
-                        setEditing(null);
-                        setScreen("create");
-                      }}
-                    />
-                  )}
-                  {isLoading && <p role="status">Loading fields...</p>}
-                  {error && (
-                    <div role="alert" className="text-13 text-danger-primary">
-                      Fields could not be loaded.{" "}
-                      <button type="button" className="underline" onClick={() => void mutate()}>
-                        Retry
-                      </button>
-                    </div>
-                  )}
-                  {data?.map((field) => (
-                    <div key={field.id} className="rounded border border-subtle p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          className="min-w-0 text-left text-13 font-medium"
-                          disabled={!!removing}
-                          onClick={() => {
-                            setEditing(field);
-                            setScreen("edit");
-                          }}
-                        >
-                          {field.name}
-                        </button>
-                        <button
-                          type="button"
-                          className="text-11 text-danger-primary"
-                          disabled={!!removing}
-                          aria-label={`Remove field ${field.name}`}
-                          onClick={() => void remove(field)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <p className="mt-1 text-11 text-secondary">{FIELD_TYPES[field.field_type]}</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {field.options.map((option) => (
-                          <span key={option.id} className="flex items-center gap-1 text-11">
-                            <span
-                              className="inline-block h-2 w-2 rounded-full"
-                              style={{ backgroundColor: option.color }}
-                            />
-                            {option.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  {data?.length === 0 && (
-                    <p className="text-13 text-secondary">No custom fields. Add one to get started.</p>
-                  )}
-                </div>
-              )}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-13 font-medium">Added to project</h3>
+          <Button
+            variant="secondary"
+            size="sm"
+            stretch="auto"
+            label="Add field"
+            disabled={disabled || isLoading || !!error || !!removing}
+            onClick={() => {
+              setEditing(null);
+              setScreen("create");
+            }}
+          />
+        </div>
+        {isLoading && <p role="status">Loading fields...</p>}
+        {error && (
+          <div role="alert" className="text-13 text-danger-primary">
+            Fields could not be loaded.{" "}
+            <button type="button" className="underline" onClick={() => void mutate()}>
+              Retry
+            </button>
+          </div>
+        )}
+        {data?.map((field) => (
+          <div key={field.id} className="rounded border border-subtle p-3">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="min-w-0 text-left text-13 font-medium"
+                disabled={disabled || !!removing}
+                onClick={() => {
+                  setEditing(field);
+                  setScreen("edit");
+                }}
+              >
+                {field.name}
+              </button>
+              <button
+                type="button"
+                className="text-11 text-danger-primary"
+                disabled={disabled || !!removing}
+                aria-label={`Remove field ${field.name}`}
+                onClick={() => void remove(field)}
+              >
+                Remove
+              </button>
+            </div>
+            <p className="mt-1 text-11 text-secondary">{FIELD_TYPES[field.field_type]}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {field.options.map((option) => (
+                <span key={option.id} className="flex items-center gap-1 text-11">
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: option.color }} />
+                  {option.name}
+                </span>
+              ))}
             </div>
           </div>
-          <footer className="flex justify-end gap-2 border-t border-subtle p-4">
-            {screen !== "customize" && (
-              <Button
-                variant="secondary"
-                size="md"
-                stretch="auto"
-                label="Back"
-                onClick={() => setScreen("customize")}
-              />
-            )}
-            <Button variant="secondary" size="md" stretch="auto" label="Close" onClick={() => setScreen("closed")} />
-          </footer>
-        </DrawerPanel>
-      </Drawer>
+        ))}
+        {data?.length === 0 && <p className="text-13 text-secondary">No custom fields. Add one to get started.</p>}
+      </div>
       <Dialog
-        open={isEditor}
+        open={isEditor && !disabled}
         onOpenChange={(open) => {
           if (!open) setScreen("fields");
         }}
       >
         <DialogContent size="md">
-          {isEditor && (
+          {isEditor && !disabled && (
             <FieldEditor
               key={editing?.id ?? "new"}
               field={editing}

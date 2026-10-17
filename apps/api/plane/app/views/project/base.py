@@ -23,6 +23,7 @@ from plane.app.serializers import (
     ProjectSerializer,
 )
 from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.app.serializers.project import ProjectOverviewSerializer
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.webhook_task import model_activity, webhook_activity
 from plane.db.models import (
@@ -251,7 +252,7 @@ class ProjectViewSet(BaseViewSet):
             user_id=request.user.id,
         )
 
-        serializer = ProjectListSerializer(project)
+        serializer = ProjectOverviewSerializer(project, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")

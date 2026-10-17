@@ -10,7 +10,8 @@ import re
 
 # Module imports
 from .base import BaseSerializer, DynamicBaseSerializer
-from django.db.models import Max
+from django.db.models import Count, Max, Q
+from django.utils import timezone
 from plane.app.serializers.workspace import WorkspaceLiteSerializer
 from plane.app.serializers.user import UserLiteSerializer, UserAdminLiteSerializer
 from plane.db.models import (
@@ -21,15 +22,55 @@ from plane.db.models import (
     DeployBoard,
     ProjectPublicMember,
     IssueSequence,
+    Issue,
 )
 from plane.utils.content_validator import (
     validate_html_content,
 )
 
 
+class ProjectOverviewResourceSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=255)
+    url = serializers.URLField(max_length=2048)
+    kind = serializers.ChoiceField(choices=["link", "notepad", "whiteboard"])
+
+    def validate(self, data):
+        missing = {"title", "url", "kind"} - data.keys()
+        if missing:
+            raise serializers.ValidationError({field: "This field is required." for field in sorted(missing)})
+        return data
+
+    def validate_url(self, value):
+        if not value.lower().startswith(("http://", "https://")):
+            raise serializers.ValidationError("Only HTTP and HTTPS links are supported.")
+        return value
+
+
 class ProjectSerializer(BaseSerializer):
     workspace_detail = WorkspaceLiteSerializer(source="workspace", read_only=True)
     inbox_view = serializers.BooleanField(read_only=True, source="intake_view")
+    overview_resources = ProjectOverviewResourceSerializer(many=True, required=False, max_length=50)
+
+    def validate_overview_resources(self, value):
+        urls = [resource["url"] for resource in value]
+        if len(urls) != len(set(urls)):
+            raise serializers.ValidationError("A resource URL can only be added once.")
+        return value
+
+    def validate_project_lead(self, value):
+        if (
+            self.instance is not None
+            and value is not None
+            and not ProjectMember.objects.filter(
+                project=self.instance,
+                workspace_id=self.context["workspace_id"],
+                member=value,
+                is_active=True,
+                member__is_bot=False,
+            ).exists()
+        ):
+            raise serializers.ValidationError("The project owner must be an active project member.")
+        return value
 
     class Meta:
         model = Project
@@ -137,6 +178,26 @@ class ProjectListSerializer(DynamicBaseSerializer):
     class Meta:
         model = Project
         fields = "__all__"
+
+
+class ProjectOverviewSerializer(ProjectListSerializer):
+    task_summary = serializers.SerializerMethodField()
+
+    def get_task_summary(self, obj):
+        issues = Issue.issue_objects.filter(project=obj)
+        request = self.context.get("request")
+        if request and obj.member_role == 5 and not obj.guest_view_all_features:
+            issues = issues.filter(created_by=request.user)
+        return issues.aggregate(
+            total=Count("id"),
+            completed=Count("id", filter=Q(state__group="completed")),
+            cancelled=Count("id", filter=Q(state__group="cancelled")),
+            started=Count("id", filter=Q(state__group="started")),
+            overdue=Count(
+                "id",
+                filter=Q(target_date__lt=timezone.localdate()) & ~Q(state__group__in=["completed", "cancelled"]),
+            ),
+        )
 
 
 class ProjectDetailSerializer(BaseSerializer):
