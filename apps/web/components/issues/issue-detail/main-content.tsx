@@ -116,6 +116,16 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
           disabled={!isEditable || isArchived}
         />
 
+        {windowSize[0] < 768 && (
+          <PeekOverviewProperties
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            issueId={issueId}
+            issueOperations={issueOperations}
+            disabled={!isEditable || isArchived}
+          />
+        )}
+
         <TaskCustomFields
           workspaceSlug={workspaceSlug}
           projectId={projectId}
@@ -186,16 +196,6 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
         renderWidgetModals={!isPeekModeActive}
         issueServiceType={EIssueServiceType.ISSUES}
       />
-
-      {windowSize[0] < 768 && (
-        <PeekOverviewProperties
-          workspaceSlug={workspaceSlug}
-          projectId={projectId}
-          issueId={issueId}
-          issueOperations={issueOperations}
-          disabled={!isEditable || isArchived}
-        />
-      )}
 
       <IssueActivity workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} disabled={isArchived} />
     </>

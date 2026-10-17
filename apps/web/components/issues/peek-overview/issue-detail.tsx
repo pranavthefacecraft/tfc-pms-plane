@@ -31,6 +31,7 @@ import { IssueParentDetail } from "../issue-detail/parent";
 import { IssueReaction } from "../issue-detail/reactions";
 import { IssueSummaryProperties } from "../issue-detail/summary-properties";
 import { IssueTitleInput } from "../title-input";
+import { PeekOverviewProperties } from "./properties";
 // services init
 const workItemVersionService = new WorkItemVersionService();
 
@@ -108,6 +109,14 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
       />
 
       <IssueSummaryProperties
+        workspaceSlug={workspaceSlug}
+        projectId={issue.project_id}
+        issueId={issueId}
+        issueOperations={issueOperations}
+        disabled={disabled || isArchived}
+      />
+
+      <PeekOverviewProperties
         workspaceSlug={workspaceSlug}
         projectId={issue.project_id}
         issueId={issueId}

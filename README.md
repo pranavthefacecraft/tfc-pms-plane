@@ -183,6 +183,10 @@ moved from the lower Properties section. Dependencies use **Blocked by** for
 prerequisites and **Blocking** for tasks waiting on this one. Use the edit icon
 to add a dependency and the remove icon on a dependency chip to unlink it.
 The existing Relations section remains available for all relation types.
+Side-panel, modal, and full-screen previews place the remaining **Properties**
+directly below Dependencies, followed by custom fields and Description. Mobile
+full-page details use the same order; desktop full-page details retain their
+Properties sidebar.
 
 ### Project custom fields
 
@@ -193,7 +197,7 @@ options), text, number and date. Every existing and new project starts with
 editable **Stage** and **Status** single-select fields; these do not replace
 Plane's built-in State or Priority.
 
-Fields appear below Dependencies and before Description in task previews and
+Fields appear below the built-in properties and before Description in task previews and
 full-page details, not on board cards or as list columns. Select values save
 immediately; text, number and date values use **Save** and **Cancel**. Archived
 tasks and projects are read-only, and guests can only read values on tasks they
