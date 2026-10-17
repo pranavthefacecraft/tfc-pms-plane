@@ -13,7 +13,6 @@ import {
   convertToExcalidrawElements,
   hashElementsVersion,
   newElementWith,
-  serializeAsJSON,
   viewportCoordsToSceneCoords,
 } from "@excalidraw/excalidraw";
 import type {
@@ -22,11 +21,14 @@ import type {
   ExcalidrawProps,
 } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawEmbeddableElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { BinaryFiles } from "@excalidraw/excalidraw/types";
 import { Button } from "@makeplane/propel/components/button";
 import { setToast } from "@plane/blocks/toast";
 import { API_BASE_URL } from "@plane/constants";
 import { DocumentPreview } from "./document-preview";
 import { WhiteboardComments } from "./comments";
+import type { useWhiteboardCollaboration } from "./collaboration";
 import { documentPath, documentService, isWhiteboardDocument, safeTextLink } from "./documents";
 import "@excalidraw/excalidraw/index.css";
 
@@ -42,18 +44,20 @@ export type TWhiteboardCanvasProps = {
   workspaceSlug: string;
   initialScene: Record<string, unknown> | undefined;
   theme: "light" | "dark";
-  readOnly: boolean;
-  onSave: (scene: Record<string, unknown>) => Promise<void>;
+  collaboration: ReturnType<typeof useWhiteboardCollaboration>;
   onDirtyChange?: (isDirty: boolean) => void;
 };
 
-const SAVE_DEBOUNCE_MS = 1200;
+const SAVE_DEBOUNCE_MS = 300;
 
 const getSceneSignature = ({ elements, appState, files }: TSceneSnapshot) =>
   `${hashElementsVersion(elements)}:${Object.keys(files).length}:${appState.viewBackgroundColor}`;
 
 export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
-  const { boardId, workspaceSlug, initialScene, theme, readOnly, onSave, onDirtyChange } = props;
+  const { boardId, workspaceSlug, initialScene, theme, collaboration, onDirtyChange } = props;
+  const { state: session, connected, clientId, send, error, reconnect } = collaboration;
+  const readOnly = !connected || !session || session.role === "viewer" || !!session.presenter;
+  const presenting = session?.presenter?.client_id === clientId;
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -68,12 +72,63 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
   const hasLoadedScene = useRef(false);
   const saveInFlight = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onSaveRef = useRef(onSave);
+  const applyingRemote = useRef(false);
+  const viewportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastViewport = useRef("");
   const onDirtyChangeRef = useRef(onDirtyChange);
   useEffect(() => {
-    onSaveRef.current = onSave;
     onDirtyChangeRef.current = onDirtyChange;
-  }, [onSave, onDirtyChange]);
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    if (!api || !session) return;
+    const remote = session.scene.elements;
+    if (!Array.isArray(remote)) return;
+    const wasClean = !latestScene.current || getSceneSignature(latestScene.current) === lastSavedSignature.current;
+    const elements = new Map<string, ExcalidrawElement>(
+      api.getSceneElementsIncludingDeleted().map((element) => [element.id, element])
+    );
+    for (const element of remote as ExcalidrawElement[]) {
+      const local = elements.get(element.id);
+      if (
+        !local ||
+        element.version > local.version ||
+        (element.version === local.version && element.versionNonce < local.versionNonce)
+      )
+        elements.set(element.id, element);
+    }
+    const files = session.scene.files as BinaryFiles | undefined;
+    const viewport = session.presenter?.viewport;
+    applyingRemote.current = true;
+    if (files) api.addFiles(Object.values(files));
+    api.updateScene({
+      elements: [...elements.values()],
+      appState: {
+        ...api.getAppState(),
+        ...((session.scene.appState as { viewBackgroundColor?: string } | undefined)?.viewBackgroundColor
+          ? { viewBackgroundColor: (session.scene.appState as { viewBackgroundColor: string }).viewBackgroundColor }
+          : {}),
+        ...(viewport && !presenting
+          ? {
+              scrollX: viewport.scrollX,
+              scrollY: viewport.scrollY,
+              zoom: { value: viewport.zoom as ReturnType<ExcalidrawImperativeAPI["getAppState"]>["zoom"]["value"] },
+            }
+          : {}),
+      },
+      captureUpdate: CaptureUpdateAction.NEVER,
+    });
+    if (wasClean) {
+      const scene = {
+        elements: api.getSceneElementsIncludingDeleted(),
+        appState: api.getAppState(),
+        files: api.getFiles(),
+      };
+      latestScene.current = scene;
+      lastSavedSignature.current = getSceneSignature(scene);
+    }
+    applyingRemote.current = false;
+  }, [api, session, presenting]);
 
   // Only computed once per board: Excalidraw owns the scene after mount.
   const initialData = useMemo<ExcalidrawInitialDataState>(
@@ -98,12 +153,13 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
       const signature = getSceneSignature(scene);
       if (signature === lastSavedSignature.current) return;
       saveInFlight.current = true;
-      const payload = JSON.parse(serializeAsJSON(scene.elements, scene.appState, scene.files, "local")) as Record<
-        string,
-        unknown
-      >;
-      void onSaveRef
-        .current(payload)
+      // Preserve deleted elements as tombstones so a collaborator cannot resurrect them.
+      const payload = {
+        elements: scene.elements,
+        files: scene.files,
+        background: scene.appState.viewBackgroundColor,
+      };
+      void send({ action: "scene", scene: payload })
         .then(() => {
           saveInFlight.current = false;
           lastSavedSignature.current = signature;
@@ -115,10 +171,19 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
           saveInFlight.current = false;
           // The page hook notifies the user; retain the dirty scene for the next edit/flush.
           console.error("Whiteboard save failed", error);
+          setToast({
+            type: "error",
+            title: "Whiteboard not saved",
+            message: "Your latest changes are not saved. Reconnect and retry.",
+          });
         });
     },
-    [readOnly]
+    [readOnly, send]
   );
+
+  useEffect(() => {
+    if (connected && !readOnly) flush();
+  }, [connected, readOnly, flush]);
 
   const handleChange = useCallback<TOnChange>(
     (elements, appState, files) => {
@@ -126,6 +191,27 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
       setSelectedTextId(selected.length === 1 && selected[0].type === "text" ? selected[0].id : null);
       const scene = { elements, appState, files };
       latestScene.current = scene;
+      if (applyingRemote.current) return;
+      const viewportKey = `${appState.scrollX}:${appState.scrollY}:${appState.zoom.value}`;
+      if (presenting && viewportKey !== lastViewport.current && !viewportTimer.current) {
+        viewportTimer.current = setTimeout(() => {
+          viewportTimer.current = null;
+          const current = latestScene.current?.appState;
+          if (!current) return;
+          lastViewport.current = `${current.scrollX}:${current.scrollY}:${current.zoom.value}`;
+          void send({
+            action: "viewport",
+            viewport: {
+              scrollX: current.scrollX,
+              scrollY: current.scrollY,
+              zoom: current.zoom.value,
+            },
+          }).catch((cause) => {
+            lastViewport.current = "";
+            console.error("Presenter viewport update failed", cause);
+          });
+        }, 200);
+      }
       const signature = getSceneSignature(scene);
       // The first onChange after mount reflects the loaded scene; treat it as already saved.
       if (!hasLoadedScene.current) {
@@ -138,19 +224,60 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
     },
-    [flush, readOnly]
+    [flush, readOnly, presenting, send]
   );
 
   // Save pending changes when leaving the board or closing the tab.
   useEffect(() => {
     mounted.current = true;
-    window.addEventListener("beforeunload", flush);
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      flush();
+      if (latestScene.current && getSceneSignature(latestScene.current) !== lastSavedSignature.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
     return () => {
       mounted.current = false;
-      window.removeEventListener("beforeunload", flush);
+      window.removeEventListener("beforeunload", beforeUnload);
+      if (viewportTimer.current) {
+        clearTimeout(viewportTimer.current);
+        viewportTimer.current = null;
+      }
       flush();
     };
   }, [flush]);
+
+  const togglePresentation = async () => {
+    if (!api) return;
+    if (
+      saveInFlight.current ||
+      (latestScene.current && getSceneSignature(latestScene.current) !== lastSavedSignature.current && !presenting)
+    ) {
+      flush();
+      setToast({
+        type: "info",
+        title: "Saving changes",
+        message: "Wait for the canvas to finish saving, then present.",
+      });
+      return;
+    }
+    const state = api.getAppState();
+    try {
+      await send(
+        presenting
+          ? { action: "stop" }
+          : {
+              action: "present",
+              viewport: { scrollX: state.scrollX, scrollY: state.scrollY, zoom: state.zoom.value },
+            }
+      );
+    } catch (cause) {
+      console.error("Presentation failed", cause);
+      setToast({ type: "error", title: "Presentation failed", message: "Please reconnect or retry." });
+    }
+  };
 
   const attachFiles = async (files: File[], clientPoint?: { clientX: number; clientY: number }) => {
     if (!api || readOnly || uploadingRef.current) return;
@@ -256,6 +383,38 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
         void attachFiles(files, { clientX: event.clientX, clientY: event.clientY });
       }}
     >
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-subtle bg-surface-1 p-2 text-13">
+        <span role="status">
+          {connected ? `${session?.participants.length ?? 0} online` : "Connecting to live session..."}
+        </span>
+        <span className="text-secondary">
+          {session?.participants.map((entry) => entry.user.display_name).join(", ")}
+        </span>
+        {session?.presenter && (
+          <span className="font-semibold">
+            {presenting ? "You are presenting" : "Following presenter"} — editing paused
+          </span>
+        )}
+        {session?.role === "viewer" && <span>Viewer access</span>}
+        {session?.role === "owner" && connected && (
+          <Button
+            variant="secondary"
+            size="sm"
+            stretch="auto"
+            label={presenting ? "Stop presenting" : "Present"}
+            disabled={!!session.presenter && !presenting}
+            onClick={() => void togglePresentation()}
+          />
+        )}
+        {error && (
+          <span role="alert" className="text-danger-primary">
+            {error}{" "}
+            <button type="button" className="underline" onClick={reconnect}>
+              Reconnect
+            </button>
+          </span>
+        )}
+      </div>
       {!readOnly && (
         <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-subtle p-2">
           <input
@@ -370,7 +529,7 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
             <MainMenu.DefaultItems.Help />
             {!readOnly && <MainMenu.DefaultItems.ClearCanvas />}
             <MainMenu.Separator />
-            <MainMenu.DefaultItems.ChangeCanvasBackground />
+            {!readOnly && <MainMenu.DefaultItems.ChangeCanvasBackground />}
           </MainMenu>
           <WelcomeScreen>
             <WelcomeScreen.Hints.ToolbarHint />
@@ -378,7 +537,7 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
             <WelcomeScreen.Hints.HelpHint />
           </WelcomeScreen>
         </Excalidraw>
-        {api && <WhiteboardComments api={api} workspaceSlug={workspaceSlug} boardId={boardId} />}
+        {api && <WhiteboardComments api={api} workspaceSlug={workspaceSlug} boardId={boardId} readOnly={readOnly} />}
       </div>
     </div>
   );

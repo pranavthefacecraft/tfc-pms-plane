@@ -34,6 +34,12 @@ powershell -ExecutionPolicy Bypass -File $deploy -Services api      # backend (r
 
 ## Useful server commands
 
+Whiteboard live collaboration requires updating **web**, **api**, and **live**
+together and applying migration `0127_whiteboard_collaboration`. The live
+service's `CORS_ALLOWED_ORIGINS` must match `WEB_URL`; copy the updated Compose
+file when deploying this feature. Keep WebSocket forwarding for `/live/`
+enabled in the proxy. No public/anonymous whiteboard links are supported.
+
 Frontend Caddy limits page requests to 300 per client IP per minute and bundled
 assets to a separate 3,000 requests per minute. Keep these allowances separate:
 one cold workspace load can fetch more than 300 chunks and must not block page

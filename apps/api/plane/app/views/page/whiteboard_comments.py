@@ -31,6 +31,7 @@ from plane.utils.path_validator import sanitize_filename
 
 from ..base import BaseAPIView
 from .workspace import WorkspacePageMixin, _serialize_user
+from .collaboration import require_board_editor
 
 ROLES = [ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST]
 ATTACHMENT_TYPES = {
@@ -94,7 +95,7 @@ class WhiteboardCommentsMixin(WorkspacePageMixin):
     def members(self, page):
         members = WorkspaceMember.objects.filter(workspace_id=page.workspace_id, is_active=True)
         if page.access == Page.PRIVATE_ACCESS:
-            members = members.filter(member_id=page.owned_by_id)
+            members = members.filter(Q(member_id=page.owned_by_id) | Q(member_id__in=page.whiteboard_roles))
         return members.select_related("member")
 
     def threads(self, page):
@@ -123,6 +124,7 @@ class WhiteboardThreadEndpoint(WhiteboardCommentsMixin, BaseAPIView):
         page = self.get_board(request, slug, page_id)
         if page is None:
             return Response({"error": "Whiteboard not found"}, status=status.HTTP_404_NOT_FOUND)
+        require_board_editor(page, request.user)
         serializer = CommentInput(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -191,6 +193,7 @@ class WhiteboardThreadEndpoint(WhiteboardCommentsMixin, BaseAPIView):
         thread = WhiteboardThread.objects.select_for_update().filter(page=page, pk=thread_id).first() if page else None
         if thread is None:
             return Response({"error": "Thread not found"}, status=404)
+        require_board_editor(page, request.user)
         resolved = serializers.BooleanField().run_validation(request.data.get("resolved"))
         thread.resolved_at = timezone.now() if resolved else None
         thread.save(update_fields=["resolved_at", "updated_at", "updated_by"])
@@ -205,6 +208,7 @@ class WhiteboardCommentAttachmentEndpoint(WhiteboardCommentsMixin, BaseAPIView):
         page = self.get_board(request, slug, page_id)
         if page is None:
             return Response({"error": "Whiteboard not found"}, status=404)
+        require_board_editor(page, request.user)
         file = request.FILES.get("file")
         if file is None:
             return Response({"error": "A file is required"}, status=400)

@@ -96,8 +96,10 @@ class TestWhiteboardDocuments:
         asset = FileAsset.objects.create(page=board, workspace=workspace, asset="private", is_uploaded=True)
         assert session_client.get(url(workspace, board, asset)).status_code == 404
 
-    def test_guest_cannot_upload(self, session_client, workspace, board, create_user):
+    def test_guest_viewer_cannot_upload(self, session_client, workspace, board, create_user):
         WorkspaceMember.objects.filter(workspace=workspace, member=create_user).update(role=5)
+        board.owned_by = User.objects.create(email=f"{uuid.uuid4().hex}@example.test", username=uuid.uuid4().hex)
+        board.save()
         assert (
             session_client.post(url(workspace, board), {"file": file_for("pdf")}, format="multipart").status_code == 403
         )

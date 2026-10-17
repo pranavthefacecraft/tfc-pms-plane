@@ -12,6 +12,7 @@ from django.db.models import Prefetch, Q
 
 # Third party imports
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 # Module imports
@@ -107,6 +108,16 @@ def _is_workspace_admin(user, slug):
 
 
 class WorkspacePageMixin:
+    def require_editor(self, page, user):
+        if page.tool_type == Page.TOOL_TYPE_WHITEBOARD:
+            from .collaboration import require_board_editor
+
+            require_board_editor(page, user)
+        elif not WorkspaceMember.objects.filter(
+            workspace_id=page.workspace_id, member=user, role__gte=ROLE.MEMBER.value, is_active=True
+        ).exists():
+            raise PermissionDenied("Only workspace members and admins can edit pages.")
+
     def get_pages(self, request, slug):
         return (
             Page.objects.filter(
@@ -115,7 +126,11 @@ class WorkspacePageMixin:
                 parent__isnull=True,
                 archived_at__isnull=True,
             )
-            .filter(Q(owned_by=request.user) | Q(access=Page.PUBLIC_ACCESS))
+            .filter(
+                Q(owned_by=request.user)
+                | Q(access=Page.PUBLIC_ACCESS)
+                | Q(tool_type=Page.TOOL_TYPE_WHITEBOARD, whiteboard_roles__has_key=str(request.user.id))
+            )
             .select_related("owned_by", "updated_by")
             .prefetch_related(
                 Prefetch(
@@ -204,11 +219,19 @@ class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
             status=status.HTTP_200_OK,
         )
 
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def patch(self, request, slug, page_id):
         page = self.get_pages(request, slug).filter(pk=page_id).first()
         if page is None:
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        self.require_editor(page, request.user)
+        if page.tool_type == Page.TOOL_TYPE_WHITEBOARD:
+            if "description_json" in request.data:
+                return Response(
+                    {"error": "Use the whiteboard session endpoint to merge canvas changes."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if "access" in request.data and request.data["access"] != page.access:
             if page.owned_by_id != request.user.id:
@@ -223,12 +246,17 @@ class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
         for field in EDITABLE_FIELDS:
             if field in request.data:
                 setattr(page, field, request.data[field] if request.data[field] is not None else "")
-        if page.tool_type == Page.TOOL_TYPE_WHITEBOARD and "description_json" in request.data:
-            scene = request.data["description_json"]
-            if not isinstance(scene, dict):
-                return Response({"error": "description_json must be an object"}, status=status.HTTP_400_BAD_REQUEST)
-            page.description_json = scene
-        page.save()
+        if page.tool_type == Page.TOOL_TYPE_WHITEBOARD:
+            # Metadata updates must not write back a stale scene or session.
+            fields = [field for field in EDITABLE_FIELDS if field in request.data]
+            if "access" in request.data:
+                fields.append("access")
+            if "description_html" in fields:
+                fields.append("description_stripped")
+            if fields:
+                page.save(update_fields=fields + ["updated_at", "updated_by"])
+        else:
+            page.save()
 
         page = self.get_pages(request, slug).get(pk=page.id)
         return Response(
@@ -252,11 +280,12 @@ class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
 
 
 class WorkspacePageAttachmentEndpoint(WorkspacePageMixin, BaseAPIView):
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def put(self, request, slug, page_id):
         page = self.get_pages(request, slug).filter(pk=page_id).first()
         if page is None:
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+        self.require_editor(page, request.user)
 
         entity_type = request.data.get("entity_type")
         entity_id = request.data.get("entity_id")
@@ -302,10 +331,11 @@ class WorkspacePageAttachmentEndpoint(WorkspacePageMixin, BaseAPIView):
             status=status.HTTP_200_OK,
         )
 
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def delete(self, request, slug, page_id):
         page = self.get_pages(request, slug).filter(pk=page_id).first()
         if page is None:
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+        self.require_editor(page, request.user)
         PageEntityLink.objects.filter(page_id=page.id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

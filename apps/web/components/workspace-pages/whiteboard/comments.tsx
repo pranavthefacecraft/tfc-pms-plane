@@ -36,10 +36,12 @@ export function WhiteboardComments({
   api,
   workspaceSlug,
   boardId,
+  readOnly = false,
 }: {
   api: ExcalidrawImperativeAPI;
   workspaceSlug: string;
   boardId: string;
+  readOnly?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -229,7 +231,7 @@ export function WhiteboardComments({
       className={`pointer-events-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-accent-strong disabled:opacity-40 ${
         placing ? "bg-accent-primary text-on-color" : "text-primary hover:bg-layer-1"
       }`}
-      disabled={!!error || isLoading || busy}
+      disabled={readOnly || !!error || isLoading || busy}
       onClick={() => {
         if (placing) setPlacing(false);
         else if (canLeave()) {
@@ -278,7 +280,7 @@ export function WhiteboardComments({
           </button>
         </div>
       )}
-      {placing && (
+      {placing && !readOnly && (
         <button
           type="button"
           aria-label="Place comment pin"
@@ -305,7 +307,7 @@ export function WhiteboardComments({
           </span>
         </button>
       )}
-      {!placing &&
+      {(!placing || readOnly) &&
         visibleThreads.map((thread, index) => {
           const anchor = position(thread);
           const author = thread.comments[0]?.author;
@@ -376,7 +378,7 @@ export function WhiteboardComments({
           <header className="mb-2 flex items-center justify-between gap-2 text-13">
             <strong>{selected?.resolved ? "Resolved thread" : draftPoint ? "New comment" : "Comments"}</strong>
             <div className="flex gap-2">
-              {selected && (
+              {selected && !readOnly && (
                 <button
                   type="button"
                   disabled={busy}
@@ -424,7 +426,7 @@ export function WhiteboardComments({
               </article>
             ))}
           </div>
-          {!selected?.resolved && (
+          {!selected?.resolved && !readOnly && (
             <form
               onSubmit={(event) => {
                 event.preventDefault();

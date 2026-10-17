@@ -37,11 +37,14 @@ class WhiteboardDocumentEndpoint(WorkspacePageMixin, BaseAPIView):
     def get_board(self, request, slug, page_id):
         return self.get_pages(request, slug).filter(pk=page_id, tool_type=Page.TOOL_TYPE_WHITEBOARD).first()
 
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def post(self, request, slug, page_id):
         page = self.get_board(request, slug, page_id)
         if page is None:
             return Response({"error": "Whiteboard not found"}, status=status.HTTP_404_NOT_FOUND)
+        from .collaboration import require_board_editor
+
+        require_board_editor(page, request.user)
         file = request.FILES.get("file")
         if file is None:
             return Response({"error": "A file is required"}, status=status.HTTP_400_BAD_REQUEST)

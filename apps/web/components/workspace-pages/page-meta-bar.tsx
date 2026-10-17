@@ -25,10 +25,21 @@ type Props = {
   onDetach: () => void;
   onToggleAccess: () => void;
   className?: string;
+  readOnly?: boolean;
 };
 
 export function WorkspaceToolPageMetaBar(props: Props) {
-  const { workspaceSlug, page, isOwner, saveStatus, onAttachClick, onDetach, onToggleAccess, className = "" } = props;
+  const {
+    workspaceSlug,
+    page,
+    isOwner,
+    saveStatus,
+    onAttachClick,
+    onDetach,
+    onToggleAccess,
+    className = "",
+    readOnly = false,
+  } = props;
   const isPrivate = page.access === WORKSPACE_PAGE_ACCESS.PRIVATE;
   const attachmentLabel = getAttachmentLabel(page.attachment);
   const attachmentHref = getAttachmentHref(workspaceSlug, page.attachment);
@@ -63,12 +74,15 @@ export function WorkspaceToolPageMetaBar(props: Props) {
         stretch="auto"
         label={page.attachment ? "Change" : "Attach to task or project"}
         onClick={onAttachClick}
+        disabled={readOnly}
       />
-      {page.attachment && <Button variant="secondary" size="sm" stretch="auto" label="Detach" onClick={onDetach} />}
+      {page.attachment && (
+        <Button variant="secondary" size="sm" stretch="auto" label="Detach" onClick={onDetach} disabled={readOnly} />
+      )}
       <button
         type="button"
-        disabled={!isOwner}
-        title={isOwner ? "Toggle access" : "Only the owner can change access"}
+        disabled={!isOwner || readOnly}
+        title={!isOwner ? "Only the owner can change access" : readOnly ? "Editing is paused" : "Toggle access"}
         onClick={onToggleAccess}
         className="flex items-center gap-1.5 rounded-md border border-subtle px-2 py-1 hover:bg-layer-1-hover disabled:cursor-not-allowed disabled:opacity-70"
       >

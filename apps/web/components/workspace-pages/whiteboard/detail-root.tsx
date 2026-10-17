@@ -9,10 +9,10 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
-import { EUserWorkspaceRoles } from "@plane/types";
 // hooks
-import { useUser, useUserPermissions } from "@/hooks/store/user";
+import { useUser } from "@/hooks/store/user";
+import { useWhiteboardCollaboration } from "./collaboration";
+import { WhiteboardSharing } from "./sharing";
 // local imports
 import { AttachWorkspacePageModal } from "../attach-page-modal";
 import { getWorkspaceToolListHref } from "../helpers";
@@ -37,21 +37,10 @@ export const WhiteboardDetailRoot = observer(function WhiteboardDetailRoot({ wor
   // hooks
   const { resolvedTheme } = useTheme();
   const { data: currentUser } = useUser();
-  const { allowPermissions } = useUserPermissions();
+  const collaboration = useWhiteboardCollaboration(workspaceSlug, pageId);
   const { page, error, isLoading, saveStatus, setSaveStatus, applyUpdate, updatePage, detach, toggleAccess } =
     useWorkspaceToolPage(workspaceSlug, pageId);
-  const canEdit = allowPermissions(
-    [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
-    EUserPermissionsLevel.WORKSPACE
-  );
-
-  const handleSaveScene = useCallback(
-    async (scene: Record<string, unknown>) => {
-      setSaveStatus("submitting");
-      await updatePage({ description_json: scene });
-    },
-    [setSaveStatus, updatePage]
-  );
+  const canEdit = collaboration.connected && collaboration.state?.role !== "viewer" && !collaboration.state?.presenter;
 
   const handleDirtyChange = useCallback(
     (isDirty: boolean) => {
@@ -77,16 +66,22 @@ export const WhiteboardDetailRoot = observer(function WhiteboardDetailRoot({ wor
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       <div className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-subtle px-page-x py-2">
-        <WorkspaceToolPageTitleInput
-          page={page}
-          onSave={(name) => updatePage({ name })}
-          setSaveStatus={setSaveStatus}
-          className="max-w-md min-w-[200px] flex-1 text-18"
-        />
+        {canEdit ? (
+          <WorkspaceToolPageTitleInput
+            page={page}
+            onSave={(name) => updatePage({ name })}
+            setSaveStatus={setSaveStatus}
+            className="max-w-md min-w-[200px] flex-1 text-18"
+          />
+        ) : (
+          <h1 className="flex-1 text-18 font-bold">{page.name || "Untitled"}</h1>
+        )}
+        {page.owned_by === currentUser?.id && <WhiteboardSharing workspaceSlug={workspaceSlug} boardId={pageId} />}
         <WorkspaceToolPageMetaBar
           workspaceSlug={workspaceSlug}
           page={page}
           isOwner={page.owned_by === currentUser?.id}
+          readOnly={!canEdit}
           saveStatus={saveStatus}
           onAttachClick={() => setIsAttachModalOpen(true)}
           onDetach={() => void detach()}
@@ -103,15 +98,14 @@ export const WhiteboardDetailRoot = observer(function WhiteboardDetailRoot({ wor
             boardId={page.id}
             initialScene={page.description_json}
             theme={resolvedTheme === "dark" ? "dark" : "light"}
-            readOnly={!canEdit}
-            onSave={handleSaveScene}
+            collaboration={collaboration}
             onDirtyChange={handleDirtyChange}
           />
         </Suspense>
       </div>
 
       <AttachWorkspacePageModal
-        isOpen={isAttachModalOpen}
+        isOpen={isAttachModalOpen && canEdit}
         onClose={() => setIsAttachModalOpen(false)}
         workspaceSlug={workspaceSlug}
         page={page}

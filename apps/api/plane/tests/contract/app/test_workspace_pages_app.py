@@ -211,13 +211,15 @@ class TestWorkspaceWhiteboards:
     @pytest.mark.django_db
     def test_save_whiteboard_scene(self, session_client, workspace):
         board = session_client.post(_pages_url(workspace.slug), {"tool_type": "whiteboard"}, format="json").json()
-        scene = {"elements": [{"id": "a", "type": "rectangle"}], "appState": {}, "files": {}}
+        scene = {"elements": [{"id": "a", "type": "rectangle", "version": 1, "versionNonce": 10}], "files": {}}
 
-        response = session_client.patch(
-            _pages_url(workspace.slug, board["id"]), {"description_json": scene}, format="json"
+        response = session_client.post(
+            _pages_url(workspace.slug, board["id"], "session/"),
+            {"action": "scene", "client_id": str(uuid.uuid4()), "scene": scene},
+            format="json",
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["description_json"] == scene
+        assert response.json()["scene"] == scene
         assert Page.objects.get(pk=board["id"]).description_json == scene
 
         bad = session_client.patch(_pages_url(workspace.slug, board["id"]), {"description_json": [1]}, format="json")

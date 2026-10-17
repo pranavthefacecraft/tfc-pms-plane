@@ -5,6 +5,7 @@
 from django.urls import path
 from plane.app.views.page.documents import WhiteboardDocumentEndpoint
 from plane.app.views.page.whiteboard_comments import WhiteboardThreadEndpoint, WhiteboardCommentAttachmentEndpoint
+from plane.app.views.page.collaboration import WhiteboardSessionEndpoint, WhiteboardSharingEndpoint
 
 
 from plane.app.views import (
@@ -19,6 +20,16 @@ from plane.app.views import (
 )
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/session/",
+        WhiteboardSessionEndpoint.as_view(http_method_names=["get", "post", "options"]),
+        name="whiteboard-session",
+    ),
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/sharing/",
+        WhiteboardSharingEndpoint.as_view(http_method_names=["get", "post", "options"]),
+        name="whiteboard-sharing",
+    ),
     path(
         "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/threads/",
         WhiteboardThreadEndpoint.as_view(http_method_names=["get", "post", "options"]),

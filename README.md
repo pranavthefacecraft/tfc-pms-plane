@@ -92,6 +92,45 @@ tests with `pnpm --filter web test`.
 
 ## TFCPMS whiteboards
 
+### Live sharing and presentation
+
+Open **Tool > Whiteboard** and choose a board. The owner can use **Share** to
+assign active workspace members **Viewer** or **Editor**, then copy the board
+link. Recipients must sign in with their workspace account; anonymous/external
+links are not supported.
+
+- **Private** boards are limited to the owner and explicitly shared members.
+- **Workspace-visible** boards preserve existing member editing access; an
+  explicit Viewer assignment overrides it. Guests default to Viewer; the owner
+  can explicitly grant Editor to allow canvas, title, document, and comment edits. Removing
+  an override restores default workspace access, so make the board Private to
+  restrict it to a selected group.
+- Online sessions appear above the canvas. Edits are merged on the server and
+  shared immediately through the live server; deleting a shape preserves its
+  tombstone so an older participant snapshot cannot bring it back.
+- The owner can select **Present**. Participants follow the owner's pan/zoom,
+  and all canvas/comment editing pauses until **Stop presenting**. Disconnecting
+  the presenter ends presentation; an abruptly lost session expires within
+  30 seconds.
+- Viewers can read the canvas, documents, and comments but cannot change them.
+  A lost live connection pauses editing; use **Reconnect** to rejoin. Unsaved
+  in-memory changes are retained while the board stays open.
+
+Local development requires the API and the live server (`pnpm --filter live dev`,
+port 3100 by default), plus `CORS_ALLOWED_ORIGINS=http://localhost:3000` in
+`apps/live/.env`. Apply migration `0127_whiteboard_collaboration`. Production
+updates must include **api, live, and web**, and the live service must allow the
+web origin (wired in `deployments/tfc/docker-compose.yml`). Old whole-scene
+whiteboard PATCH requests are rejected; canvas clients must use the authenticated
+session endpoint. Ordinary Notepad pages are unchanged.
+
+Canvas state (including inline images) is limited to 8 MB and 100 concurrent
+sessions per board; PDF/Word/Excel documents remain separate uploaded assets.
+The live server broadcasts immediately within an instance and revalidates
+sessions against the API every five seconds, including role changes/revocations.
+Tests: `pnpm --filter web test` and the API contract suite
+`plane/tests/contract/app/test_whiteboard_collaboration_app.py`.
+
 Open **Tool > Whiteboard**, then use **Attach documents** or drop PDF, Word
 (`.docx`) and Excel (`.xlsx`) files onto the canvas. Documents become movable,
 resizable previews. Double-click a preview to interact with it, scroll, change
@@ -108,19 +147,19 @@ Drop images separately from documents.
   the browser without sending documents to third-party viewing services.
 - Select a single text element and choose **Add / edit text link**. Enter an
   `https://`, `http://` or `mailto:` URL, or leave it blank to remove the link.
-- Attachments follow the whiteboard's visibility rules. Guests can view
-  accessible previews but cannot upload or edit the board.
+- Attachments follow the whiteboard's visibility rules. Viewers can open
+  accessible previews; uploading requires owner or Editor access.
 
 ### Canvas comments
 
 Choose the **Add comment** speech-bubble icon in the drawing toolbar, then click
 a canvas location to start a pinned thread. Click the icon again or press Escape
 to cancel placement. When the drawing toolbar is hidden (including read-only
-boards), the icon remains available beside **Comments**.
+boards), **Comments** remains available for reading existing discussions.
 Pins remain anchored while panning and zooming. Open a pin to reply, or use
 **Comments** to find threads and optionally show resolved discussions. Any
-workspace member or guest who can view the whiteboard can comment, resolve and
-reopen threads; this does not grant drawing-edit permissions.
+owner or Editor can comment, resolve and reopen threads while presentation is
+stopped; Viewers can only read threads.
 
 Type `@` in the composer and select a workspace member to mention them.
 Mentioned users receive an in-app **Inbox > Mentions** notification linking to

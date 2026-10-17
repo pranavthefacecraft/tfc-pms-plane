@@ -15,7 +15,11 @@ export default function WorkspaceToolWhiteboardDetailPage() {
   return (
     <>
       <PageHead title="Whiteboard" />
-      <WhiteboardDetailRoot workspaceSlug={workspaceSlug?.toString() ?? ""} pageId={pageId?.toString() ?? ""} />
+      <WhiteboardDetailRoot
+        key={`${workspaceSlug}:${pageId}`}
+        workspaceSlug={workspaceSlug?.toString() ?? ""}
+        pageId={pageId?.toString() ?? ""}
+      />
     </>
   );
 }
