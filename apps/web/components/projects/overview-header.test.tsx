@@ -10,7 +10,7 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EIssueFilterType } from "@plane/constants";
-import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
+import { EIssueLayoutTypes } from "@plane/types";
 import { HeaderFilters } from "@/components/issues/filters";
 import { IssuesHeader } from "@/components/issues/header";
 import { ProjectOverviewHeader } from "./overview-header";
@@ -20,7 +20,6 @@ const mocks = vi.hoisted(() => ({
   initialized: false,
   fetchFilters: vi.fn(),
   updateFilters: vi.fn(),
-  create: vi.fn(),
   toast: vi.fn(),
   count: vi.fn(),
 }));
@@ -66,9 +65,6 @@ vi.mock("@/hooks/store/use-project", () => ({
 }));
 vi.mock("@/hooks/store/user", () => ({
   useUserPermissions: () => ({ allowPermissions: () => mocks.canCreate }),
-}));
-vi.mock("@/hooks/store/use-command-palette", () => ({
-  useCommandPalette: () => ({ toggleCreateIssueModal: mocks.create }),
 }));
 vi.mock("@/hooks/use-platform-os", () => ({ usePlatformOS: () => ({ isMobile: false }) }));
 vi.mock("@/hooks/store/use-issues", () => ({
@@ -196,14 +192,13 @@ describe("project overview header", () => {
     );
   }
 
-  it("shows the project and Overview breadcrumb, actual total, and creation control", async () => {
+  it("shows the project and Overview breadcrumb and actual total without a creation button", async () => {
     await render();
     expect(host.textContent).toContain("Project project");
     expect(host.querySelector('a[href="/workspace/projects/project/overview/"]')?.textContent).toBe("common.overview");
     expect(host.textContent).toContain("7");
     expect(mocks.count).not.toHaveBeenCalled();
-    await click("issue.add.label");
-    expect(mocks.create).toHaveBeenCalledWith(true, EIssuesStoreType.PROJECT);
+    expect(host.querySelector('[aria-label="issue.add.label"]')).toBeNull();
   });
 
   it("includes desktop and mobile controls and opens analytics without navigation", async () => {
@@ -295,8 +290,7 @@ describe("project overview header", () => {
     expect(navigation?.querySelector('[aria-label="common.analytics"]')).toBeNull();
     const breadcrumb = host.querySelector("nav");
     expect(breadcrumb?.compareDocumentPosition(navigation)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    const add = button("issue.add.label");
-    expect(navigation?.parentElement?.contains(add)).toBe(false);
+    expect(host.querySelector('[aria-label="issue.add.label"]')).toBeNull();
     expect(host.querySelectorAll('[aria-label="common.analytics"]')).toHaveLength(1);
   });
 

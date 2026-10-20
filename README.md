@@ -89,6 +89,8 @@ and content are unchanged. Project sidebars omit **Pages** and label **Cycles**
 as **Analytics**; the Analytics entry still opens the existing Cycles screen.
 Project **Settings** is a direct sidebar link below **Views**, rather than an
 item in the project's three-dot menu. Settings access permissions are unchanged.
+The sidebar Community footer is temporarily hidden, not removed; its badge and
+upgrade dialog remain intact for future use.
 
 ## Project overview
 
@@ -101,10 +103,11 @@ access; archived projects cannot be edited.
 
 Overview includes the standard project breadcrumb and Work items toolbar.
 On desktop, layout and filter icons sit beside the breadcrumb and task count;
-Display, Analytics, and Add work item remain on the right.
+Display and Analytics remain on the right. The breadcrumb row omits Add work
+item; use the sidebar New work item button or the work-item layout's creation controls.
 Selecting a layout opens Work items in that layout; Filters and Display open
-Work items to configure that view. Analytics and Add work item open directly
-from Overview and retain the same project-role permissions as Work items.
+Work items to configure that view. Analytics opens directly from Overview and
+retains the same project-role permissions as Work items.
 On smaller screens, toolbar controls appear in a scrollable row below the header.
 
 Pages and whiteboards attached directly to a project also appear as icon-and-name shortcuts in

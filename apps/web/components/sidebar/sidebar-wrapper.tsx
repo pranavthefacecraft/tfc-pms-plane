@@ -80,8 +80,8 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
         <ScrollArea orientation="vertical">
           <div className="flex flex-col gap-3 overflow-x-hidden px-3 pt-3 pb-0.5">{children}</div>
         </ScrollArea>
-        {/* Help Section */}
-        <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
+        {/* Community footer is temporarily hidden; retain it for later use. */}
+        <div hidden className="hidden h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
           <WorkspaceEditionBadge />
           {/* TODO: To be checked if we need this */}
           {/* <div className="flex items-center gap-2">
