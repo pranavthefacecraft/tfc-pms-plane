@@ -355,12 +355,11 @@ export const ProjectOverview = observer(function ProjectOverview({
 
   const sectionProps = { project, canEdit, saving, save };
   return (
-    <div className="h-full overflow-y-auto bg-surface-2">
+    <div className="min-h-full bg-surface-2">
       <PageHead title={`${project.name} - Overview`} />
       <header className="border-b border-subtle bg-surface-1 px-6 py-5 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <p className="text-12 text-tertiary">{project.identifier} / Overview</p>
-          <h1 className="mt-2 text-24 font-semibold break-words">{project.name}</h1>
+          <h1 className="text-24 font-semibold break-words">{project.name}</h1>
           <p className="mt-1 text-13 text-secondary">
             Your project at a glance: purpose, people, resources, and progress.
           </p>

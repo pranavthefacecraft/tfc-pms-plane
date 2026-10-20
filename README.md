@@ -91,6 +91,12 @@ assign an active project member as owner, set health to **On track**, **At risk*
 or **Off track**, and add/remove resource links. Members and guests have read-only
 access; archived projects cannot be edited.
 
+Overview includes the standard project breadcrumb and Work items toolbar.
+Selecting a layout opens Work items in that layout; Filters and Display open
+Work items to configure that view. Analytics and Add work item open directly
+from Overview and retain the same project-role permissions as Work items.
+On smaller screens, toolbar controls appear in a scrollable row below the header.
+
 For Notepad pages and whiteboards, copy the resource's full URL and use
 **Add resource**, select its type, enter a title, and paste the URL. Linking does
 not grant access to a private resource or delete it when the link is removed.

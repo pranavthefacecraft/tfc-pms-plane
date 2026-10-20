@@ -5,14 +5,14 @@
  */
 
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams } from "react-router";
 // icons
 import { Circle } from "lucide-react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, SPACE_BASE_PATH, SPACE_BASE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@makeplane/propel/elements/button";
-import { NewTabOutline, WorkItemsOutline } from "@makeplane/propel/icons";
+import { NewTabOutline, ViewsOutline, WorkItemsOutline } from "@makeplane/propel/icons";
 import { Tooltip } from "@makeplane/propel/components/tooltip";
 import { EIssuesStoreType } from "@plane/types";
 import { Breadcrumbs } from "@plane/blocks/breadcrumb";
@@ -33,7 +33,7 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
 import { useProjectCrumbProps } from "@/components/breadcrumbs/use-project-crumb-props";
 
-export const IssuesHeader = observer(function IssuesHeader() {
+export const IssuesHeader = observer(function IssuesHeader({ isOverview = false }: { isOverview?: boolean }) {
   // router
   const { workspaceSlug, projectId } = useParams();
   const projectCrumb = useProjectCrumbProps(workspaceSlug?.toString(), projectId?.toString());
@@ -55,11 +55,15 @@ export const IssuesHeader = observer(function IssuesHeader() {
     SPACE_BASE_PATH;
   const publishedURL = `${SPACE_APP_URL}/issues/${currentProjectDetails?.anchor}`;
 
-  const issuesCount = getGroupIssueCount(undefined, undefined, false);
+  const issuesCount = isOverview
+    ? currentProjectDetails?.task_summary?.total
+    : getGroupIssueCount(undefined, undefined, false);
   const canUserCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.PROJECT
   );
+
+  if (!workspaceSlug || !projectId) return null;
 
   return (
     <Header>
@@ -74,9 +78,15 @@ export const IssuesHeader = observer(function IssuesHeader() {
             <Breadcrumbs.Item
               component={
                 <BreadcrumbLink
-                  label="Work Items"
-                  href={`/${workspaceSlug}/projects/${projectId}/issues/`}
-                  icon={<WorkItemsOutline className="h-4 w-4 text-tertiary" />}
+                  label={isOverview ? t("common.overview") : "Work Items"}
+                  href={`/${workspaceSlug}/projects/${projectId}/${isOverview ? "overview" : "issues"}/`}
+                  icon={
+                    isOverview ? (
+                      <ViewsOutline className="h-4 w-4 text-tertiary" />
+                    ) : (
+                      <WorkItemsOutline className="h-4 w-4 text-tertiary" />
+                    )
+                  }
                   isLast
                 />
               }
@@ -116,6 +126,7 @@ export const IssuesHeader = observer(function IssuesHeader() {
             currentProjectDetails={currentProjectDetails}
             workspaceSlug={workspaceSlug}
             canUserCreateIssue={canUserCreateIssue}
+            navigateToIssues={isOverview}
           />
         </div>
         {canUserCreateIssue && (
@@ -124,6 +135,7 @@ export const IssuesHeader = observer(function IssuesHeader() {
             size="md"
             stretch="auto"
             type="button"
+            aria-label={t("issue.add.label")}
             onClick={() => {
               toggleCreateIssueModal(true, EIssuesStoreType.PROJECT);
             }}

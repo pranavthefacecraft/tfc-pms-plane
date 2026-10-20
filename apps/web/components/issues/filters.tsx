@@ -6,11 +6,13 @@
 
 import { useCallback, useState } from "react";
 import { observer } from "mobx-react";
-import { BarOutline, PreferencesOutline } from "@makeplane/propel/icons";
+import { useNavigate } from "react-router";
+import { BarOutline, FilterOutline, PreferencesOutline } from "@makeplane/propel/icons";
 // plane imports
 import { EIssueFilterType, ISSUE_STORE_TO_FILTERS_MAP } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@makeplane/propel/elements/button";
+import { setToast } from "@plane/blocks/toast";
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 // hooks
@@ -33,6 +35,8 @@ type Props = {
   workspaceSlug: string;
   canUserCreateIssue: boolean | undefined;
   storeType?: EIssuesStoreType.PROJECT | EIssuesStoreType.EPIC;
+  navigateToIssues?: boolean;
+  compact?: boolean;
 };
 const LAYOUTS = [
   EIssueLayoutTypes.LIST,
@@ -49,25 +53,39 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
     workspaceSlug,
     canUserCreateIssue,
     storeType = EIssuesStoreType.PROJECT,
+    navigateToIssues = false,
+    compact = false,
   } = props;
   // i18n
   const { t } = useTranslation();
   // states
   const [analyticsModal, setAnalyticsModal] = useState(false);
+  const navigate = useNavigate();
   // store hooks
-  const {
-    issuesFilter: { issueFilters, updateFilters },
-  } = useIssues(storeType);
+  const { issuesFilter } = useIssues(storeType);
+  const { issueFilters, updateFilters, fetchFilters } = issuesFilter;
   // derived values
   const activeLayout = issueFilters?.displayFilters?.layout;
   const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[activeLayout];
 
   const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
+    async (layout: EIssueLayoutTypes) => {
       if (!workspaceSlug || !projectId) return;
-      updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout: layout });
+      if (!navigateToIssues) {
+        updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout: layout });
+        return;
+      }
+      try {
+        // Direct Overview visits have not initialized the Work items filters yet.
+        if (!issuesFilter.getIssueFilters(projectId)) await fetchFilters(workspaceSlug, projectId);
+        await updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout });
+        navigate(`/${workspaceSlug}/projects/${projectId}/issues`);
+      } catch (error) {
+        console.error("Could not open the selected work item layout", error);
+        setToast({ type: "error", title: "Could not open work items", message: "Please try again." });
+      }
     },
-    [workspaceSlug, projectId, updateFilters]
+    [workspaceSlug, projectId, updateFilters, navigateToIssues, issuesFilter, fetchFilters, navigate]
   );
 
   const handleDisplayFilters = useCallback(
@@ -108,25 +126,50 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
           activeLayout={activeLayout}
         />
       </div>
-      <WorkItemFiltersToggle entityType={storeType} entityId={projectId} />
-      <FiltersDropdown
-        miniIcon={<PreferencesOutline className="size-3.5" />}
-        title={t("common.display")}
-        placement="bottom-end"
-      >
-        <DisplayFiltersSelection
-          layoutDisplayFiltersOptions={layoutDisplayFiltersOptions}
-          displayFilters={issueFilters?.displayFilters ?? {}}
-          handleDisplayFiltersUpdate={handleDisplayFilters}
-          displayProperties={issueFilters?.displayProperties ?? {}}
-          handleDisplayPropertiesUpdate={handleDisplayProperties}
-          cycleViewDisabled={!currentProjectDetails?.cycle_view}
-          moduleViewDisabled={!currentProjectDetails?.module_view}
-          isEpic={storeType === EIssuesStoreType.EPIC}
-        />
-      </FiltersDropdown>
+      {navigateToIssues ? (
+        <>
+          <Button
+            variant="secondary"
+            size="md"
+            stretch="auto"
+            aria-label={t("common.filters")}
+            onClick={() => navigate(`/${workspaceSlug}/projects/${projectId}/issues`)}
+          >
+            <FilterOutline className="size-3.5" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="md"
+            stretch="auto"
+            onClick={() => navigate(`/${workspaceSlug}/projects/${projectId}/issues`)}
+          >
+            <PreferencesOutline className="size-3.5" />
+            {t("common.display")}
+          </Button>
+        </>
+      ) : (
+        <>
+          <WorkItemFiltersToggle entityType={storeType} entityId={projectId} />
+          <FiltersDropdown
+            miniIcon={<PreferencesOutline className="size-3.5" />}
+            title={t("common.display")}
+            placement="bottom-end"
+          >
+            <DisplayFiltersSelection
+              layoutDisplayFiltersOptions={layoutDisplayFiltersOptions}
+              displayFilters={issueFilters?.displayFilters ?? {}}
+              handleDisplayFiltersUpdate={handleDisplayFilters}
+              displayProperties={issueFilters?.displayProperties ?? {}}
+              handleDisplayPropertiesUpdate={handleDisplayProperties}
+              cycleViewDisabled={!currentProjectDetails?.cycle_view}
+              moduleViewDisabled={!currentProjectDetails?.module_view}
+              isEpic={storeType === EIssuesStoreType.EPIC}
+            />
+          </FiltersDropdown>
+        </>
+      )}
       {canUserCreateIssue ? (
-        <div className="hidden md:flex">
+        <div className={compact ? "flex" : "hidden md:flex"}>
           <Button
             type="button"
             variant="secondary"

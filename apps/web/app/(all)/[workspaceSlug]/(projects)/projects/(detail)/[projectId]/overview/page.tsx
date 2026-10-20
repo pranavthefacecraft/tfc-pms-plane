@@ -5,8 +5,17 @@
  */
 
 import { ProjectOverview } from "@/components/projects/overview";
+import { ProjectOverviewHeader } from "@/components/projects/overview-header";
+import { ContentWrapper } from "@/components/core/content-wrapper";
 import type { Route } from "./+types/page";
 
 export default function ProjectOverviewPage({ params }: Pick<Route.ComponentProps, "params">) {
-  return <ProjectOverview key={`${params.workspaceSlug}:${params.projectId}`} {...params} />;
+  return (
+    <>
+      <ProjectOverviewHeader {...params} />
+      <ContentWrapper>
+        <ProjectOverview key={`${params.workspaceSlug}:${params.projectId}`} {...params} />
+      </ContentWrapper>
+    </>
+  );
 }
