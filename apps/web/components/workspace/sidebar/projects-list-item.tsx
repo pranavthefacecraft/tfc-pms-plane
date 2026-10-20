@@ -20,7 +20,6 @@ import {
   LinkOutline,
   LogOutOutline,
   MoreHorizontalOutline,
-  SettingsOutline,
   ShareAltOutline,
 } from "@makeplane/propel/icons";
 // plane imports
@@ -362,13 +361,6 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                           }}
                         />
                       )}
-                      <MenuItem
-                        icon={<Icon icon={SettingsOutline} />}
-                        label={t("settings")}
-                        onClick={() => {
-                          router.push(`/${workspaceSlug}/settings/projects/${project?.id}`);
-                        }}
-                      />
                       {/* leave project */}
                       {!isAuthorized && (
                         <MenuItem

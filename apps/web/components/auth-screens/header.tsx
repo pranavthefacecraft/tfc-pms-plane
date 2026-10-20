@@ -70,7 +70,7 @@ export function AuthHeaderBase(props: TAuthHeaderBase) {
       <PageHead title={pageTitle + " - TFC PMS"} />
       <div className="sticky top-0 flex w-full flex-shrink-0 items-center justify-between gap-6">
         <Link href="/">
-          <img src="/tfc-pms-logo.png" alt="TFC PMS" className="h-7 w-auto object-contain" />
+          <img src="/clevdex-logo.png" alt="Clevdex" className="h-auto w-40 max-w-full object-contain sm:w-48" />
         </Link>
         {additionalAction}
       </div>

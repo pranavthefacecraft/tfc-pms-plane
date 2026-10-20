@@ -71,6 +71,10 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 
 ## TFC PMS email branding
 
+Web sign-in, sign-up, and password-recovery headers use the supplied Clevdex
+logo. The web favicon and touch/installed-app icons use the matching Clevdex
+symbol. This does not change email branding, God Mode branding, or product copy.
+
 Application emails use the TFC PMS logo, product name and footer. The logo is
 loaded from `${WEB_URL}/tfc-pms-logo.png`; `WEB_URL` must be the public web
 application URL. Email clients may block remote images until the recipient
@@ -81,6 +85,8 @@ allows them. Login codes, reset links and invitation links are unchanged.
 The sidebar's **Tool > Notepad** entry opens workspace pages; existing page URLs
 and content are unchanged. Project sidebars omit **Pages** and label **Cycles**
 as **Analytics**; the Analytics entry still opens the existing Cycles screen.
+Project **Settings** is a direct sidebar link below **Views**, rather than an
+item in the project's three-dot menu. Settings access permissions are unchanged.
 
 ## Project overview
 

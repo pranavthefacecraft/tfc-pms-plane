@@ -8,10 +8,17 @@ import React, { useCallback, useMemo } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, useLocation } from "react-router";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CyclesOutline, IntakeOutline, ModuleOutline, ViewsOutline, WorkItemsOutline } from "@makeplane/propel/icons";
+import {
+  CyclesOutline,
+  IntakeOutline,
+  ModuleOutline,
+  SettingsOutline,
+  ViewsOutline,
+  WorkItemsOutline,
+} from "@makeplane/propel/icons";
 import type { EUserProjectRoles } from "@plane/types";
 // plane ui
 // components
@@ -51,7 +58,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
     issue: { getIssueIdByIdentifier, getIssueById },
   } = useIssueDetail();
   // pathname
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   // derived values
   const workItemId = workItemIdentifierFromRoute
     ? getIssueIdByIdentifier(workItemIdentifierFromRoute?.toString())
@@ -120,6 +127,16 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.issue_views_view ?? false,
         sortOrder: 4,
+      },
+      {
+        i18n_key: "settings",
+        key: "settings",
+        name: "Settings",
+        href: `/${workspaceSlug}/settings/projects/${projectId}`,
+        icon: SettingsOutline,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 5,
       },
       {
         i18n_key: "sidebar.intake",
