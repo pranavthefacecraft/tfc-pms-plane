@@ -11,11 +11,12 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { SWRConfig, useSWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ExtendedAppHeader } from "@/components/common/extended-app-header";
-import type { TWorkspacePage } from "@/services/page/workspace-page.service";
+import type { TWorkspacePage, TWorkspacePageListParams } from "@/services/page/workspace-page.service";
 import { WORKSPACE_PAGES_SWR_KEY } from "./helpers";
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
+  boards: [] as TWorkspacePage[],
   mode: "ACCORDION",
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
@@ -57,13 +58,23 @@ function Revalidate() {
   return <button onClick={() => void mutate(WORKSPACE_PAGES_SWR_KEY("workspace"))}>Refresh Notepad</button>;
 }
 
+function RevalidateBoards() {
+  const { mutate } = useSWRConfig();
+  return (
+    <button onClick={() => void mutate(WORKSPACE_PAGES_SWR_KEY("workspace", "whiteboard"))}>Refresh boards</button>
+  );
+}
+
 describe("project header page shortcuts", () => {
   let host: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.mode = "ACCORDION";
-    mocks.list.mockResolvedValue([page("brief")]);
+    mocks.boards = [];
+    mocks.list.mockImplementation((_slug: string, params: TWorkspacePageListParams) =>
+      Promise.resolve(params.type === "whiteboard" ? mocks.boards : [page("brief")])
+    );
     host = document.createElement("div");
     document.body.append(host);
     root = createRoot(host);
@@ -95,15 +106,15 @@ describe("project header page shortcuts", () => {
   it.each(["overview", "issues", "cycles", "settings"])("shows an icon and named page link on %s", async (view) => {
     await render(`/workspace/projects/project/${view}`);
     expect(mocks.list).toHaveBeenCalledWith("workspace", { type: "page" });
-    const link = host.querySelector('nav[aria-label="Project pages"] a');
+    const link = host.querySelector('nav[aria-label="Project pages and whiteboards"] a');
     expect(link?.getAttribute("href")).toBe("/workspace/tool/pages/brief/");
     expect(link?.textContent).toBe("Project brief");
     expect(link?.querySelector("svg")).not.toBeNull();
     expect(host.textContent).toContain("Project breadcrumb and actions");
   });
 
-  it("excludes task pages, other projects, inaccessible attachments, and whiteboards", async () => {
-    mocks.list.mockResolvedValue([
+  it("excludes task resources, other projects, and inaccessible attachments", async () => {
+    const resources = [
       page("direct"),
       page("task", "Task page", {
         attachment: { entity_type: "issue", project_id: "project", issue_id: "task", is_accessible: true },
@@ -115,10 +126,16 @@ describe("project header page shortcuts", () => {
         attachment: { entity_type: "project", project_id: "project", issue_id: null, is_accessible: false },
       }),
       page("unattached", "Unattached", { attachment: null }),
-      page("board", "Board", { tool_type: "whiteboard" }),
-    ]);
+    ];
+    mocks.list.mockImplementation((_slug: string, params: TWorkspacePageListParams) =>
+      Promise.resolve(
+        params.type === "whiteboard"
+          ? resources.map((item) => ({ ...item, id: `board-${item.id}`, tool_type: "whiteboard" }))
+          : resources
+      )
+    );
     await render();
-    expect(host.querySelectorAll("nav a")).toHaveLength(1);
+    expect(host.querySelectorAll("nav a")).toHaveLength(2);
     expect(host.querySelector("nav a")?.textContent).toBe("Project brief");
   });
 
@@ -136,7 +153,9 @@ describe("project header page shortcuts", () => {
 
   it("uses Untitled for blank names and keeps full long names in titles", async () => {
     const longName = "A very long project documentation page name ".repeat(8);
-    mocks.list.mockResolvedValue([page("blank", "  "), page("long", longName)]);
+    mocks.list.mockImplementation((_slug: string, params: TWorkspacePageListParams) =>
+      Promise.resolve(params.type === "whiteboard" ? [] : [page("blank", "  "), page("long", longName)])
+    );
     await render();
     const links = host.querySelectorAll("nav a");
     expect(links[0].textContent).toBe("Untitled");
@@ -155,7 +174,9 @@ describe("project header page shortcuts", () => {
   it("refreshes after attachment, rename, and detach using the shared Notepad cache", async () => {
     await render(undefined, <Revalidate />);
     async function refresh(pages: TWorkspacePage[]) {
-      mocks.list.mockResolvedValue(pages);
+      mocks.list.mockImplementation((_slug: string, params: TWorkspacePageListParams) =>
+        Promise.resolve(params.type === "whiteboard" ? mocks.boards : pages)
+      );
       await act(async () => {
         const button = [...host.querySelectorAll("button")].find((node) => node.textContent === "Refresh Notepad");
         button?.click();
@@ -171,12 +192,61 @@ describe("project header page shortcuts", () => {
   it("shows explicit failure and supports retry", async () => {
     mocks.list.mockRejectedValue(new Error("Offline"));
     await render();
-    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not refresh pages.");
-    mocks.list.mockResolvedValue([page("recovered")]);
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not refresh pages or whiteboards.");
+    mocks.list.mockImplementation((_slug: string, params: TWorkspacePageListParams) =>
+      Promise.resolve(params.type === "whiteboard" ? [] : [page("recovered")])
+    );
     await act(async () => {
       [...host.querySelectorAll("button")].find((node) => node.textContent === "Retry")?.click();
     });
     expect(host.querySelector('[role="alert"]')).toBeNull();
     expect(host.querySelector("nav a")?.getAttribute("href")).toContain("recovered");
+  });
+
+  it("shows directly attached whiteboards with their own icon and route", async () => {
+    mocks.boards = [page("board", "Planning board", { tool_type: "whiteboard" })];
+    await render();
+    expect(mocks.list).toHaveBeenCalledWith("workspace", { type: "whiteboard" });
+    const links = host.querySelectorAll("nav a");
+    expect(links).toHaveLength(2);
+    expect(links[1].getAttribute("href")).toBe("/workspace/tool/whiteboards/board/");
+    expect(links[1].textContent).toBe("Planning board");
+    expect(links[1].querySelector("svg")?.innerHTML).not.toBe(links[0].querySelector("svg")?.innerHTML);
+  });
+
+  it("refreshes whiteboard attachment, rename, and removal independently of Notepad", async () => {
+    await render(undefined, <RevalidateBoards />);
+    async function refresh(boards: TWorkspacePage[]) {
+      mocks.boards = boards;
+      await act(async () => {
+        [...host.querySelectorAll("button")].find((node) => node.textContent === "Refresh boards")?.click();
+      });
+    }
+    await refresh([page("board", "New board", { tool_type: "whiteboard" })]);
+    expect(host.querySelector("nav")?.textContent).toContain("New board");
+    await refresh([page("board", "Renamed board", { tool_type: "whiteboard" })]);
+    expect(host.querySelector("nav")?.textContent).toContain("Renamed board");
+    await refresh([]);
+    expect(host.querySelectorAll("nav a")).toHaveLength(1);
+    expect(host.querySelector("nav")?.textContent).toContain("Project brief");
+  });
+
+  it("retains page links when whiteboards fail and recovers on retry", async () => {
+    mocks.list.mockImplementation((_slug: string, params: TWorkspacePageListParams) =>
+      params.type === "whiteboard" ? Promise.reject(new Error("Offline")) : Promise.resolve([page("brief")])
+    );
+    await render();
+    expect(host.querySelector("nav a")?.textContent).toBe("Project brief");
+    expect(host.querySelector('[role="alert"]')).not.toBeNull();
+    mocks.list.mockImplementation((_slug: string, params: TWorkspacePageListParams) =>
+      Promise.resolve(
+        params.type === "whiteboard" ? [page("board", "Board", { tool_type: "whiteboard" })] : [page("brief")]
+      )
+    );
+    await act(async () => {
+      [...host.querySelectorAll("button")].find((node) => node.textContent === "Retry")?.click();
+    });
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host.querySelectorAll("nav a")).toHaveLength(2);
   });
 });
