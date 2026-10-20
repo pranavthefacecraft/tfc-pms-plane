@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { useParams } from "react-router";
 // components
 import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
+import { ProjectPageShortcuts } from "@/components/workspace-pages/project-page-shortcuts";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
@@ -16,7 +17,7 @@ import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferen
 export const ExtendedAppHeader = observer(function ExtendedAppHeader(props: { header: ReactNode }) {
   const { header } = props;
   // params
-  const { projectId, workItem } = useParams();
+  const { workspaceSlug, projectId, workItem } = useParams();
   // preferences
   const { preferences: projectPreferences } = useProjectNavigationPreferences();
   // store hooks
@@ -27,7 +28,14 @@ export const ExtendedAppHeader = observer(function ExtendedAppHeader(props: { he
   return (
     <>
       {sidebarCollapsed && shouldShowSidebarToggleButton && <AppSidebarToggleButton />}
-      <div className="w-full">{header}</div>
+      <div className="min-w-0 flex-1">{header}</div>
+      {workspaceSlug && projectId && (
+        <ProjectPageShortcuts
+          key={`${workspaceSlug}:${projectId}`}
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+        />
+      )}
     </>
   );
 });

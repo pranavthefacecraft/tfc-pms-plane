@@ -283,6 +283,23 @@ describe("project overview header", () => {
     expect(mocks.count).toHaveBeenCalled();
   });
 
+  it.each([false, true])("places layout and filter icons after the breadcrumb for Overview=%s", async (isOverview) => {
+    await render(<IssuesHeader isOverview={isOverview} />);
+    const navigation = host.querySelector('[aria-label="Work item layouts and filters"]');
+    if (!navigation) throw new Error("Missing layout and filter group");
+    expect(navigation?.textContent).toContain("kanban");
+    expect(navigation?.textContent).toContain("Mobile layout");
+    if (isOverview) expect(navigation?.querySelector('[aria-label="common.filters"]')).not.toBeNull();
+    else expect(navigation?.textContent).toContain("Existing filters");
+    expect(navigation?.textContent).not.toContain("common.display");
+    expect(navigation?.querySelector('[aria-label="common.analytics"]')).toBeNull();
+    const breadcrumb = host.querySelector("nav");
+    expect(breadcrumb?.compareDocumentPosition(navigation)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const add = button("issue.add.label");
+    expect(navigation?.parentElement?.contains(add)).toBe(false);
+    expect(host.querySelectorAll('[aria-label="common.analytics"]')).toHaveLength(1);
+  });
+
   it("leaves existing Work items layout and display behavior unchanged", async () => {
     await render(toolbar(false));
     await click("kanban");

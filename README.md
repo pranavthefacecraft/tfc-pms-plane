@@ -92,10 +92,20 @@ or **Off track**, and add/remove resource links. Members and guests have read-on
 access; archived projects cannot be edited.
 
 Overview includes the standard project breadcrumb and Work items toolbar.
+On desktop, layout and filter icons sit beside the breadcrumb and task count;
+Display, Analytics, and Add work item remain on the right.
 Selecting a layout opens Work items in that layout; Filters and Display open
 Work items to configure that view. Analytics and Add work item open directly
 from Overview and retain the same project-role permissions as Work items.
 On smaller screens, toolbar controls appear in a scrollable row below the header.
+
+Pages attached directly to a project also appear as icon-and-name shortcuts in
+that project's breadcrumb/header row, including Overview and Work items.
+Task-attached pages and whiteboards are not included. Only pages visible to the
+signed-in user are shown; attaching a page does not change its access settings.
+Long names are truncated (hover for the full name), and multiple shortcuts can
+be scrolled horizontally. Links refresh after Notepad changes or when returning
+to the window, with a periodic refresh for changes made by teammates.
 
 For Notepad pages and whiteboards, copy the resource's full URL and use
 **Add resource**, select its type, enter a title, and paste the URL. Linking does

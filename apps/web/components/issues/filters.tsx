@@ -37,6 +37,7 @@ type Props = {
   storeType?: EIssuesStoreType.PROJECT | EIssuesStoreType.EPIC;
   navigateToIssues?: boolean;
   compact?: boolean;
+  controls?: "all" | "navigation" | "actions";
 };
 const LAYOUTS = [
   EIssueLayoutTypes.LIST,
@@ -55,6 +56,7 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
     storeType = EIssuesStoreType.PROJECT,
     navigateToIssues = false,
     compact = false,
+    controls = "all",
   } = props;
   // i18n
   const { t } = useTranslation();
@@ -106,86 +108,95 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
 
   return (
     <>
-      <WorkItemsModal
-        isOpen={analyticsModal}
-        onClose={() => setAnalyticsModal(false)}
-        projectDetails={currentProjectDetails ?? undefined}
-        isEpic={storeType === EIssuesStoreType.EPIC}
-      />
-      <div className="hidden @4xl:flex">
-        <LayoutSelection
-          layouts={LAYOUTS}
-          onChange={(layout) => handleLayoutChange(layout)}
-          selectedLayout={activeLayout}
+      {controls !== "navigation" && (
+        <WorkItemsModal
+          isOpen={analyticsModal}
+          onClose={() => setAnalyticsModal(false)}
+          projectDetails={currentProjectDetails ?? undefined}
+          isEpic={storeType === EIssuesStoreType.EPIC}
         />
-      </div>
-      <div className="flex @4xl:hidden">
-        <MobileLayoutSelection
-          layouts={LAYOUTS}
-          onChange={(layout) => handleLayoutChange(layout)}
-          activeLayout={activeLayout}
-        />
-      </div>
-      {navigateToIssues ? (
+      )}
+      {controls !== "actions" && (
         <>
-          <Button
-            variant="secondary"
-            size="md"
-            stretch="auto"
-            aria-label={t("common.filters")}
-            onClick={() => navigate(`/${workspaceSlug}/projects/${projectId}/issues`)}
-          >
-            <FilterOutline className="size-3.5" />
-          </Button>
-          <Button
-            variant="secondary"
-            size="md"
-            stretch="auto"
-            onClick={() => navigate(`/${workspaceSlug}/projects/${projectId}/issues`)}
-          >
-            <PreferencesOutline className="size-3.5" />
-            {t("common.display")}
-          </Button>
-        </>
-      ) : (
-        <>
-          <WorkItemFiltersToggle entityType={storeType} entityId={projectId} />
-          <FiltersDropdown
-            miniIcon={<PreferencesOutline className="size-3.5" />}
-            title={t("common.display")}
-            placement="bottom-end"
-          >
-            <DisplayFiltersSelection
-              layoutDisplayFiltersOptions={layoutDisplayFiltersOptions}
-              displayFilters={issueFilters?.displayFilters ?? {}}
-              handleDisplayFiltersUpdate={handleDisplayFilters}
-              displayProperties={issueFilters?.displayProperties ?? {}}
-              handleDisplayPropertiesUpdate={handleDisplayProperties}
-              cycleViewDisabled={!currentProjectDetails?.cycle_view}
-              moduleViewDisabled={!currentProjectDetails?.module_view}
-              isEpic={storeType === EIssuesStoreType.EPIC}
+          <div className="hidden @4xl:flex">
+            <LayoutSelection
+              layouts={LAYOUTS}
+              onChange={(layout) => handleLayoutChange(layout)}
+              selectedLayout={activeLayout}
             />
-          </FiltersDropdown>
+          </div>
+          <div className="flex @4xl:hidden">
+            <MobileLayoutSelection
+              layouts={LAYOUTS}
+              onChange={(layout) => handleLayoutChange(layout)}
+              activeLayout={activeLayout}
+            />
+          </div>
+          {navigateToIssues ? (
+            <Button
+              variant="secondary"
+              size="md"
+              stretch="auto"
+              aria-label={t("common.filters")}
+              onClick={() => navigate(`/${workspaceSlug}/projects/${projectId}/issues`)}
+            >
+              <FilterOutline className="size-3.5" />
+            </Button>
+          ) : (
+            <WorkItemFiltersToggle entityType={storeType} entityId={projectId} />
+          )}
         </>
       )}
-      {canUserCreateIssue ? (
-        <div className={compact ? "flex" : "hidden md:flex"}>
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            stretch="auto"
-            aria-label={t("common.analytics")}
-            onClick={() => setAnalyticsModal(true)}
-          >
-            <span className="hidden @4xl:flex">{t("common.analytics")}</span>
-            <span className="flex @4xl:hidden">
-              <BarOutline className="size-3.5" />
-            </span>
-          </Button>
-        </div>
-      ) : (
-        <></>
+      {controls !== "navigation" && (
+        <>
+          {navigateToIssues ? (
+            <Button
+              variant="secondary"
+              size="md"
+              stretch="auto"
+              onClick={() => navigate(`/${workspaceSlug}/projects/${projectId}/issues`)}
+            >
+              <PreferencesOutline className="size-3.5" />
+              {t("common.display")}
+            </Button>
+          ) : (
+            <FiltersDropdown
+              miniIcon={<PreferencesOutline className="size-3.5" />}
+              title={t("common.display")}
+              placement="bottom-end"
+            >
+              <DisplayFiltersSelection
+                layoutDisplayFiltersOptions={layoutDisplayFiltersOptions}
+                displayFilters={issueFilters?.displayFilters ?? {}}
+                handleDisplayFiltersUpdate={handleDisplayFilters}
+                displayProperties={issueFilters?.displayProperties ?? {}}
+                handleDisplayPropertiesUpdate={handleDisplayProperties}
+                cycleViewDisabled={!currentProjectDetails?.cycle_view}
+                moduleViewDisabled={!currentProjectDetails?.module_view}
+                isEpic={storeType === EIssuesStoreType.EPIC}
+              />
+            </FiltersDropdown>
+          )}
+          {canUserCreateIssue ? (
+            <div className={compact ? "flex" : "hidden md:flex"}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                stretch="auto"
+                aria-label={t("common.analytics")}
+                onClick={() => setAnalyticsModal(true)}
+              >
+                <span className="hidden @4xl:flex">{t("common.analytics")}</span>
+                <span className="flex @4xl:hidden">
+                  <BarOutline className="size-3.5" />
+                </span>
+              </Button>
+            </div>
+          ) : (
+            <></>
+          )}
+        </>
       )}
     </>
   );

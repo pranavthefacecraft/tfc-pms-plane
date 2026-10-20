@@ -67,7 +67,7 @@ export const IssuesHeader = observer(function IssuesHeader({ isOverview = false 
 
   return (
     <Header>
-      <Header.LeftItem>
+      <Header.LeftItem className="min-w-0 flex-nowrap">
         <div className="flex items-center gap-2.5">
           <Breadcrumbs isLoading={loader === "init-loader"} className="flex-grow-0">
             <CommonProjectBreadcrumbs
@@ -104,6 +104,20 @@ export const IssuesHeader = observer(function IssuesHeader({ isOverview = false 
             </Tooltip>
           ) : null}
         </div>
+        <div
+          role="group"
+          aria-label="Work item layouts and filters"
+          className="hidden shrink-0 items-center gap-2 md:flex"
+        >
+          <HeaderFilters
+            projectId={projectId}
+            currentProjectDetails={currentProjectDetails}
+            workspaceSlug={workspaceSlug}
+            canUserCreateIssue={canUserCreateIssue}
+            navigateToIssues={isOverview}
+            controls="navigation"
+          />
+        </div>
         {currentProjectDetails?.anchor ? (
           <a
             href={publishedURL}
@@ -127,6 +141,7 @@ export const IssuesHeader = observer(function IssuesHeader({ isOverview = false 
             workspaceSlug={workspaceSlug}
             canUserCreateIssue={canUserCreateIssue}
             navigateToIssues={isOverview}
+            controls="actions"
           />
         </div>
         {canUserCreateIssue && (
