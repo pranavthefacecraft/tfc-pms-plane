@@ -15,11 +15,11 @@ from rest_framework import serializers, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from plane.app.permissions import ROLE, allow_permission
 from plane.db.models import (
     FileAsset,
     Notification,
     Page,
+    User,
     UserNotificationPreference,
     WhiteboardComment,
     WhiteboardThread,
@@ -30,10 +30,9 @@ from plane.utils.exception_logger import log_exception
 from plane.utils.path_validator import sanitize_filename
 
 from ..base import BaseAPIView
-from .workspace import WorkspacePageMixin, _serialize_user
+from .workspace import WorkspacePageMixin, _serialize_user, allow_board_guest
 from .collaboration import require_board_editor
 
-ROLES = [ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST]
 ATTACHMENT_TYPES = {
     ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -92,11 +91,14 @@ class WhiteboardCommentsMixin(WorkspacePageMixin):
     def get_board(self, request, slug, page_id):
         return self.get_pages(request, slug).filter(pk=page_id, tool_type=Page.TOOL_TYPE_WHITEBOARD).first()
 
-    def members(self, page):
+    def members(self, page, user):
         members = WorkspaceMember.objects.filter(workspace_id=page.workspace_id, is_active=True)
-        if page.access == Page.PRIVATE_ACCESS:
+        if page.access == Page.PRIVATE_ACCESS or not members.filter(member=user).exists():
             members = members.filter(Q(member_id=page.owned_by_id) | Q(member_id__in=page.whiteboard_roles))
-        return members.select_related("member")
+        users = [member.member for member in members.select_related("member")]
+        if page.whiteboard_guest_role in ("viewer", "editor"):
+            users.extend(User.objects.filter(pk__in=page.whiteboard_guest_ids, is_active=True, is_bot=False))
+        return list({str(user.id): user for user in users}.values())
 
     def threads(self, page):
         return WhiteboardThread.objects.filter(page=page).prefetch_related(
@@ -105,7 +107,7 @@ class WhiteboardCommentsMixin(WorkspacePageMixin):
 
 
 class WhiteboardThreadEndpoint(WhiteboardCommentsMixin, BaseAPIView):
-    @allow_permission(allowed_roles=ROLES, level="WORKSPACE")
+    @allow_board_guest
     def get(self, request, slug, page_id):
         page = self.get_board(request, slug, page_id)
         if page is None:
@@ -113,12 +115,12 @@ class WhiteboardThreadEndpoint(WhiteboardCommentsMixin, BaseAPIView):
         return Response(
             {
                 "threads": [serialize_thread(thread) for thread in self.threads(page)],
-                "members": [_serialize_user(member.member) for member in self.members(page)],
+                "members": [_serialize_user(member) for member in self.members(page, request.user)],
                 "file_size_limit": settings.FILE_SIZE_LIMIT,
             }
         )
 
-    @allow_permission(allowed_roles=ROLES, level="WORKSPACE")
+    @allow_board_guest
     @transaction.atomic
     def post(self, request, slug, page_id, thread_id=None):
         page = self.get_board(request, slug, page_id)
@@ -137,7 +139,7 @@ class WhiteboardThreadEndpoint(WhiteboardCommentsMixin, BaseAPIView):
             return Response({"error": "Reopen this thread before replying."}, status=status.HTTP_400_BAD_REQUEST)
         if thread is None and ("x" not in data or "y" not in data):
             return Response({"error": "Choose a canvas location."}, status=status.HTTP_400_BAD_REQUEST)
-        members = {str(member.member_id) for member in self.members(page)}
+        members = {str(member.id) for member in self.members(page, request.user)}
         mentions = {str(member_id) for member_id in data["mentions"]}
         if not mentions.issubset(members):
             return Response({"error": "Mentioned users must be able to view this whiteboard."}, status=400)
@@ -186,7 +188,7 @@ class WhiteboardThreadEndpoint(WhiteboardCommentsMixin, BaseAPIView):
             )
         return Response(serialize_thread(self.threads(page).get(pk=thread.id)), status=201)
 
-    @allow_permission(allowed_roles=ROLES, level="WORKSPACE")
+    @allow_board_guest
     @transaction.atomic
     def patch(self, request, slug, page_id, thread_id):
         page = self.get_board(request, slug, page_id)
@@ -203,7 +205,7 @@ class WhiteboardThreadEndpoint(WhiteboardCommentsMixin, BaseAPIView):
 class WhiteboardCommentAttachmentEndpoint(WhiteboardCommentsMixin, BaseAPIView):
     parser_classes = [MultiPartParser]
 
-    @allow_permission(allowed_roles=ROLES, level="WORKSPACE")
+    @allow_board_guest
     def post(self, request, slug, page_id):
         page = self.get_board(request, slug, page_id)
         if page is None:

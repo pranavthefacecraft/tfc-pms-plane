@@ -6,6 +6,7 @@
 
 # Python imports
 import uuid
+from functools import wraps
 
 # Django imports
 from django.db.models import Prefetch, Q
@@ -23,6 +24,31 @@ from ..base import BaseAPIView
 
 EDITABLE_FIELDS = ("name", "description_html", "logo_props")
 TOOL_TYPES = (Page.TOOL_TYPE_PAGE, Page.TOOL_TYPE_WHITEBOARD)
+
+
+def allow_board_guest(func):
+    workspace_only = allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")(func)
+
+    @wraps(func)
+    def wrapped(self, request, slug, page_id, *args, **kwargs):
+        if (
+            request.user.is_authenticated
+            and not request.user.is_bot
+            and Page.objects.filter(
+                pk=page_id,
+                workspace__slug=slug,
+                is_global=True,
+                parent__isnull=True,
+                archived_at__isnull=True,
+                tool_type=Page.TOOL_TYPE_WHITEBOARD,
+                whiteboard_guest_role__in=("viewer", "editor"),
+                whiteboard_guest_ids__contains=[str(request.user.id)],
+            ).exists()
+        ):
+            return func(self, request, slug, page_id, *args, **kwargs)
+        return workspace_only(self, request, *args, slug=slug, page_id=page_id, **kwargs)
+
+    return wrapped
 
 
 def _is_uuid(value):
@@ -119,6 +145,20 @@ class WorkspacePageMixin:
             raise PermissionDenied("Only workspace members and admins can edit pages.")
 
     def get_pages(self, request, slug):
+        is_member = WorkspaceMember.objects.filter(workspace__slug=slug, member=request.user, is_active=True).exists()
+        access = (
+            (
+                Q(owned_by=request.user)
+                | Q(access=Page.PUBLIC_ACCESS)
+                | Q(tool_type=Page.TOOL_TYPE_WHITEBOARD, whiteboard_roles__has_key=str(request.user.id))
+            )
+            if is_member
+            else Q(
+                tool_type=Page.TOOL_TYPE_WHITEBOARD,
+                whiteboard_guest_role__in=("viewer", "editor"),
+                whiteboard_guest_ids__contains=[str(request.user.id)],
+            )
+        )
         return (
             Page.objects.filter(
                 workspace__slug=slug,
@@ -126,11 +166,7 @@ class WorkspacePageMixin:
                 parent__isnull=True,
                 archived_at__isnull=True,
             )
-            .filter(
-                Q(owned_by=request.user)
-                | Q(access=Page.PUBLIC_ACCESS)
-                | Q(tool_type=Page.TOOL_TYPE_WHITEBOARD, whiteboard_roles__has_key=str(request.user.id))
-            )
+            .filter(access)
             .select_related("owned_by", "updated_by")
             .prefetch_related(
                 Prefetch(
@@ -209,17 +245,23 @@ class WorkspacePageEndpoint(WorkspacePageMixin, BaseAPIView):
 
 
 class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def serialize_for_user(self, page, user, slug):
+        data = serialize_workspace_page(page, _user_project_ids(user, slug), include_description=True)
+        if not WorkspaceMember.objects.filter(workspace_id=page.workspace_id, member=user, is_active=True).exists():
+            data["attachment"] = None
+        return data
+
+    @allow_board_guest
     def get(self, request, slug, page_id):
         page = self.get_pages(request, slug).filter(pk=page_id).first()
         if page is None:
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(
-            serialize_workspace_page(page, _user_project_ids(request.user, slug), include_description=True),
+            self.serialize_for_user(page, request.user, slug),
             status=status.HTTP_200_OK,
         )
 
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    @allow_board_guest
     def patch(self, request, slug, page_id):
         page = self.get_pages(request, slug).filter(pk=page_id).first()
         if page is None:
@@ -260,7 +302,7 @@ class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
 
         page = self.get_pages(request, slug).get(pk=page.id)
         return Response(
-            serialize_workspace_page(page, _user_project_ids(request.user, slug), include_description=True),
+            self.serialize_for_user(page, request.user, slug),
             status=status.HTTP_200_OK,
         )
 

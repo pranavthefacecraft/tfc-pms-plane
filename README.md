@@ -170,15 +170,27 @@ tests with `pnpm --filter web test`.
 
 Open **Tool > Whiteboard** and choose a board. The owner can use **Share** to
 assign active workspace members **Viewer** or **Editor**, then copy the board
-link. Recipients must sign in with their workspace account; anonymous/external
-links are not supported.
+link. Recipients must sign in or create an account; anonymous access is not supported.
 The sharing list hides system/bot accounts; their accounts, memberships and
 existing permissions are not deleted or changed.
 
-- **Private** boards are limited to the owner and explicitly shared members.
+Owners can set **Share > Guest link access** to **Viewer** or **Editor**. A
+signed-in person outside the workspace can open the same board URL and choose
+**Join as guest**. Guests can access only that whiteboard, not workspace lists,
+projects, tasks, or other boards; no workspace membership is created. Existing
+members keep their normal access and sidebar. Guest links are off by default,
+including on existing boards. Enabling a guest link also permits guests to join
+a private board. Changing the link role applies to all joined guests. Turning
+it off removes all guest access; removing one guest ends their current access,
+but they can rejoin while the link remains enabled. Disable the link to prevent
+rejoining. A removed or disabled guest is denied on subsequent API requests and
+live-session refreshes.
+
+- **Private** boards are limited to the owner, explicitly shared members, and
+  joined guests when guest link access is enabled.
 - **Workspace-visible** boards preserve existing member editing access; an
-  explicit Viewer assignment overrides it. Guests default to Viewer; the owner
-  can explicitly grant Editor to allow canvas, title, document, and comment edits. Removing
+  explicit Viewer assignment overrides it. Workspace Guest members default to
+  Viewer; the owner can explicitly grant Editor to allow canvas, title, document, and comment edits. Removing
   an override restores default workspace access, so make the board Private to
   restrict it to a selected group.
 - Online sessions appear above the canvas. Edits are merged on the server and
@@ -194,7 +206,8 @@ existing permissions are not deleted or changed.
 
 Local development requires the API and the live server (`pnpm --filter live dev`,
 port 3100 by default), plus `CORS_ALLOWED_ORIGINS=http://localhost:3000` in
-`apps/live/.env`. Apply migration `0127_whiteboard_collaboration`. Production
+`apps/live/.env`. Apply all pending migrations, including
+`0129_whiteboard_guests`, before starting the updated API. Production
 updates must include **api, live, and web**, and the live service must allow the
 web origin (wired in `deployments/tfc/docker-compose.yml`). Old whole-scene
 whiteboard PATCH requests are rejected; canvas clients must use the authenticated

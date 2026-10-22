@@ -35,6 +35,10 @@ class Page(BaseModel):
     name = models.TextField(blank=True)
     description_json = models.JSONField(default=dict, blank=True)
     whiteboard_roles = models.JSONField(default=dict, blank=True)
+    whiteboard_guest_ids = models.JSONField(default=list, blank=True)
+    whiteboard_guest_role = models.CharField(
+        max_length=8, choices=(("disabled", "Disabled"), ("viewer", "Viewer"), ("editor", "Editor")), default="disabled"
+    )
     whiteboard_session = models.JSONField(default=dict, blank=True)
     whiteboard_revision = models.PositiveBigIntegerField(default=0)
     description_binary = models.BinaryField(null=True)

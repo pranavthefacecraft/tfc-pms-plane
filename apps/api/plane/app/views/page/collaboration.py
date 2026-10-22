@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-"""Authoritative, row-locked whiteboard collaboration and workspace-only sharing."""
+"""Authoritative, row-locked whiteboard collaboration and board-scoped sharing."""
 
 import json
 import math
@@ -15,9 +15,9 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import Page, WorkspaceMember
+from plane.db.models import Page, User, WorkspaceMember
 from ..base import BaseAPIView
-from .workspace import WorkspacePageMixin, _serialize_user
+from .workspace import WorkspacePageMixin, _serialize_user, allow_board_guest
 
 ROLES = [ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST]
 LEASE_SECONDS = 30
@@ -27,10 +27,13 @@ MAX_SCENE_BYTES = 8 * 1024 * 1024
 def board_role(page, user):
     if page.owned_by_id == user.id:
         return "owner"
-    role = page.whiteboard_roles.get(str(user.id))
-    if role in ("viewer", "editor"):
-        return role
     member = WorkspaceMember.objects.filter(workspace_id=page.workspace_id, member=user, is_active=True).first()
+    if member:
+        role = page.whiteboard_roles.get(str(user.id))
+        if role in ("viewer", "editor"):
+            return role
+    if not member and str(user.id) in page.whiteboard_guest_ids and page.whiteboard_guest_role in ("viewer", "editor"):
+        return page.whiteboard_guest_role
     return "editor" if member and member.role >= ROLE.MEMBER.value and page.access == Page.PUBLIC_ACCESS else "viewer"
 
 
@@ -108,6 +111,13 @@ def session_response(page, user):
             "member"
         )
     }
+    if page.whiteboard_guest_role in ("viewer", "editor"):
+        members.update(
+            {
+                str(user.id): user
+                for user in User.objects.filter(pk__in=page.whiteboard_guest_ids, is_active=True, is_bot=False)
+            }
+        )
     participants = []
     for client_id, entry in page.whiteboard_session.get("participants", {}).items():
         member = members.get(entry["user_id"])
@@ -118,6 +128,7 @@ def session_response(page, user):
                 page.access == Page.PUBLIC_ACCESS
                 or member.id == page.owned_by_id
                 or entry["user_id"] in page.whiteboard_roles
+                or entry["user_id"] in page.whiteboard_guest_ids
             )
         ):
             participants.append({"client_id": client_id, "user": _serialize_user(member)})
@@ -142,11 +153,11 @@ class WhiteboardSessionEndpoint(WorkspacePageMixin, BaseAPIView):
             raise NotFound("Whiteboard not found.")
         return page
 
-    @allow_permission(allowed_roles=ROLES, level="WORKSPACE")
+    @allow_board_guest
     def get(self, request, slug, page_id):
         return Response(session_response(self.board(request, slug, page_id), request.user))
 
-    @allow_permission(allowed_roles=ROLES, level="WORKSPACE")
+    @allow_board_guest
     def post(self, request, slug, page_id):
         serializer = SessionInput(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -213,6 +224,11 @@ class WhiteboardSharingEndpoint(WhiteboardSessionEndpoint):
         return Response(
             {
                 "access": page.access,
+                "guest_role": page.whiteboard_guest_role,
+                "guests": [
+                    _serialize_user(user)
+                    for user in User.objects.filter(pk__in=page.whiteboard_guest_ids, is_active=True, is_bot=False)
+                ],
                 "members": [
                     {
                         "user": _serialize_user(member.member),
@@ -230,11 +246,26 @@ class WhiteboardSharingEndpoint(WhiteboardSessionEndpoint):
             page = self.board(request, slug, page_id, lock=True)
             if page.owned_by_id != request.user.id:
                 raise PermissionDenied("Only the owner can manage sharing.")
+            if "guest_role" in request.data:
+                role = request.data["guest_role"]
+                if role not in ("disabled", "viewer", "editor"):
+                    raise ValidationError("Choose disabled, viewer, or editor for guest access.")
+                page.whiteboard_guest_role = role
+                if role == "disabled":
+                    page.whiteboard_guest_ids = []
+                Page.objects.filter(pk=page.pk).update(
+                    whiteboard_guest_role=role, whiteboard_guest_ids=page.whiteboard_guest_ids
+                )
+                return self.get(request, slug=slug, page_id=page_id)
             try:
                 user_id = str(uuid.UUID(str(request.data.get("user_id", ""))))
             except ValueError:
                 raise ValidationError("Invalid member id.")
             role = request.data.get("role")
+            if user_id in page.whiteboard_guest_ids and role == "remove":
+                page.whiteboard_guest_ids.remove(user_id)
+                Page.objects.filter(pk=page.pk).update(whiteboard_guest_ids=page.whiteboard_guest_ids)
+                return self.get(request, slug=slug, page_id=page_id)
             if role not in ("viewer", "editor", "remove"):
                 raise ValidationError("Choose viewer, editor, or remove.")
             if (
@@ -249,4 +280,52 @@ class WhiteboardSharingEndpoint(WhiteboardSessionEndpoint):
             else:
                 page.whiteboard_roles[user_id] = role
             Page.objects.filter(pk=page.pk).update(whiteboard_roles=page.whiteboard_roles)
+        return self.get(request, slug=slug, page_id=page_id)
+
+
+class WhiteboardGuestEndpoint(WorkspacePageMixin, BaseAPIView):
+    def board(self, slug, page_id, lock=False):
+        pages = Page.objects.filter(
+            pk=page_id,
+            workspace__slug=slug,
+            is_global=True,
+            parent__isnull=True,
+            archived_at__isnull=True,
+            tool_type=Page.TOOL_TYPE_WHITEBOARD,
+        )
+        page = (pages.select_for_update() if lock else pages).first()
+        if page is None:
+            raise NotFound("Whiteboard not found.")
+        return page
+
+    def get(self, request, slug, page_id):
+        page = self.board(slug, page_id)
+        is_member = WorkspaceMember.objects.filter(
+            workspace_id=page.workspace_id, member=request.user, is_active=True
+        ).exists()
+        if not is_member and (page.whiteboard_guest_role == "disabled" or request.user.is_bot):
+            raise NotFound("Guest access is not enabled for this whiteboard. Ask the owner to enable it.")
+        if is_member and not self.get_pages(request, slug).filter(pk=page_id).exists():
+            raise PermissionDenied("This whiteboard has not been shared with you.")
+        return Response(
+            {
+                "is_member": is_member,
+                "joined": is_member or str(request.user.id) in page.whiteboard_guest_ids,
+                "guest_role": page.whiteboard_guest_role,
+            }
+        )
+
+    def post(self, request, slug, page_id):
+        with transaction.atomic():
+            page = self.board(slug, page_id, lock=True)
+            if page.whiteboard_guest_role not in ("viewer", "editor") or request.user.is_bot:
+                raise PermissionDenied("Guest access is not enabled for this whiteboard.")
+            if WorkspaceMember.objects.filter(
+                workspace_id=page.workspace_id, member=request.user, is_active=True
+            ).exists():
+                raise ValidationError("You are already a workspace member.")
+            user_id = str(request.user.id)
+            if user_id not in page.whiteboard_guest_ids:
+                page.whiteboard_guest_ids.append(user_id)
+                Page.objects.filter(pk=page.pk).update(whiteboard_guest_ids=page.whiteboard_guest_ids)
         return self.get(request, slug=slug, page_id=page_id)

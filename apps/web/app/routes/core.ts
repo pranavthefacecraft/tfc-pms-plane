@@ -47,6 +47,10 @@ export const coreRoutes: RouteConfigEntry[] = [
   // ALL APP ROUTES
   // ========================================================================
   layout("./(all)/layout.tsx", [
+    route(
+      ":workspaceSlug/tool/whiteboards/:pageId",
+      "./(all)/[workspaceSlug]/(projects)/tool/whiteboards/[pageId]/page.tsx"
+    ),
     // ======================================================================
     // WORKSPACE-SCOPED ROUTES
     // ======================================================================
@@ -112,10 +116,6 @@ export const coreRoutes: RouteConfigEntry[] = [
         ]),
         layout("./(all)/[workspaceSlug]/(projects)/tool/whiteboards/layout.tsx", [
           route(":workspaceSlug/tool/whiteboards", "./(all)/[workspaceSlug]/(projects)/tool/whiteboards/page.tsx"),
-          route(
-            ":workspaceSlug/tool/whiteboards/:pageId",
-            "./(all)/[workspaceSlug]/(projects)/tool/whiteboards/[pageId]/page.tsx"
-          ),
         ]),
 
         // Workspace Views

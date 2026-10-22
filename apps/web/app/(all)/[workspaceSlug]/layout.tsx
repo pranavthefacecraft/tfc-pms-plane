@@ -5,6 +5,7 @@
  */
 
 import { Outlet } from "react-router";
+import type { ReactNode } from "react";
 import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
 import { WorkspaceContentWrapper } from "@/components/workspace/content-wrapper";
 import { AppRailVisibilityProvider } from "@/lib/app-rail";
@@ -17,14 +18,22 @@ export default function WorkspaceLayout(props: Route.ComponentProps) {
 
   return (
     <AuthenticationWrapper>
-      <WorkspaceAuthWrapper>
-        <AppRailVisibilityProvider>
-          <WorkspaceContentWrapper>
-            <GlobalModals workspaceSlug={workspaceSlug} />
-            <Outlet />
-          </WorkspaceContentWrapper>
-        </AppRailVisibilityProvider>
-      </WorkspaceAuthWrapper>
+      <WorkspaceShell workspaceSlug={workspaceSlug}>
+        <Outlet />
+      </WorkspaceShell>
     </AuthenticationWrapper>
+  );
+}
+
+export function WorkspaceShell({ workspaceSlug, children }: { workspaceSlug: string; children: ReactNode }) {
+  return (
+    <WorkspaceAuthWrapper>
+      <AppRailVisibilityProvider>
+        <WorkspaceContentWrapper>
+          <GlobalModals workspaceSlug={workspaceSlug} />
+          {children}
+        </WorkspaceContentWrapper>
+      </AppRailVisibilityProvider>
+    </WorkspaceAuthWrapper>
   );
 }

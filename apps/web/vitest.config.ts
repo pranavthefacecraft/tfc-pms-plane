@@ -12,6 +12,7 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL(".", import.meta.url)),
       "next/link": fileURLToPath(new URL("./app/compat/next/link.tsx", import.meta.url)),
+      "next/navigation": fileURLToPath(new URL("./app/compat/next/navigation.ts", import.meta.url)),
     },
   },
   test: {

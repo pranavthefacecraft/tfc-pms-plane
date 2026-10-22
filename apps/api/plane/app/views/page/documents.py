@@ -14,14 +14,13 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from plane.app.permissions import ROLE, allow_permission
 from plane.db.models import FileAsset, Page
 from plane.settings.storage import S3Storage
 from plane.utils.exception_logger import log_exception
 from plane.utils.path_validator import sanitize_filename
 
 from ..base import BaseAPIView
-from .workspace import WorkspacePageMixin
+from .workspace import WorkspacePageMixin, allow_board_guest
 
 DOCUMENT_TYPES = {
     ".pdf": ("application/pdf", None),
@@ -37,7 +36,7 @@ class WhiteboardDocumentEndpoint(WorkspacePageMixin, BaseAPIView):
     def get_board(self, request, slug, page_id):
         return self.get_pages(request, slug).filter(pk=page_id, tool_type=Page.TOOL_TYPE_WHITEBOARD).first()
 
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    @allow_board_guest
     def post(self, request, slug, page_id):
         page = self.get_board(request, slug, page_id)
         if page is None:
@@ -98,7 +97,7 @@ class WhiteboardDocumentEndpoint(WorkspacePageMixin, BaseAPIView):
             status=status.HTTP_201_CREATED,
         )
 
-    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    @allow_board_guest
     def get(self, request, slug, page_id, asset_id):
         page = self.get_board(request, slug, page_id)
         if page is None:

@@ -7,7 +7,10 @@
 import { useParams } from "next/navigation";
 // components
 import { PageHead } from "@/components/core/page-title";
-import { WhiteboardDetailRoot } from "@/components/workspace-pages/whiteboard/detail-root";
+import { WhiteboardGuestEntry } from "@/components/workspace-pages/whiteboard/guest-entry";
+import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
+
+export { handle } from "@/app/(all)/[workspaceSlug]/(projects)/layout";
 
 export default function WorkspaceToolWhiteboardDetailPage() {
   const { workspaceSlug, pageId } = useParams();
@@ -15,11 +18,13 @@ export default function WorkspaceToolWhiteboardDetailPage() {
   return (
     <>
       <PageHead title="Whiteboard" />
-      <WhiteboardDetailRoot
-        key={`${workspaceSlug}:${pageId}`}
-        workspaceSlug={workspaceSlug?.toString() ?? ""}
-        pageId={pageId?.toString() ?? ""}
-      />
+      <AuthenticationWrapper>
+        <WhiteboardGuestEntry
+          key={`${workspaceSlug}:${pageId}`}
+          workspaceSlug={workspaceSlug?.toString() ?? ""}
+          pageId={pageId?.toString() ?? ""}
+        />
+      </AuthenticationWrapper>
     </>
   );
 }

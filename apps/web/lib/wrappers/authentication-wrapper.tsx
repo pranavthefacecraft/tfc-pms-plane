@@ -13,6 +13,7 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 // helpers
 import { isValidNextPath } from "@plane/utils";
 import { EPageTypes } from "@/helpers/authentication.helper";
+import { isWhiteboardGuestPath } from "@/helpers/whiteboard-guest";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
@@ -100,6 +101,10 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
   if (pageType === EPageTypes.NON_AUTHENTICATED) {
     if (!currentUser?.id) return <>{children}</>;
     else {
+      if (nextPath && isWhiteboardGuestPath(nextPath) && isValidURL(nextPath)) {
+        router.replace(nextPath);
+        return <></>;
+      }
       if (currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
         router.push(currentRedirectRoute);
@@ -139,7 +144,8 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.AUTHENTICATED) {
     if (currentUser?.id) {
-      if (currentUserProfile && currentUserProfile?.id && isUserOnboard) return <>{children}</>;
+      if (isWhiteboardGuestPath(pathname) || (currentUserProfile && currentUserProfile?.id && isUserOnboard))
+        return <>{children}</>;
       else {
         router.push(`/onboarding`);
         return <></>;
