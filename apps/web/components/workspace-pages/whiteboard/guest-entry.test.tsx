@@ -40,6 +40,11 @@ vi.mock("./guest-whiteboard", () => ({
     </div>
   ),
 }));
+vi.mock("./guest-shell", () => ({
+  GuestWhiteboardShell: ({ children }: { children: ReactNode }) => (
+    <section data-testid="guest-shell">{children}</section>
+  ),
+}));
 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -82,6 +87,7 @@ it.each(["viewer", "editor"])("requires explicit joining and explains %s board-o
   expect(mocks.post).toHaveBeenCalledWith("/api/workspaces/team/workspace-pages/board/guest/");
   expect(host.querySelector('[data-testid="board"]')?.getAttribute("data-guest")).toBe("true");
   expect(host.querySelector('[data-testid="workspace"]')).toBeNull();
+  expect(host.querySelector('[data-testid="guest-shell"]')).not.toBeNull();
 });
 
 it("preserves workspace and project shells for existing members", async () => {

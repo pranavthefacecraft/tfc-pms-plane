@@ -178,8 +178,12 @@ Owners can set **Share > Guest link access** to **Viewer** or **Editor**. A
 signed-in person outside the workspace can open the same board URL and choose
 **Join as guest**. Guests can access only that whiteboard, not workspace lists,
 projects, tasks, or other boards; no workspace membership is created. Existing
-members keep their normal access and sidebar. Guest links are off by default,
-including on existing boards. Enabling a guest link also permits guests to join
+members keep their normal access and sidebar. Board-only guests see the
+workspace-style sidebar and header with
+inaccessible navigation, search, and inbox disabled. Profile settings and sign
+out remain available; this does not grant workspace membership or access.
+Guest links are off by default, including on existing boards.
+Enabling a guest link also permits guests to join
 a private board. Changing the link role applies to all joined guests. Turning
 it off removes all guest access; removing one guest ends their current access,
 but they can rejoin while the link remains enabled. Disable the link to prevent

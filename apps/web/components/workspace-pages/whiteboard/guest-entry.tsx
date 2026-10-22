@@ -14,6 +14,7 @@ import { WorkspaceShell } from "@/app/(all)/[workspaceSlug]/layout";
 import { ProjectShell } from "@/components/workspace/project-shell";
 import { WhiteboardDetailRoot } from "./detail-root";
 import { GuestWhiteboard } from "./guest-whiteboard";
+import { GuestWhiteboardShell } from "./guest-shell";
 
 type GuestAccess = { is_member: boolean; joined: boolean; guest_role: "disabled" | "viewer" | "editor" };
 
@@ -47,9 +48,9 @@ export function WhiteboardGuestEntry({ workspaceSlug, pageId }: { workspaceSlug:
 
   if (data?.joined)
     return (
-      <div className="flex h-screen w-full flex-col bg-surface-1">
+      <GuestWhiteboardShell workspaceSlug={workspaceSlug}>
         <GuestWhiteboard workspaceSlug={workspaceSlug} pageId={pageId} />
-      </div>
+      </GuestWhiteboardShell>
     );
 
   return (
