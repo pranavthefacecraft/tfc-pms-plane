@@ -73,14 +73,16 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 
 Web sign-in, sign-up, and password-recovery headers use the supplied Clevdex
 logo. The web favicon and touch/installed-app icons use the matching Clevdex
-symbol. This does not change email branding, God Mode branding, or product copy.
+symbol. This does not change God Mode branding or product copy.
 Shared web loading screens use the supplied stacked Clevdex logo with a
 reduced-motion-aware pulse, without inverting its brand colors in light mode.
 
-Application emails use the TFC PMS logo, product name and footer. The logo is
-loaded from `${WEB_URL}/tfc-pms-logo.png`; `WEB_URL` must be the public web
+Application emails use the supplied blue Clevdex email logo on a white header,
+while retaining the TFC PMS product name, subjects and footer. The logo is
+loaded from `${WEB_URL}/clevdex-email.png`; `WEB_URL` must be the public web
 application URL. Email clients may block remote images until the recipient
 allows them. Login codes, reset links and invitation links are unchanged.
+Deploy both the web asset and API/worker templates when updating email branding.
 
 ## TFCPMS navigation
 

@@ -26,8 +26,13 @@ EMAIL_TEMPLATES = sorted(
 @override_settings(WEB_URL="https://pms.example.test/")
 def test_email_templates_use_own_logo_and_branding(template_name):
     html = render_email_template(template_name, {"code": "123456", "email": "member@example.test"})
-    assert 'src="https://pms.example.test/tfc-pms-logo.png"' in html
-    assert 'alt="TFC PMS"' in html
+    assert 'src="https://pms.example.test/clevdex-email.png"' in html
+    assert 'alt="Clevdex"' in html
+    assert 'width="200"' in html
+    assert "height: auto" in html
+    assert "background-color: #ffffff" in html
+    assert "background-color: #000000" not in html
+    assert "tfc-pms-logo.png" not in html
     assert "media.docs.plane.so/logo" not in html
     text = generate_plain_text_from_html(html)
     assert "TFC PMS" in text
@@ -60,5 +65,5 @@ def test_login_email_preserves_code_and_recipient():
     assert message.call_args.kwargs["to"] == ["member@example.test"]
     assert "123456" in message.call_args.kwargs["body"]
     html = message.return_value.attach_alternative.call_args.args[0]
-    assert "https://pms.example.test/tfc-pms-logo.png" in html
+    assert "https://pms.example.test/clevdex-email.png" in html
     message.return_value.send.assert_called_once()

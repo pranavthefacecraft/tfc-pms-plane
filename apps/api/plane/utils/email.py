@@ -20,7 +20,7 @@ def render_email_template(template_name, context=None):
         template_name,
         {
             **(context or {}),
-            "email_logo_url": f"{settings.WEB_URL.rstrip('/')}/tfc-pms-logo.png",
+            "email_logo_url": f"{settings.WEB_URL.rstrip('/')}/clevdex-email.png",
         },
     )
 
