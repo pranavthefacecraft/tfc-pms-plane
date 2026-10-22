@@ -7,6 +7,10 @@
 import React from "react";
 // helpers
 import { cn } from "@plane/utils";
+import {
+  SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME,
+  SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME,
+} from "@/components/sidebar/sidebar-navigation";
 
 type Props = {
   children: React.ReactNode;
@@ -21,9 +25,10 @@ export function FavoriteItemWrapper(props: Props) {
       <div
         ref={elementRef}
         className={cn(
-          "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-transparent-hover",
+          "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary",
+          SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME,
           {
-            "bg-surface-2": isMenuActive,
+            [SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME]: isMenuActive,
           }
         )}
       >

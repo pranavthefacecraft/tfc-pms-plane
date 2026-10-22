@@ -5,6 +5,7 @@
  */
 
 import { Button } from "@makeplane/propel/elements/button";
+import { cn } from "@plane/utils";
 
 type Props = React.ComponentProps<"button"> & {
   label: React.ReactNode;
@@ -12,9 +13,25 @@ type Props = React.ComponentProps<"button"> & {
 };
 
 export function SidebarAddButton(props: Props) {
-  const { label, onClick, disabled, ...rest } = props;
+  const { label, onClick, disabled, className, ...rest } = props;
   return (
-    <Button type="button" variant="secondary" size="lg" stretch="full" onClick={onClick} disabled={disabled} {...rest}>
+    <Button
+      type="button"
+      variant="secondary"
+      size="lg"
+      stretch="full"
+      onClick={onClick}
+      disabled={disabled}
+      render={
+        <button
+          className={cn(
+            "!border-transparent !bg-[#0c0a0b0f] !text-primary hover:!bg-[#0c0a0b1a] dark:!bg-layer-1 dark:hover:!bg-layer-2",
+            className
+          )}
+        />
+      }
+      {...rest}
+    >
       <span className="flex w-full items-center justify-start gap-2">{label}</span>
     </Button>
   );

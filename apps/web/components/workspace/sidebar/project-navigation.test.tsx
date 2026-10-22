@@ -98,7 +98,8 @@ it("keeps Settings available when Views is disabled and highlights nested settin
   await render("/workspace/settings/projects/project/custom-fields");
   const settings = host.querySelector('a[href="/workspace/settings/projects/project/"]');
   expect(settings?.textContent).toBe("settings");
-  expect(settings?.firstElementChild?.className).toContain("!bg-layer-transparent-active");
+  expect(settings?.firstElementChild?.className).toContain("bg-[#EAF2FF]");
+  expect(settings?.firstElementChild?.className).toContain("border-[#CBDCF8]");
   expect(host.textContent).not.toContain("sidebar.views");
 });
 

@@ -6,6 +6,11 @@
 
 import { cn } from "@plane/utils";
 
+export const SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME =
+  "border border-transparent hover:border-[#CBDCF8] hover:bg-[#EAF2FF] dark:hover:border-transparent dark:hover:bg-layer-transparent-hover";
+export const SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME =
+  "border-[#CBDCF8] bg-[#EAF2FF] dark:border-transparent dark:bg-layer-transparent-active";
+
 type TSidebarNavItem = {
   className?: string;
   isActive?: boolean;
@@ -18,9 +23,11 @@ export function SidebarNavItem(props: TSidebarNavItem) {
     <div
       className={cn(
         "group relative flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-md px-2 py-1 outline-none",
+        SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME,
         {
-          "!bg-layer-transparent-active text-primary": isActive,
-          "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-active": !isActive,
+          [SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME]: isActive,
+          "text-primary": isActive,
+          "text-secondary": !isActive,
         },
         className
       )}

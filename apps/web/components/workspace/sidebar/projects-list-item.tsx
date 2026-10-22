@@ -38,6 +38,10 @@ import { cn } from "@plane/utils";
 import { getTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { LeaveProjectModal } from "@/components/project/leave-project-modal";
 import { PublishProjectModal } from "@/components/project/publish-project/modal";
+import {
+  SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME,
+  SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME,
+} from "@/components/sidebar/sidebar-navigation";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
@@ -281,10 +285,10 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
           <DropIndicator classNames="absolute top-0" isVisible={instruction === "DRAG_OVER"} />
           <div
             className={cn(
-              "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-transparent-hover",
+              "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary",
+              SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME,
               {
-                "bg-surface-2": isMenuActive,
-                "bg-layer-transparent-active": shouldHighlightProject,
+                [SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME]: isMenuActive || shouldHighlightProject,
               }
             )}
             id={`${project?.id}`}

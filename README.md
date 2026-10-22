@@ -86,6 +86,11 @@ Deploy both the web asset and API/worker templates when updating email branding.
 
 ## TFCPMS navigation
 
+In light mode, sidebar links use a `#EAF2FF` background and a 1px `#CBDCF8`
+border on hover and when selected. The New work item action uses a neutral
+`#0c0a0b0f` background to distinguish it from navigation. Dark mode retains
+theme-aware colors. Transparent borders on idle links prevent hover layout shifts.
+
 The sidebar's **Tool > Notepad** entry opens workspace pages; existing page URLs
 and content are unchanged. Project sidebars omit **Pages** and label **Cycles**
 as **Analytics**; the Analytics entry still opens the existing Cycles screen.
