@@ -38,3 +38,26 @@ it("retains the Community button inside a hidden footer without hiding navigatio
   expect(community?.parentElement?.classList.contains("hidden")).toBe(true);
   expect(host.querySelector("a")?.closest("[hidden]")).toBeNull();
 });
+
+it("places the workspace header before navigation and quick actions outside the scroll area", () => {
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
+    <SidebarWrapper
+      title="Projects"
+      header={<button data-testid="workspace-switcher">Workspace</button>}
+      quickActions={<button data-testid="create">New work item</button>}
+    >
+      <a href="/projects">Projects</a>
+    </SidebarWrapper>
+  );
+  const header = host.querySelector('[data-testid="workspace-switcher"]');
+  const create = host.querySelector('[data-testid="create"]');
+  const navigation = host.querySelector("a");
+  expect(header).not.toBeNull();
+  expect(create).not.toBeNull();
+  expect(navigation).not.toBeNull();
+  if (!header || !create || !navigation) throw new Error("Sidebar header, action or navigation missing");
+  expect(header.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(create.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(header.parentElement?.classList.contains("shrink-0")).toBe(true);
+});

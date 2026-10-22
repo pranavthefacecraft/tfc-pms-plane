@@ -6,6 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
+import { useMatches } from "react-router";
 // plane imports
 import { cn } from "@plane/utils";
 import { AppRailRoot } from "@/components/navigation";
@@ -19,10 +20,15 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
 }) {
   // Use the context to determine if app rail should render
   const { shouldRenderAppRail } = useAppRailVisibility();
+  const matches = useMatches();
+  const hasSidebarHeader = matches.some(
+    ({ handle }) =>
+      typeof handle === "object" && handle !== null && "hasSidebarHeader" in handle && handle.hasSidebarHeader === true
+  );
 
   return (
     <div className="relative flex size-full flex-col overflow-hidden bg-canvas transition-all duration-300 ease-in-out">
-      <TopNavigationRoot />
+      {!hasSidebarHeader && <TopNavigationRoot />}
       <div className="relative flex size-full overflow-hidden">
         {/* Conditionally render AppRailRoot based on context */}
         {shouldRenderAppRail && <AppRailRoot />}

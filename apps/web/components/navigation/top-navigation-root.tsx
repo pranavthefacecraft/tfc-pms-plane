@@ -18,7 +18,11 @@ import { InboxOutline } from "@makeplane/propel/icons";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 
-export const TopNavigationRoot = observer(function TopNavigationRoot() {
+export const TopNavigationRoot = observer(function TopNavigationRoot({
+  showWorkspaceMenu = true,
+}: {
+  showWorkspaceMenu?: boolean;
+}) {
   // router
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
@@ -48,11 +52,13 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
       })}
     >
       {/* Workspace Menu */}
-      <div className="flex-1 shrink-0">
-        <WorkspaceMenuRoot variant="top-navigation" />
-      </div>
+      {showWorkspaceMenu && (
+        <div className="min-w-0 flex-1">
+          <WorkspaceMenuRoot variant="top-navigation" />
+        </div>
+      )}
       {/* Power K Search */}
-      <div className="shrink-0">
+      <div className="min-w-0 shrink-0">
         <TopNavPowerK />
       </div>
       {/* Additional Actions */}

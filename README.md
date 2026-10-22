@@ -86,6 +86,12 @@ Deploy both the web asset and API/worker templates when updating email branding.
 
 ## TFCPMS navigation
 
+The workspace switcher sits at the top of the project sidebar, above its
+navigation and creation action. Search, Inbox and profile stay in a top bar
+over the main content instead of spanning the sidebar. When the sidebar is
+collapsed or hidden on the notifications screen, the top bar retains the
+workspace switcher. Settings and other layouts keep their existing top bar.
+
 In light mode, sidebar links use a `#EAF2FF` background and a 1px `#CBDCF8`
 border on hover and when selected. The New work item action uses a neutral
 `#0c0a0b0f` background to distinguish it from navigation. Dark mode retains

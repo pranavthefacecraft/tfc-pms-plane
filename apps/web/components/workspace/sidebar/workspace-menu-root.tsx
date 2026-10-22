@@ -76,7 +76,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
 
   return (
     <div
-      className={cn("relative flex h-full w-fit max-w-48 truncate whitespace-nowrap", {
+      className={cn("relative flex h-full w-fit truncate whitespace-nowrap", {
         "w-full justify-center text-center": variant === "sidebar",
         "flex-grow justify-stretch truncate text-left": variant === "top-navigation",
       })}

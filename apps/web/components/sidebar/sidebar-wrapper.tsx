@@ -26,10 +26,11 @@ type TSidebarWrapperProps = {
   title: string;
   children: React.ReactNode;
   quickActions?: React.ReactNode;
+  header?: React.ReactNode;
 };
 
 export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWrapperProps) {
-  const { title, children, quickActions } = props;
+  const { title, children, quickActions, header } = props;
   // translation
   const { t } = useTranslation();
   // state
@@ -55,6 +56,7 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
     <>
       <CustomizeNavigationDialog isOpen={isCustomizeNavDialogOpen} onClose={() => setIsCustomizeNavDialogOpen(false)} />
       <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
+        {header && <div className="mb-3 shrink-0 border-b border-subtle px-3 pb-3">{header}</div>}
         <div className="flex flex-col gap-3 px-3">
           {/* Workspace switcher and settings */}
 
