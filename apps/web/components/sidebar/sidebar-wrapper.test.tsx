@@ -60,4 +60,5 @@ it("places the workspace header before navigation and quick actions outside the 
   expect(header.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(create.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(header.parentElement?.classList.contains("shrink-0")).toBe(true);
+  expect(header.parentElement?.classList.contains("border-b")).toBe(false);
 });

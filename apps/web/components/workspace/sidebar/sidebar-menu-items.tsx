@@ -28,6 +28,7 @@ import {
 import { IS_STICKIES_SIDEBAR_ENABLED } from "./feature-flags";
 import { SidebarItemBase } from "./sidebar-item";
 import { SidebarToolMenu } from "./sidebar-tool-menu";
+import { SidebarQuickActions } from "./quick-actions";
 
 export const SidebarMenuItems = observer(function SidebarMenuItems() {
   // routers
@@ -102,6 +103,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
           <SidebarItemBase key={`static_${_index}`} item={item} />
         ))}
       </div>
+      <SidebarQuickActions />
       <Collapsible
         placement="sidebar"
         open={!!isWorkspaceMenuOpen}

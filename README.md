@@ -95,8 +95,9 @@ bounds still apply. Historical filters and calendar browsing are unchanged.
 Workspace layouts have no outer left, right or bottom padding; page-specific
 content spacing is unchanged.
 
-The workspace switcher sits at the top of the project sidebar, above its
-navigation and creation action. Search, Inbox and profile stay in a top bar
+The workspace switcher sits at the top of the project sidebar without a divider
+underneath. New work item sits below the personal links (Home, Drafts, Your work)
+and above the Workspace section. Search, Inbox and profile stay in a top bar
 over the main content instead of spanning the sidebar. When the sidebar is
 collapsed or hidden on the notifications screen, the top bar retains the
 workspace switcher. Settings and other layouts keep their existing top bar.

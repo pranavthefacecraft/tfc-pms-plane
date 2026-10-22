@@ -49,7 +49,7 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
     <>
       <CustomizeNavigationDialog isOpen={isCustomizeNavDialogOpen} onClose={() => setIsCustomizeNavDialogOpen(false)} />
       <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
-        {header && <div className="mb-3 shrink-0 border-b border-subtle px-3 pb-3">{header}</div>}
+        {header && <div className="mb-3 shrink-0 px-3 pb-3">{header}</div>}
         <div className="flex flex-col gap-3 px-3">
           {/* Workspace switcher and settings */}
 
