@@ -108,6 +108,7 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
 
         <SidebarPropertyListItem icon={StartDateOutline} label={t("common.order_by.start_date")}>
           <DateSelect
+            disablePastDates
             testId="work-item-start-date-select"
             value={getDate(issue.start_date) ?? null}
             onChange={(val) =>

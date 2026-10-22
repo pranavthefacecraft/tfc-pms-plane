@@ -7,6 +7,13 @@
 /** The default trigger label format — a short, unambiguous day. Overridden by `formatToken`. */
 export const DEFAULT_DATE_FORMAT_TOKEN = "MMM dd, yyyy";
 
+export function getSchedulingMinDate(minDate?: Date, disablePastDates = false): Date | undefined {
+  if (!disablePastDates) return minDate;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return minDate && minDate > today ? minDate : today;
+}
+
 /**
  * Turns a `minDate` / `maxDate` pair into propel `Calendar` day matchers. Both bounds are
  * inclusive, so they become "before min" / "after max" exclusions rather than the bounds

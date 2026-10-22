@@ -150,6 +150,7 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
               </div>
               <div className="w-3/5 flex-grow">
                 <DateSelect
+                  disablePastDates
                   placeholder="Add due date"
                   value={getDate(issue.target_date) ?? null}
                   onChange={(val) => {

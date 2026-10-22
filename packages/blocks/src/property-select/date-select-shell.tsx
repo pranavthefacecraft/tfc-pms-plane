@@ -31,6 +31,8 @@ export type DateSelectCommonProps = {
   placeholder?: string;
   /** Earliest selectable day (inclusive). */
   minDate?: Date;
+  /** Scheduling controls can prevent new selections before the user's local today. */
+  disablePastDates?: boolean;
   /** Latest selectable day (inclusive). */
   maxDate?: Date;
   disabled?: boolean;

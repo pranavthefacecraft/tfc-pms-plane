@@ -178,6 +178,7 @@ export function ModuleForm(props: Props) {
                   name="target_date"
                   render={({ field: { value: endDateValue, onChange: onChangeEndDate } }) => (
                     <DateRangeSelect
+                      disablePastDates
                       variant="pill-md"
                       value={{
                         from: getDate(startDateValue) ?? null,

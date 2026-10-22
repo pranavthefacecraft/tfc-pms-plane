@@ -102,6 +102,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
       {/* start date */}
       {isVisible && (
         <DateSelect
+          disablePastDates
           value={getDate(data?.start_date) ?? null}
           onChange={(date) => handleData("start_date", date ? renderFormattedPayloadDate(date) : "")}
           minDate={minDate ?? undefined}
@@ -117,6 +118,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
 
       {/* due date */}
       <DateSelect
+        disablePastDates
         value={getDate(data?.target_date) ?? null}
         onChange={(date) => handleData("target_date", date ? renderFormattedPayloadDate(date) : "")}
         minDate={minDate ?? undefined}

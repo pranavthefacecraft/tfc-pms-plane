@@ -32,6 +32,7 @@ export const SpreadsheetStartDateColumn = observer(function SpreadsheetStartDate
   return (
     <div className="h-11 border-b-[0.5px] border-subtle">
       <DateSelect
+        disablePastDates
         value={getDate(issue.start_date) ?? null}
         maxDate={getDate(issue.target_date)}
         onChange={(data) => {

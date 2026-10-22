@@ -163,6 +163,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
         name="start_date"
         render={({ field: { value, onChange } }) => (
           <DateSelect
+            disablePastDates
             value={getDate(value) ?? null}
             onChange={(date) => {
               onChange(date ? renderFormattedPayloadDate(date) : null);
@@ -184,6 +185,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
         name="target_date"
         render={({ field: { value, onChange } }) => (
           <DateSelect
+            disablePastDates
             value={getDate(value) ?? null}
             onChange={(date) => {
               onChange(date ? renderFormattedPayloadDate(date) : null);

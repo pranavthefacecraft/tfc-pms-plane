@@ -7,8 +7,8 @@
 import type { Dispatch, ReactElement, SetStateAction } from "react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 // helpers
-import { usePlatformOS } from "@plane/hooks";
 import { cn } from "@plane/utils";
+import useSize from "@/hooks/use-window-size";
 
 interface ResizableSidebarProps {
   showPeek?: boolean;
@@ -57,7 +57,12 @@ export function ResizableSidebar({
   const initialWidthRef = useRef<number>(0);
   const initialMouseXRef = useRef<number>(0);
   // hooks
-  const { isMobile } = usePlatformOS();
+  const [viewportWidth] = useSize();
+  const isMobile = viewportWidth < 768;
+
+  useEffect(() => {
+    if (isMobile) toggleCollapsedProp(true);
+  }, [isMobile, toggleCollapsedProp]);
   // handlers
   const setShowPeek = useCallback(
     (value: boolean) => {
@@ -146,13 +151,13 @@ export function ResizableSidebar({
     if (!isAnySidebarDropdownOpen && isCollapsed && isHoveringTrigger) {
       handlePeekLeave();
     }
-  }, [isAnySidebarDropdownOpen]);
+  }, [isAnySidebarDropdownOpen, isCollapsed, isHoveringTrigger, handlePeekLeave]);
 
   useEffect(() => {
     if (!isAnyExtendedSidebarExpanded && isCollapsed && isHoveringTrigger) {
       handlePeekLeave();
     }
-  }, [isAnyExtendedSidebarExpanded]);
+  }, [isAnyExtendedSidebarExpanded, isCollapsed, isHoveringTrigger, handlePeekLeave]);
 
   // Reset peek when sidebar is expanded
   useEffect(() => {
@@ -183,7 +188,7 @@ export function ResizableSidebar({
           "z-20 h-full border-r border-subtle bg-surface-1",
           !isResizing && "transition-all duration-300 ease-in-out",
           isCollapsed ? "w-0 translate-x-[-100%] opacity-0" : "translate-x-0 opacity-100",
-          isMobile && "absolute",
+          "max-md:absolute",
           className
         )}
         style={{
@@ -201,7 +206,7 @@ export function ResizableSidebar({
             isAnyExtendedSidebarExpanded && "rounded-none"
           )}
         >
-          {children}
+          {!isCollapsed && children}
 
           {/* Resize Handle */}
           <div
@@ -244,7 +249,7 @@ export function ResizableSidebar({
             isAnyExtendedSidebarExpanded && "rounded-none"
           )}
         >
-          {children}
+          {isCollapsed && showPeek && children}
           {/* Resize Handle */}
           <div
             className={cn(
@@ -263,7 +268,7 @@ export function ResizableSidebar({
       </div>
 
       {/* Extended Sidebar */}
-      {extendedSidebar && extendedSidebar}
+      {extendedSidebar}
     </>
   );
 }

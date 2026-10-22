@@ -244,6 +244,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
           <DateRangeSelect
+            disablePastDates
             value={{
               from: getDate(issue.start_date) ?? null,
               to: getDate(issue.target_date) ?? null,
@@ -273,6 +274,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
           <DateSelect
+            disablePastDates
             value={getDate(issue.start_date) ?? null}
             onChange={handleStartDate}
             maxDate={maxDate}
@@ -297,6 +299,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
         {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
         <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
           <DateSelect
+            disablePastDates
             value={getDate(issue?.target_date) ?? null}
             onChange={handleTargetDate}
             minDate={minDate}

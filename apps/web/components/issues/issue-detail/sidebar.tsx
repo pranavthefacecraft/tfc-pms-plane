@@ -110,6 +110,7 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
 
             <SidebarPropertyListItem icon={StartDateOutline} label={t("common.order_by.start_date")}>
               <DateSelect
+                disablePastDates
                 testId="work-item-start-date-select"
                 placeholder={t("issue.add.start_date")}
                 value={getDate(issue.start_date) ?? null}

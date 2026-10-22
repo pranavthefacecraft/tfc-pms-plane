@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DateRangeValue } from "./date-range-select";
 import { DateRangeSelect } from "./date-range-select";
 import { DateSelect } from "./date-select";
@@ -21,6 +21,107 @@ const FORM_TAB_INDEX = 4;
 const popup = () => within(document.body);
 /** react-day-picker names each day button by its full date ("Sunday, June 15th, 2025"). */
 const day = (name: string) => popup().getByRole("button", { name: new RegExp(name) });
+
+describe("scheduling date restrictions", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it.each(["single", "range"])("disables yesterday but keeps today selectable for %s scheduling", async (mode) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2025, 5, 15, 23, 45));
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      mode === "single" ? (
+        <DateSelect
+          value={new Date(2025, 5, 10)}
+          onChange={onChange}
+          variant="select-md"
+          disablePastDates
+          minDate={new Date(2025, 5, 1)}
+          clearable
+          defaultOpen
+        />
+      ) : (
+        <DateRangeSelect
+          value={{ from: null, to: null }}
+          onChange={onChange}
+          variant="select-md"
+          disablePastDates
+          defaultMonth={JUNE_2025}
+          defaultOpen
+        />
+      )
+    );
+    expect(day("June 14th, 2025").hasAttribute("disabled")).toBe(true);
+    expect(day("June 15th, 2025").hasAttribute("disabled")).toBe(false);
+    await user.click(day("June 14th, 2025"));
+    expect(onChange).not.toHaveBeenCalled();
+    await user.click(day("June 15th, 2025"));
+    if (mode === "range") await user.click(day("June 16th, 2025"));
+    expect(onChange).toHaveBeenCalledOnce();
+  });
+
+  it("preserves stricter minimum and maximum dates", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2025, 5, 15, 12));
+    render(
+      <DateSelect
+        value={null}
+        onChange={vi.fn()}
+        variant="select-md"
+        disablePastDates
+        minDate={new Date(2025, 5, 20)}
+        maxDate={new Date(2025, 5, 25)}
+        defaultMonth={JUNE_2025}
+        defaultOpen
+      />
+    );
+    expect(day("June 19th, 2025").hasAttribute("disabled")).toBe(true);
+    expect(day("June 20th, 2025").hasAttribute("disabled")).toBe(false);
+    expect(day("June 25th, 2025").hasAttribute("disabled")).toBe(false);
+    expect(day("June 26th, 2025").hasAttribute("disabled")).toBe(true);
+  });
+
+  it("keeps an existing past range label but starts its replacement with a valid day", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2025, 5, 15, 12));
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <DateRangeSelect
+        value={{ from: new Date(2025, 5, 1), to: new Date(2025, 5, 10) }}
+        onChange={onChange}
+        variant="select-md"
+        disablePastDates
+        defaultOpen
+      />
+    );
+    expect(screen.getByRole("button", { name: /Jun 01.*Jun 10/ })).toBeDefined();
+    await user.click(day("June 16th, 2025"));
+    await user.click(day("June 18th, 2025"));
+    expect(onChange).toHaveBeenCalledWith({ from: new Date(2025, 5, 16), to: new Date(2025, 5, 18) });
+  });
+
+  it("allows clearing an existing past date", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2025, 5, 15, 12));
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <DateSelect
+        value={new Date(2025, 5, 1)}
+        onChange={onChange}
+        variant="select-md"
+        disablePastDates
+        clearable
+        clearLabel="Clear"
+        defaultOpen
+      />
+    );
+    await user.click(popup().getByRole("button", { name: "Clear" }));
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+});
 
 describe("DateSelect", () => {
   it("opens the calendar and reports the picked day", async () => {

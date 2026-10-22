@@ -29,7 +29,7 @@ function WorkspaceLayout() {
         <div className="relative flex size-full overflow-hidden">
           <ProjectAppSidebar />
           <ExtendedProjectSidebar />
-          <main className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
+          <main className="relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
             <TopNavigationRoot showWorkspaceMenu={sidebarCollapsed || isNotificationsPath} />
             <Outlet />
           </main>

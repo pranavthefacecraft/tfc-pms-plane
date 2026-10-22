@@ -229,6 +229,7 @@ export function CreateApiTokenForm(props: Props) {
                 />
                 {expiredAt === "custom" && (
                   <DateSelect
+                    disablePastDates
                     value={customDate}
                     onChange={(date) => setCustomDate(date)}
                     minDate={tomorrow}

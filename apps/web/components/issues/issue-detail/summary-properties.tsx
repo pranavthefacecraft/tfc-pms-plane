@@ -54,6 +54,7 @@ export const IssueSummaryProperties = observer(function IssueSummaryProperties(p
       </SidebarPropertyListItem>
       <SidebarPropertyListItem icon={DueDateOutline} label={t("common.order_by.due_date")}>
         <DateSelect
+          disablePastDates
           testId="work-item-due-date-select"
           value={getDate(issue.target_date) ?? null}
           onChange={(value) =>

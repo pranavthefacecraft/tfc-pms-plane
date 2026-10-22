@@ -350,6 +350,7 @@ export const ModuleAnalyticsSidebar = observer(function ModuleAnalyticsSidebar(p
                       const endDate = getDate(endDateValue);
                       return (
                         <DateRangeSelect
+                          disablePastDates
                           variant="select-ghost-md"
                           value={{
                             from: startDate ?? null,

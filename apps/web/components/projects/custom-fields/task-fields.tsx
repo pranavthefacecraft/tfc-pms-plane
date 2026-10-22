@@ -8,6 +8,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { Button } from "@makeplane/propel/components/button";
 import { setToast } from "@plane/blocks/toast";
+import { renderFormattedPayloadDate } from "@plane/utils";
 import { customFields, fieldError, useCustomFields } from "./service";
 import type { CustomField, FieldValue } from "./service";
 import { parseFieldDraft } from "./value.helpers";
@@ -35,6 +36,7 @@ function FieldValueEditor({
   const [draft, setDraft] = useState(typeof value === "string" || typeof value === "number" ? String(value) : "");
   const [busy, setBusy] = useState(false);
   const [invalid, setInvalid] = useState<string>();
+  const [today] = useState(() => renderFormattedPayloadDate(new Date()));
   const save = async (next: FieldValue) => {
     setBusy(true);
     try {
@@ -131,6 +133,7 @@ function FieldValueEditor({
       <input
         aria-label={field.name}
         type={kind === "number" ? "number" : kind === "date" ? "date" : "text"}
+        min={kind === "date" ? today : undefined}
         step={kind === "number" ? "any" : undefined}
         maxLength={kind === "text" ? 10000 : undefined}
         disabled={busy}

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane helpers
 import { useOutsideClickDetector } from "@plane/hooks";
@@ -15,7 +15,6 @@ import { ScrollArea } from "@makeplane/propel/components/scroll-area";
 import { CustomizeNavigationDialog } from "@/components/navigation/customize-navigation-dialog";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
-import useSize from "@/hooks/use-window-size";
 // plane web components
 import { WorkspaceEditionBadge } from "@/components/workspace/edition-badge";
 import { AppSidebarToggleButton } from "./sidebar-toggle-button";
@@ -37,7 +36,6 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
   const [isCustomizeNavDialogOpen, setIsCustomizeNavDialogOpen] = useState(false);
   // store hooks
   const { toggleSidebar, sidebarCollapsed } = useAppTheme();
-  const windowSize = useSize();
   // refs
   const ref = useRef<HTMLDivElement>(null);
 
@@ -46,11 +44,6 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
       toggleSidebar();
     }
   });
-
-  useEffect(() => {
-    if (windowSize[0] < 768 && !sidebarCollapsed) toggleSidebar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [windowSize]);
 
   return (
     <>

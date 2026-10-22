@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { Calendar } from "@makeplane/propel/components/calendar";
 import type { DateSelectCommonProps } from "./date-select-shell";
 import { DateSelectShell } from "./date-select-shell";
-import { buildDisabledMatchers, DEFAULT_DATE_FORMAT_TOKEN } from "./date-select.utils";
+import { buildDisabledMatchers, DEFAULT_DATE_FORMAT_TOKEN, getSchedulingMinDate } from "./date-select.utils";
 
 export type DateSelectProps = DateSelectCommonProps & {
   /** The picked day, or `null` when nothing is set. */
@@ -40,7 +40,7 @@ export function DateSelect(props: DateSelectProps) {
   const [isOpen, setIsOpen] = useState(props.defaultOpen ?? false);
   // derived values
   const formatted = value ? format(value, formatToken) : "";
-  const disabledMatchers = buildDisabledMatchers(minDate, maxDate);
+  const disabledMatchers = buildDisabledMatchers(getSchedulingMinDate(minDate, props.disablePastDates), maxDate);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);

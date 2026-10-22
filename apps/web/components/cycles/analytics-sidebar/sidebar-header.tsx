@@ -157,6 +157,7 @@ export const CycleSidebarHeader = observer(function CycleSidebarHeader(props: Pr
                 render={({ field: { value: endDateValue, onChange: onChangeEndDate } }) => (
                   <div className="h-7">
                     <DateRangeSelect
+                      disablePastDates
                       variant="pill-sm"
                       minDate={new Date()}
                       value={{

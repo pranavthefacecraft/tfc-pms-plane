@@ -37,6 +37,11 @@ type Props = {
   moduleId: string;
 };
 
+const handleEventPropagation = (e: SyntheticEvent<HTMLDivElement>) => {
+  e.stopPropagation();
+  e.preventDefault();
+};
+
 export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
   const { moduleId } = props;
   // refs
@@ -109,11 +114,6 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
         message: () => "Couldn't remove the module from favorites. Please try again.",
       },
     });
-  };
-
-  const handleEventPropagation = (e: SyntheticEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
   };
 
   const handleModuleDetailsChange = async (payload: Partial<IModule>) => {
@@ -235,6 +235,7 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
               onKeyDown={handleTriggerKeyDown}
             >
               <DateRangeSelect
+                disablePastDates
                 variant="select-ghost-md"
                 className={`h-6 w-full gap-1.5 rounded-sm border-[0.5px] border-strong text-11 text-tertiary ${
                   isDisabled ? "cursor-not-allowed" : "cursor-pointer"

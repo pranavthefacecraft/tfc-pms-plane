@@ -170,6 +170,7 @@ export function NotificationSnoozeModal(props: TNotificationSnoozeModal) {
                     rules={{ required: "Please select a date" }}
                     render={({ field: { value, onChange } }) => (
                       <DateSelect
+                        disablePastDates
                         value={value ?? null}
                         placeholder="Select date"
                         onChange={(val) => {

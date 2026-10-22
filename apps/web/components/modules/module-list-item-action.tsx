@@ -132,6 +132,7 @@ export const ModuleListItemAction = observer(function ModuleListItemAction(props
   return (
     <>
       <DateRangeSelect
+        disablePastDates
         variant="select-ghost-md"
         className={`h-6 w-full gap-1.5 rounded-sm border-[0.5px] border-strong text-11 text-tertiary ${
           isDisabled ? "cursor-not-allowed" : "cursor-pointer"

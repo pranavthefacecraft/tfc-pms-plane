@@ -240,6 +240,7 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
         cycleDetails.start_date && (
           <>
             <DateRangeSelect
+              disablePastDates
               variant="select-ghost-md"
               className="flex h-6 w-full cursor-auto items-center gap-1.5 rounded-sm p-0 text-11 text-tertiary [&>div]:hover:bg-transparent"
               minDate={new Date()}

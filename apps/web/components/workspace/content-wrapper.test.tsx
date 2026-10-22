@@ -97,3 +97,10 @@ it("preserves the outer top bar for settings layouts", async () => {
   expect(host.querySelector("main")).toBeNull();
   expect(host.textContent).toContain("Settings content");
 });
+
+it.each(["/workspace", "/workspace/settings"])("removes outer left, right and bottom gutters on %s", async (path) => {
+  await render(path);
+  const wrapper = host.querySelector(".flex-grow");
+  expect(wrapper).not.toBeNull();
+  expect(wrapper?.className).not.toMatch(/\b(?:p|px|py|pl|pr|pb)-/);
+});

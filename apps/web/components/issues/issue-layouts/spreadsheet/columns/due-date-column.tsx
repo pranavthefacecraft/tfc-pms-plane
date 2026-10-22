@@ -36,6 +36,7 @@ export const SpreadsheetDueDateColumn = observer(function SpreadsheetDueDateColu
   return (
     <div className="h-11 border-b-[0.5px] border-subtle">
       <DateSelect
+        disablePastDates
         value={getDate(issue.target_date) ?? null}
         minDate={getDate(issue.start_date)}
         onChange={(data) => {

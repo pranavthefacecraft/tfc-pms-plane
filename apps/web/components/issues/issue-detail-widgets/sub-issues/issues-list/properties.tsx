@@ -40,16 +40,16 @@ type Props = {
   issue: TIssue;
 };
 
+const handleEventPropagation = (e: SyntheticEvent<HTMLDivElement>) => {
+  e.stopPropagation();
+  e.preventDefault();
+};
+
 export const SubIssuesListItemProperties = observer(function SubIssuesListItemProperties(props: Props) {
   const { workspaceSlug, parentIssueId, issueId, canEdit, updateSubIssue, displayProperties, issue } = props;
   const { t } = useTranslation();
   const { getStateById } = useProjectState();
   const { data: userProfile } = useUserProfile();
-
-  const handleEventPropagation = (e: SyntheticEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
 
   const handleStartDate = (date: Date | null) => {
     if (issue.project_id) {
@@ -140,6 +140,7 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
       >
         <div role="presentation" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
           <DateRangeSelect
+            disablePastDates
             value={{
               from: getDate(issue.start_date) ?? null,
               to: getDate(issue.target_date) ?? null,
@@ -167,6 +168,7 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
         <DateSelect
+          disablePastDates
           value={getDate(issue.start_date) ?? null}
           onChange={handleStartDate}
           maxDate={maxDate}
@@ -190,6 +192,7 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
         shouldRenderProperty={() => !isDateRangeEnabled}
       >
         <DateSelect
+          disablePastDates
           value={getDate(issue?.target_date) ?? null}
           onChange={handleTargetDate}
           minDate={minDate}

@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { Calendar } from "@makeplane/propel/components/calendar";
 import type { DateSelectCommonProps } from "./date-select-shell";
 import { DateSelectShell } from "./date-select-shell";
-import { buildDisabledMatchers, DEFAULT_DATE_FORMAT_TOKEN } from "./date-select.utils";
+import { buildDisabledMatchers, DEFAULT_DATE_FORMAT_TOKEN, getSchedulingMinDate } from "./date-select.utils";
 
 /** Both ends of the picked range. Either end may be unset. */
 export type DateRangeValue = {
@@ -119,9 +119,14 @@ export function DateRangeSelect(props: DateRangeSelectProps) {
       ? mergeRangeLabel(value, from, to, formatToken)
       : joined;
   const isEmpty = !value.from && !value.to;
-  const disabledMatchers = buildDisabledMatchers(minDate, maxDate);
+  const effectiveMinDate = getSchedulingMinDate(minDate, props.disablePastDates);
+  const disabledMatchers = buildDisabledMatchers(effectiveMinDate, maxDate);
   // The calendar shows the in-progress pick; the trigger keeps showing the committed value.
-  const shown = draft ?? value;
+  const shown =
+    draft ??
+    (props.disablePastDates && value.from && effectiveMinDate && value.from < effectiveMinDate
+      ? { from: null, to: null }
+      : value);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
