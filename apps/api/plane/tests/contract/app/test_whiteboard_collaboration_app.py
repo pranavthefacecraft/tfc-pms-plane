@@ -48,6 +48,23 @@ def element(identifier, version=1, deleted=False, nonce=10):
 @pytest.mark.contract
 @pytest.mark.django_db
 class TestWhiteboardCollaboration:
+    def test_sharing_hides_bots_without_changing_accounts_or_roles(self, session_client, board, create_user):
+        human, _ = participant(board, "viewer")
+        bot, _ = participant(board, "editor")
+        User.objects.filter(pk=bot.pk).update(is_bot=True)
+
+        response = session_client.get(url(board, "sharing"))
+
+        assert response.status_code == 200
+        members = {member["user"]["id"]: member for member in response.json()["members"]}
+        assert set(members) == {str(create_user.id), str(human.id)}
+        assert members[str(create_user.id)]["role"] == "owner"
+        assert members[str(human.id)]["role"] == "viewer"
+        assert User.objects.filter(pk=bot.pk, is_bot=True, is_active=True).exists()
+        assert WorkspaceMember.objects.filter(workspace=board.workspace, member=bot, is_active=True).exists()
+        board.refresh_from_db()
+        assert board.whiteboard_roles[str(bot.id)] == "editor"
+
     def test_simultaneous_edits_merge_and_tombstones_do_not_resurrect(self, session_client, board):
         _, editor = participant(board, "editor")
         assert operation(session_client, board, "scene", scene={"elements": [element("a")]}).status_code == 200

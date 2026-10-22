@@ -172,6 +172,8 @@ Open **Tool > Whiteboard** and choose a board. The owner can use **Share** to
 assign active workspace members **Viewer** or **Editor**, then copy the board
 link. Recipients must sign in with their workspace account; anonymous/external
 links are not supported.
+The sharing list hides system/bot accounts; their accounts, memberships and
+existing permissions are not deleted or changed.
 
 - **Private** boards are limited to the owner and explicitly shared members.
 - **Workspace-visible** boards preserve existing member editing access; an

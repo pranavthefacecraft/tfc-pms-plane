@@ -207,9 +207,9 @@ class WhiteboardSharingEndpoint(WhiteboardSessionEndpoint):
         page = self.board(request, slug, page_id)
         if page.owned_by_id != request.user.id:
             raise PermissionDenied("Only the owner can manage sharing.")
-        members = WorkspaceMember.objects.filter(workspace_id=page.workspace_id, is_active=True).select_related(
-            "member"
-        )
+        members = WorkspaceMember.objects.filter(
+            workspace_id=page.workspace_id, is_active=True, member__is_bot=False
+        ).select_related("member")
         return Response(
             {
                 "access": page.access,
