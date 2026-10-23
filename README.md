@@ -73,7 +73,11 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 
 Web sign-in, sign-up, and password-recovery headers use the supplied Clevdex
 logo. The web favicon and touch/installed-app icons use the matching Clevdex
-symbol. This does not change God Mode branding or product copy.
+symbol. Login/sign-up welcome text, the new-user prompt, and shared authentication
+page titles use Clevdex. This does not change God Mode or email product copy.
+Password sign-in offers "Forgot password?" on both the initial email screen
+and the password screen, carrying over the entered email. Without SMTP configured,
+it explains that password-reset emails are unavailable.
 Shared web loading screens use the supplied stacked Clevdex logo with a
 reduced-motion-aware pulse, without inverting its brand colors in light mode.
 

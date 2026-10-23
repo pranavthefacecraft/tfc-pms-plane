@@ -67,7 +67,7 @@ export function AuthHeaderBase(props: TAuthHeaderBase) {
   const { pageTitle, additionalAction } = props;
   return (
     <>
-      <PageHead title={pageTitle + " - TFC PMS"} />
+      <PageHead title={pageTitle + " - Clevdex"} />
       <div className="sticky top-0 flex w-full flex-shrink-0 items-center justify-between gap-6">
         <Link href="/">
           <img src="/clevdex-logo.png" alt="Clevdex" className="h-auto w-40 max-w-full object-contain sm:w-48" />

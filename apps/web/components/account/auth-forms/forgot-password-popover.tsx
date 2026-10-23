@@ -5,9 +5,25 @@
  */
 
 // plane imports
+import Link from "next/link";
 import { useTranslation } from "@plane/i18n";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@makeplane/propel/components/popover";
 import { CloseOutline } from "@makeplane/propel/icons";
+
+export function ForgotPasswordLink({ email, isSMTPConfigured }: { email: string; isSMTPConfigured: boolean }) {
+  const { t } = useTranslation();
+
+  return isSMTPConfigured ? (
+    <Link
+      href={`/accounts/forgot-password?email=${encodeURIComponent(email)}`}
+      className="text-11 font-medium text-accent-primary"
+    >
+      {t("auth.common.forgot_password")}
+    </Link>
+  ) : (
+    <ForgotPasswordPopover />
+  );
+}
 
 export function ForgotPasswordPopover() {
   // plane hooks

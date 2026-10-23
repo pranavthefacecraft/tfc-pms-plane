@@ -104,7 +104,15 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
   };
 
   if (authStep === EAuthSteps.EMAIL) {
-    return <AuthEmailForm defaultEmail={email} onSubmit={handleEmailVerification} />;
+    return (
+      <AuthEmailForm
+        defaultEmail={email}
+        onSubmit={handleEmailVerification}
+        passwordRecovery={
+          authMode === EAuthModes.SIGN_IN && config?.is_email_password_enabled ? { isSMTPConfigured } : undefined
+        }
+      />
+    );
   }
   if (authStep === EAuthSteps.UNIQUE_CODE) {
     return (

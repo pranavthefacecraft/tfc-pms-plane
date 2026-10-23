@@ -16,14 +16,16 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@makeplane/propel/components/button";
 import type { IEmailCheckData } from "@plane/types";
 import { checkEmailValidity } from "@plane/utils";
+import { ForgotPasswordLink } from "./forgot-password-popover";
 // helpers
 type TAuthEmailForm = {
   defaultEmail: string;
   onSubmit: (data: IEmailCheckData) => Promise<void>;
+  passwordRecovery?: { isSMTPConfigured: boolean };
 };
 
 export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailForm) {
-  const { onSubmit, defaultEmail } = props;
+  const { onSubmit, defaultEmail, passwordRecovery } = props;
   // states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState(defaultEmail);
@@ -109,6 +111,11 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
         loading={isSubmitting}
         label={t("common.continue")}
       />
+      {passwordRecovery && (
+        <div>
+          <ForgotPasswordLink email={email} isSMTPConfigured={passwordRecovery.isSMTPConfigured} />
+        </div>
+      )}
     </form>
   );
 });

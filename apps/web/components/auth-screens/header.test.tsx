@@ -8,11 +8,26 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
-import { EAuthModes } from "@/helpers/authentication.helper";
+import { EAuthModes, EAuthSteps } from "@/helpers/authentication.helper";
+import { AuthHeader as AuthFormHeader } from "@/components/account/auth-forms/auth-header";
 import { AuthHeader, AuthHeaderBase } from "./header";
 
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
-vi.mock("@plane/i18n", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock("@plane/i18n", async () => {
+  const { default: auth } = await import("../../../../packages/i18n/src/locales/en/auth.json");
+  return {
+    useTranslation: () => ({
+      t: (key: string) => (key === "auth.common.new_to_plane" ? auth.auth.common.new_to_plane : key),
+    }),
+  };
+});
+vi.mock("swr", () => ({ default: () => ({ data: undefined, isLoading: false }) }));
+vi.mock("@/services/workspace.service", () => ({ WorkspaceService: vi.fn(function WorkspaceService() {}) }));
+vi.mock("@/components/common/logo-spinner", () => ({ LogoSpinner: () => null }));
+vi.mock("@/components/workspace/logo", () => ({ WorkspaceLogo: () => null }));
+vi.mock("@/components/core/page-title", () => ({
+  PageHead: ({ title }: { title: string }) => <span data-testid="page-title">{title}</span>,
+}));
 vi.mock("@/hooks/store/use-instance", () => ({
   useInstance: () => ({ config: { enable_signup: true } }),
 }));
@@ -47,6 +62,9 @@ it.each([EAuthModes.SIGN_IN, EAuthModes.SIGN_UP])(
     expect(logo?.closest("a")?.getAttribute("href")).toBe("/");
     const expectedHref = type === EAuthModes.SIGN_IN ? "/sign-up/" : "/sign-in/";
     expect(host.querySelector(`a[href="${expectedHref}"]`)).not.toBeNull();
+    expect(host.querySelector('[data-testid="page-title"]')?.textContent).toContain(" - Clevdex");
+    expect(host.textContent).not.toContain("TFC PMS");
+    if (type === EAuthModes.SIGN_IN) expect(host.textContent).toContain("New to Clevdex?");
   }
 );
 
@@ -61,4 +79,26 @@ it("uses the same logo on the shared password-recovery header", async () => {
   expect(host.querySelector("img")?.getAttribute("src")).toBe("/clevdex-logo.png");
   expect(host.querySelector("img")?.className).toContain("h-auto");
   expect(host.querySelectorAll("a")).toHaveLength(1);
+});
+
+it.each(
+  [EAuthModes.SIGN_IN, EAuthModes.SIGN_UP].flatMap((mode) =>
+    [EAuthSteps.EMAIL, EAuthSteps.PASSWORD, EAuthSteps.UNIQUE_CODE].map((step) => ({ mode, step }))
+  )
+)("uses Clevdex for $mode at $step", async ({ mode, step }) => {
+  await act(() =>
+    root.render(
+      <AuthFormHeader
+        workspaceSlug={undefined}
+        invitationId={undefined}
+        invitationEmail={undefined}
+        authMode={mode}
+        currentAuthStep={step}
+      />
+    )
+  );
+  expect(host.textContent).toContain(
+    mode === EAuthModes.SIGN_IN ? "Welcome back to Clevdex." : "Create your Clevdex account."
+  );
+  expect(host.textContent).not.toContain("TFC PMS");
 });

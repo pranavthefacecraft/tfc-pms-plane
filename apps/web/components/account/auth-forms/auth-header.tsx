@@ -28,29 +28,29 @@ const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
       header: "Work in all dimensions.",
-      subHeader: "Welcome back to TFC PMS.",
+      subHeader: "Welcome back to Clevdex.",
     },
     [EAuthSteps.PASSWORD]: {
       header: "Work in all dimensions.",
-      subHeader: "Welcome back to TFC PMS.",
+      subHeader: "Welcome back to Clevdex.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
       header: "Work in all dimensions.",
-      subHeader: "Welcome back to TFC PMS.",
+      subHeader: "Welcome back to Clevdex.",
     },
   },
   [EAuthModes.SIGN_UP]: {
     [EAuthSteps.EMAIL]: {
       header: "Work in all dimensions.",
-      subHeader: "Create your TFC PMS account.",
+      subHeader: "Create your Clevdex account.",
     },
     [EAuthSteps.PASSWORD]: {
       header: "Work in all dimensions.",
-      subHeader: "Create your TFC PMS account.",
+      subHeader: "Create your Clevdex account.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
       header: "Work in all dimensions.",
-      subHeader: "Create your TFC PMS account.",
+      subHeader: "Create your Clevdex account.",
     },
   },
 };

@@ -6,7 +6,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import Link from "next/link";
 // icons
 import { CloseCircleOutline, HideOutline, ShowOutline } from "@makeplane/propel/icons";
 // plane imports
@@ -18,7 +17,7 @@ import { Button } from "@makeplane/propel/components/button";
 import { PasswordStrengthIndicator } from "@plane/blocks/auth";
 import { getPasswordStrength } from "@plane/utils";
 // components
-import { ForgotPasswordPopover } from "@/components/account/auth-forms/forgot-password-popover";
+import { ForgotPasswordLink } from "@/components/account/auth-forms/forgot-password-popover";
 // constants
 // helpers
 import { EAuthModes, EAuthSteps } from "@/helpers/authentication.helper";
@@ -85,16 +84,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   const passwordSupport =
     mode === EAuthModes.SIGN_IN ? (
       <div className="w-full">
-        {isSMTPConfigured ? (
-          <Link
-            href={`/accounts/forgot-password?email=${encodeURIComponent(email)}`}
-            className="text-11 font-medium text-accent-primary"
-          >
-            {t("auth.common.forgot_password")}
-          </Link>
-        ) : (
-          <ForgotPasswordPopover />
-        )}
+        <ForgotPasswordLink email={email} isSMTPConfigured={isSMTPConfigured} />
       </div>
     ) : (
       passwordFormData.password.length > 0 &&
