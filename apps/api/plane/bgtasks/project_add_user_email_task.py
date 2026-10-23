@@ -54,7 +54,7 @@ def project_add_user_email(current_site, project_member_id, invitor_id):
         ) = get_email_configuration()
 
         # Set the subject
-        subject = "You have been invited to a TFC PMS project"
+        subject = "You have been invited to a Clevdex project"
 
         # Render the email template
         html_content = render_email_template("emails/notifications/project_addition.html", context)

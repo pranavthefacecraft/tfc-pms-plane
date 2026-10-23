@@ -115,7 +115,7 @@ class EmailCredentialCheckEndpoint(BaseAPIView):
             use_ssl=EMAIL_USE_SSL == "1",
         )
         # Prepare email details
-        subject = "Email Notification from TFC PMS"
+        subject = "Email Notification from Clevdex"
         # Send the email
         try:
             html_content = render_email_template("emails/test_email.html")

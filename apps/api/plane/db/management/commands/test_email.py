@@ -43,7 +43,7 @@ class Command(BaseCommand):
             timeout=30,
         )
         # Prepare email details
-        subject = "Test email from TFC PMS"
+        subject = "Test email from Clevdex"
 
         html_content = render_email_template("emails/test_email.html")
         text_content = generate_plain_text_from_html(html_content)

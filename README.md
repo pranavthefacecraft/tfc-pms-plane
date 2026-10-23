@@ -74,7 +74,7 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 Web sign-in, sign-up, and password-recovery headers use the supplied Clevdex
 logo. The web favicon and touch/installed-app icons use the matching Clevdex
 symbol. Login/sign-up welcome text, the new-user prompt, and shared authentication
-page titles use Clevdex. This does not change God Mode or email product copy.
+page titles use Clevdex. This does not change God Mode product copy.
 Password sign-in offers "Forgot password?" on both the initial email screen
 and the password screen, carrying over the entered email. Without SMTP configured,
 it explains that password-reset emails are unavailable.
@@ -85,7 +85,7 @@ Shared web loading screens use the supplied stacked Clevdex logo with a
 reduced-motion-aware pulse, without inverting its brand colors in light mode.
 
 Application emails use the supplied blue Clevdex email logo on a white header,
-while retaining the TFC PMS product name, subjects and footer. The logo is
+with Clevdex product text, subjects, and footers across all templates. The logo is
 loaded from `${WEB_URL}/clevdex-email.png`; `WEB_URL` must be the public web
 application URL. Email clients may block remote images until the recipient
 allows them. Login codes, reset links and invitation links are unchanged.

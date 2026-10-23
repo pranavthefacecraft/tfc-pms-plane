@@ -82,7 +82,7 @@ def send_email_update_confirmation(email):
         ) = get_email_configuration()
 
         # Send the confirmation email
-        subject = "TFC PMS email address successfully updated"
+        subject = "Clevdex email address successfully updated"
         context = {"email": email}
 
         html_content = render_email_template("emails/user/email_updated.html", context)

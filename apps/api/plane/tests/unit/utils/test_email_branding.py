@@ -35,7 +35,9 @@ def test_email_templates_use_own_logo_and_branding(template_name):
     assert "tfc-pms-logo.png" not in html
     assert "media.docs.plane.so/logo" not in html
     text = generate_plain_text_from_html(html)
-    assert "TFC PMS" in text
+    assert "Clevdex" in text
+    assert "TFC PMS" not in html
+    assert "TFC PMS" not in text
     assert "Plane Software, Inc." not in text
     assert not re.search(r"\bPlane\b", text)
 
@@ -61,9 +63,20 @@ def test_login_email_preserves_code_and_recipient():
         patch("plane.bgtasks.magic_link_code_task.EmailMultiAlternatives") as message,
     ):
         magic_link.run("member@example.test", "unused", "123456")
-    assert message.call_args.kwargs["subject"] == "Your unique TFC PMS login code is 123456"
+    assert message.call_args.kwargs["subject"] == "Your unique Clevdex login code is 123456"
     assert message.call_args.kwargs["to"] == ["member@example.test"]
     assert "123456" in message.call_args.kwargs["body"]
     html = message.return_value.attach_alternative.call_args.args[0]
     assert "https://pms.example.test/clevdex-email.png" in html
     message.return_value.send.assert_called_once()
+
+
+def test_email_senders_do_not_use_old_product_name():
+    api_root = TEMPLATES_ROOT.parent
+    sender_paths = [
+        *(api_root / "plane" / "bgtasks").glob("*.py"),
+        api_root / "plane" / "license" / "api" / "views" / "configuration.py",
+        api_root / "plane" / "db" / "management" / "commands" / "test_email.py",
+    ]
+    for path in sender_paths:
+        assert "TFC PMS" not in path.read_text(encoding="utf-8"), path.name
