@@ -93,14 +93,11 @@ Deploy both the web asset and API/worker templates when updating email branding.
 
 ## TFCPMS navigation
 
-The workspace top bar is white in light mode and includes a Create menu for work
+The workspace top bar uses `#FAFAFA` in light mode and includes a Create menu for work
 items, projects, pages, whiteboards, and workspace invitations. Existing creation
 flows and workspace permissions apply: invitations are admin-only, and work items
 require a joined project. The sidebar New work item action remains available.
 Board-only guests do not receive workspace creation actions.
-The main workspace content background and primary breadcrumb/page-title bar use
-`#FAFAFA` in light mode. The first top bar and sidebar retain their own backgrounds,
-and dark mode retains its themed surface colors.
 
 Scheduling date pickers (work items/drafts, Intake, cycles, modules, snooze
 and token expiry) disable dates before the user's local today. Custom date

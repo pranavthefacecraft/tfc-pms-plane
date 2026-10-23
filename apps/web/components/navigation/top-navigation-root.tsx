@@ -49,7 +49,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot({
   return (
     <div
       className={cn(
-        "z-[27] flex min-h-10 w-full items-center gap-3 bg-white px-3.5 transition-all duration-300 dark:bg-surface-1",
+        "z-[27] flex min-h-10 w-full items-center gap-3 bg-[#fafafa] px-3.5 transition-all duration-300 dark:bg-surface-1",
         {
           "px-2": !showLabel,
         }

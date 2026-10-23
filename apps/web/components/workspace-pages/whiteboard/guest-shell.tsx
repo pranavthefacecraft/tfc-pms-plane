@@ -107,7 +107,7 @@ export const GuestWhiteboardShell = observer(function GuestWhiteboardShell({
       <main className="relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1">
         <header
           aria-label="Workspace header"
-          className="z-[27] flex min-h-10 shrink-0 items-center gap-3 bg-white px-3.5 dark:bg-surface-1"
+          className="z-[27] flex min-h-10 shrink-0 items-center gap-3 bg-[#fafafa] px-3.5 dark:bg-surface-1"
         >
           {sidebarCollapsed && <AppSidebarToggleButton />}
           <button
