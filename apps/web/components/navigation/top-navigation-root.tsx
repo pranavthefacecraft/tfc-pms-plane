@@ -17,6 +17,7 @@ import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { InboxOutline } from "@makeplane/propel/icons";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
+import { TopNavCreateMenu } from "./create-menu";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot({
   showWorkspaceMenu = true,
@@ -47,10 +48,14 @@ export const TopNavigationRoot = observer(function TopNavigationRoot({
 
   return (
     <div
-      className={cn("z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300", {
-        "px-2": !showLabel,
-      })}
+      className={cn(
+        "z-[27] flex min-h-10 w-full items-center gap-3 bg-white px-3.5 transition-all duration-300 dark:bg-surface-1",
+        {
+          "px-2": !showLabel,
+        }
+      )}
     >
+      {workspaceSlug && <TopNavCreateMenu workspaceSlug={workspaceSlug.toString()} />}
       {/* Workspace Menu */}
       {showWorkspaceMenu && (
         <div className="min-w-0 flex-1">
@@ -58,11 +63,11 @@ export const TopNavigationRoot = observer(function TopNavigationRoot({
         </div>
       )}
       {/* Power K Search */}
-      <div className="min-w-0 shrink-0">
+      <div className="min-w-0 flex-1 sm:flex-initial [&>div>div:first-child]:max-w-full">
         <TopNavPowerK />
       </div>
       {/* Additional Actions */}
-      <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
+      <div className="ml-auto flex shrink-0 items-center justify-end gap-1">
         <Tooltip label="Inbox" side="bottom">
           <AppSidebarItem
             variant="link"

@@ -93,6 +93,12 @@ Deploy both the web asset and API/worker templates when updating email branding.
 
 ## TFCPMS navigation
 
+The workspace top bar is white in light mode and includes a Create menu for work
+items, projects, pages, whiteboards, and workspace invitations. Existing creation
+flows and workspace permissions apply: invitations are admin-only, and work items
+require a joined project. The sidebar New work item action remains available.
+Board-only guests do not receive workspace creation actions.
+
 Scheduling date pickers (work items/drafts, Intake, cycles, modules, snooze
 and token expiry) disable dates before the user's local today. Custom date
 fields use the same lower bound. Existing past dates remain displayed and
