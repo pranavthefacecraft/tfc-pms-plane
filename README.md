@@ -78,7 +78,7 @@ page titles use Clevdex. This does not change God Mode or email product copy.
 Password sign-in offers "Forgot password?" on both the initial email screen
 and the password screen, carrying over the entered email. Without SMTP configured,
 it explains that password-reset emails are unavailable.
-Login and sign-up use a centered logo above a narrow, borderless form column,
+Login and sign-up use a centered logo above a narrow white card with rounded corners and a soft shadow,
 left-aligned heading and supporting text, and an account-switch link below.
 Password-recovery pages retain their existing header layout.
 Shared web loading screens use the supplied stacked Clevdex logo with a
