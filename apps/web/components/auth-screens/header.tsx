@@ -29,9 +29,10 @@ const authContentMap = {
 
 type AuthHeaderProps = {
   type: EAuthModes;
+  centered?: boolean;
 };
 
-export const AuthHeader = observer(function AuthHeader({ type }: AuthHeaderProps) {
+export const AuthHeader = observer(function AuthHeader({ type, centered = false }: AuthHeaderProps) {
   const { t } = useTranslation();
   // store
   const { config } = useInstance();
@@ -40,10 +41,17 @@ export const AuthHeader = observer(function AuthHeader({ type }: AuthHeaderProps
 
   return (
     <AuthHeaderBase
+      centered={centered}
       pageTitle={t(authContentMap[type].pageTitle)}
       additionalAction={
         enableSignUpConfig && (
-          <div className="flex flex-col items-end text-center text-13 font-medium text-tertiary sm:flex-row sm:items-center sm:gap-2">
+          <div
+            className={
+              centered
+                ? "order-last flex flex-wrap items-center justify-center gap-x-2 text-center text-13 font-medium text-tertiary"
+                : "flex flex-col items-end text-center text-13 font-medium text-tertiary sm:flex-row sm:items-center sm:gap-2"
+            }
+          >
             <span className="text-body-sm-regular text-tertiary">{t(authContentMap[type].text)}</span>
             <Link
               href={authContentMap[type].linkHref}
@@ -61,16 +69,25 @@ export const AuthHeader = observer(function AuthHeader({ type }: AuthHeaderProps
 type TAuthHeaderBase = {
   pageTitle: string;
   additionalAction?: React.ReactNode;
+  centered?: boolean;
 };
 
 export function AuthHeaderBase(props: TAuthHeaderBase) {
-  const { pageTitle, additionalAction } = props;
+  const { pageTitle, additionalAction, centered = false } = props;
   return (
     <>
       <PageHead title={pageTitle + " - Clevdex"} />
-      <div className="sticky top-0 flex w-full flex-shrink-0 items-center justify-between gap-6">
-        <Link href="/">
-          <img src="/clevdex-logo.png" alt="Clevdex" className="h-auto w-40 max-w-full object-contain sm:w-48" />
+      <div
+        className={centered ? "contents" : "sticky top-0 flex w-full flex-shrink-0 items-center justify-between gap-6"}
+      >
+        <Link href="/" className={centered ? "self-center" : undefined}>
+          <img
+            src="/clevdex-logo.png"
+            alt="Clevdex"
+            className={
+              centered ? "h-auto w-32 max-w-full object-contain" : "h-auto w-40 max-w-full object-contain sm:w-48"
+            }
+          />
         </Link>
         {additionalAction}
       </div>

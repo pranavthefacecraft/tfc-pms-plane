@@ -11,6 +11,11 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { EAuthModes, EAuthSteps } from "@/helpers/authentication.helper";
 import { AuthHeader as AuthFormHeader } from "@/components/account/auth-forms/auth-header";
 import { AuthHeader, AuthHeaderBase } from "./header";
+import { AuthBase } from "./auth-base";
+
+vi.mock("@/components/account/auth-forms/auth-root", () => ({
+  AuthRoot: ({ authMode }: { authMode: EAuthModes }) => <div data-testid="auth-form" data-mode={authMode} />,
+}));
 
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("@plane/i18n", async () => {
@@ -101,4 +106,28 @@ it.each(
     mode === EAuthModes.SIGN_IN ? "Welcome back to Clevdex." : "Create your Clevdex account."
   );
   expect(host.textContent).not.toContain("TFC PMS");
+  expect(host.querySelector(".text-left")).not.toBeNull();
+  expect(host.querySelector(".font-normal")?.textContent).toContain("Clevdex");
 });
+
+it.each([EAuthModes.SIGN_IN, EAuthModes.SIGN_UP])(
+  "centers the logo above the unchanged %s form and places the account switch below",
+  async (type) => {
+    await act(() =>
+      root.render(
+        <MemoryRouter>
+          <AuthBase authType={type} />
+        </MemoryRouter>
+      )
+    );
+    const logo = host.querySelector("img");
+    expect(logo?.className).toContain("w-32");
+    expect(logo?.closest("a")?.className).toContain("self-center");
+    expect(host.querySelector(".auth-entry-page")).not.toBeNull();
+    expect(host.querySelector(".max-w-\\[22\\.5rem\\]")).not.toBeNull();
+    expect(host.querySelector('[data-testid="auth-form"]')?.getAttribute("data-mode")).toBe(type);
+    expect(host.querySelector(".order-last a")?.getAttribute("href")).toBe(
+      type === EAuthModes.SIGN_IN ? "/sign-up/" : "/sign-in/"
+    );
+  }
+);
