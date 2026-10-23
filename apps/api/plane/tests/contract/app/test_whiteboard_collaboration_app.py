@@ -4,12 +4,16 @@
 
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connections
+from django.utils import timezone
 from rest_framework.test import APIClient
-from plane.db.models import Page, User, WorkspaceMember
+from plane.db.models import Page, Profile, User, Workspace, WorkspaceMember
 
 
 @pytest.fixture
@@ -43,6 +47,140 @@ def operation(client, board, action, **extra):
 
 def element(identifier, version=1, deleted=False, nonce=10):
     return {"id": identifier, "version": version, "versionNonce": nonce, "isDeleted": deleted}
+
+
+@pytest.fixture
+def joined_guest(board):
+    user = User.objects.create(email=f"visitor-{uuid.uuid4().hex}@example.test", username=uuid.uuid4().hex)
+    board.whiteboard_guest_role = "viewer"
+    board.whiteboard_guest_ids = [str(user.id)]
+    board.save()
+    client = APIClient()
+    client.force_authenticate(user)
+    return user, client
+
+
+@pytest.mark.contract
+@pytest.mark.django_db
+class TestWhiteboardGuestWorkspace:
+    @pytest.mark.django_db(transaction=True)
+    def test_concurrent_boards_provision_only_one_personal_workspace(self, board, joined_guest):
+        guest, _ = joined_guest
+        other_board = Page.objects.create(
+            workspace=board.workspace,
+            owned_by=board.owned_by,
+            is_global=True,
+            tool_type=Page.TOOL_TYPE_WHITEBOARD,
+            whiteboard_guest_role="editor",
+            whiteboard_guest_ids=[str(guest.id)],
+        )
+        barrier = Barrier(2)
+
+        def prepare(shared_board):
+            try:
+                client = APIClient()
+                client.force_authenticate(guest)
+                barrier.wait(timeout=10)
+                response = client.post(url(shared_board, "guest-workspace"), {}, format="json")
+                assert response.status_code == 200
+                return response.json()["workspace_slug"]
+            finally:
+                connections.close_all()
+
+        with patch("plane.app.views.page.collaboration.workspace_seed.delay") as seed:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                slugs = list(executor.map(prepare, [board, other_board]))
+        assert slugs[0] == slugs[1]
+        assert Workspace.objects.filter(owner=guest).count() == 1
+        seed.assert_called_once()
+
+    def test_provisions_one_owned_workspace_and_keeps_board_access_scoped(
+        self, board, joined_guest, django_capture_on_commit_callbacks
+    ):
+        guest, client = joined_guest
+        with (
+            patch("plane.app.views.page.collaboration.workspace_seed.delay") as seed,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            response = client.post(url(board, "guest-workspace"), {}, format="json")
+            assert response.status_code == 200
+            personal = Workspace.objects.get(slug=response.json()["workspace_slug"])
+            assert personal.owner_id == guest.id
+            assert personal.id != board.workspace_id
+            assert WorkspaceMember.objects.get(workspace=personal, member=guest).role == 20
+            assert not WorkspaceMember.objects.filter(workspace=board.workspace, member=guest).exists()
+            profile = Profile.objects.get(user=guest)
+            assert profile.is_onboarded is True
+            assert all(profile.onboarding_step.values())
+            assert profile.last_workspace_id == personal.id
+            assert profile.has_marketing_email_consent is False
+            again = client.post(url(board, "guest-workspace"), {}, format="json")
+            assert again.json() == response.json()
+            assert Workspace.objects.filter(owner=guest).count() == 1
+        seed.assert_called_once_with(str(personal.id))
+        assert client.get(f"/api/workspaces/{board.workspace.slug}/workspace-pages/").status_code == 403
+        assert client.get(f"/api/workspaces/{personal.slug}/workspace-pages/").status_code == 200
+        assert client.get(url(board)).json()["role"] == "viewer"
+        assert operation(client, board, "scene", scene={"elements": []}).status_code == 403
+
+    def test_reuses_owned_workspace_without_creating_or_seeding_another(self, board, joined_guest):
+        guest, client = joined_guest
+        owned = Workspace.objects.create(owner=guest, name="Existing workspace", slug=f"owned-{uuid.uuid4().hex}")
+        WorkspaceMember.objects.create(workspace=owned, member=guest, role=20)
+        with patch("plane.app.views.page.collaboration.workspace_seed.delay") as seed:
+            response = client.post(url(board, "guest-workspace"), {}, format="json")
+        assert response.status_code == 200
+        assert response.json()["workspace_slug"] == owned.slug
+        assert Workspace.objects.filter(owner=guest).count() == 1
+        seed.assert_not_called()
+
+    def test_does_not_use_another_owners_workspace(self, board, joined_guest):
+        guest, client = joined_guest
+        other = Workspace.objects.create(owner=board.owned_by, name="Other workspace", slug=f"other-{uuid.uuid4().hex}")
+        WorkspaceMember.objects.create(workspace=other, member=guest, role=15)
+        response = client.post(url(board, "guest-workspace"), {}, format="json")
+        assert response.status_code == 200
+        personal = Workspace.objects.get(slug=response.json()["workspace_slug"])
+        assert personal.owner_id == guest.id
+        assert personal.id != other.id
+
+    def test_respects_disabled_workspace_creation(self, board, joined_guest):
+        guest, client = joined_guest
+        with patch("plane.app.views.page.collaboration.get_configuration_value", return_value=("1",)):
+            response = client.post(url(board, "guest-workspace"), {}, format="json")
+        assert response.status_code == 403
+        assert not Workspace.objects.filter(owner=guest).exists()
+        # Existing owners can still navigate their workspace when new creation is disabled.
+        owned = Workspace.objects.create(owner=guest, name="Existing", slug=f"owned-{uuid.uuid4().hex}")
+        WorkspaceMember.objects.create(workspace=owned, member=guest, role=20)
+        with patch("plane.app.views.page.collaboration.get_configuration_value", return_value=("1",)):
+            response = client.post(url(board, "guest-workspace"), {}, format="json")
+        assert response.status_code == 200
+        assert response.json()["workspace_slug"] == owned.slug
+
+    @pytest.mark.parametrize("state", ["not-joined", "disabled", "bot", "not-whiteboard", "archived"])
+    def test_denies_invalid_guest_access_without_creating_workspaces(self, board, joined_guest, state):
+        guest, client = joined_guest
+        if state == "not-joined":
+            board.whiteboard_guest_ids = []
+        elif state == "disabled":
+            board.whiteboard_guest_role = "disabled"
+        elif state == "bot":
+            User.objects.filter(pk=guest.pk).update(is_bot=True)
+            guest.refresh_from_db()
+        elif state == "not-whiteboard":
+            board.tool_type = Page.TOOL_TYPE_PAGE
+        elif state == "archived":
+            board.archived_at = timezone.now()
+        board.save()
+        response = client.post(url(board, "guest-workspace"), {}, format="json")
+        assert response.status_code in (403, 404)
+        assert not Workspace.objects.filter(owner=guest).exists()
+
+    def test_requires_sign_in_and_does_not_provision_on_get(self, board):
+        client = APIClient()
+        assert client.post(url(board, "guest-workspace"), {}, format="json").status_code in (401, 403)
+        assert client.get(url(board, "guest-workspace")).status_code in (401, 403, 405)
 
 
 @pytest.mark.contract

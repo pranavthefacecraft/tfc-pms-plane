@@ -97,7 +97,8 @@ The workspace top bar uses `#FAFAFA` in light mode and includes a Create menu fo
 items, projects, pages, whiteboards, and workspace invitations. Existing creation
 flows and workspace permissions apply: invitations are admin-only, and work items
 require a joined project. The sidebar New work item action remains available.
-Board-only guests do not receive workspace creation actions.
+Shared-whiteboard visitors use their own workspace's navigation and creation
+actions, never the board owner's workspace actions.
 
 Scheduling date pickers (work items/drafts, Intake, cycles, modules, snooze
 and token expiry) disable dates before the user's local today. Custom date
@@ -190,11 +191,18 @@ existing permissions are not deleted or changed.
 Owners can set **Share > Guest link access** to **Viewer** or **Editor**. A
 signed-in person outside the workspace can open the same board URL and choose
 **Join as guest**. Guests can access only that whiteboard, not workspace lists,
-projects, tasks, or other boards; no workspace membership is created. Existing
-members keep their normal access and sidebar. Board-only guests see the
-workspace-style sidebar and header with
-inaccessible navigation, search, and inbox disabled. Profile settings and sign
-out remain available; this does not grant workspace membership or access.
+projects, tasks, or other boards belonging to the owner; no membership in the
+owner's workspace is created. Existing members keep their normal access and sidebar.
+After joining, outsiders open the board inside their own workspace's normal
+sidebar and top bar. Home, projects, settings, search, inbox, and creation actions
+apply to their own workspace, while the shared canvas retains its original
+Viewer/Editor permissions. If they do not own an active workspace, one is created
+automatically with an admin membership and the usual sample-project seed.
+Automatic setup completes account onboarding without changing consent settings.
+It is idempotent across repeat visits and tabs and respects the instance's
+workspace-creation restriction; setup failures show an explicit retry screen.
+The original shared URL remains valid and redirects to the visitor's own
+workspace context; no board content is copied.
 Guest links are off by default, including on existing boards.
 Enabling a guest link also permits guests to join
 a private board. Changing the link role applies to all joined guests. Turning

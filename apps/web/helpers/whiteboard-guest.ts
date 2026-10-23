@@ -5,4 +5,7 @@
  */
 
 export const isWhiteboardGuestPath = (path: string | null) =>
-  !!path && /^\/[\w-]+\/tool\/whiteboards\/[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}\/?(?:\?[^#]*)?$/i.test(path);
+  !!path &&
+  /^\/[\w-]+\/tool\/(?:whiteboards|shared-whiteboards\/[\w-]+)\/[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}\/?(?:\?[^#]*)?$/i.test(
+    path
+  );

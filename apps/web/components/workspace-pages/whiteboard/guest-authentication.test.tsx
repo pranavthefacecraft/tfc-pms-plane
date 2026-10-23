@@ -80,6 +80,17 @@ it("preserves onboarding for other authenticated routes", async () => {
   await render();
   expect(mocks.push).toHaveBeenCalledWith("/onboarding");
 });
+it("preserves shared-board return paths in a visitor's own workspace", async () => {
+  const sharedPath = `/personal/tool/shared-whiteboards${path.replace("/tool/whiteboards", "")}`;
+  expect(isWhiteboardGuestPath(sharedPath)).toBe(true);
+  mocks.pathname = sharedPath;
+  await render();
+  expect(mocks.push).not.toHaveBeenCalled();
+  mocks.pathname = "/";
+  mocks.nextPath = sharedPath;
+  await render(EPageTypes.NON_AUTHENTICATED);
+  expect(mocks.replace).toHaveBeenCalledWith(sharedPath);
+});
 it.each([
   "//evil.test/team/tool/whiteboards/e0aaabda-bedc-4447-b22c-fdaa813ef438",
   "/team/tool/pages/board",

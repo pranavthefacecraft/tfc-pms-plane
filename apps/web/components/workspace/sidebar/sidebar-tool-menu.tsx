@@ -46,10 +46,13 @@ export const SidebarToolMenu = observer(function SidebarToolMenu() {
       <div className="flex flex-col gap-0.5">
         {TOOL_ITEMS.map((item) => {
           const href = `/${workspaceSlug?.toString()}/${item.path}/`;
+          const isActive =
+            pathname.startsWith(href.slice(0, -1)) ||
+            (item.key === "whiteboards" && pathname.startsWith(`/${workspaceSlug}/tool/shared-whiteboards/`));
           const Icon = item.icon;
           return (
             <Link key={item.key} href={href} onClick={handleLinkClick}>
-              <SidebarNavItem isActive={pathname.startsWith(href.slice(0, -1))}>
+              <SidebarNavItem isActive={isActive}>
                 <div className="flex items-center gap-1.5 py-[1px]">
                   <Icon className="size-4 flex-shrink-0" />
                   <p className="text-13 leading-5 font-medium">{item.label}</p>

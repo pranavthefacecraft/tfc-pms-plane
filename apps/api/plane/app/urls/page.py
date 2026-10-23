@@ -7,6 +7,7 @@ from plane.app.views.page.documents import WhiteboardDocumentEndpoint
 from plane.app.views.page.whiteboard_comments import WhiteboardThreadEndpoint, WhiteboardCommentAttachmentEndpoint
 from plane.app.views.page.collaboration import (
     WhiteboardGuestEndpoint,
+    WhiteboardGuestWorkspaceEndpoint,
     WhiteboardSessionEndpoint,
     WhiteboardSharingEndpoint,
 )
@@ -24,6 +25,11 @@ from plane.app.views import (
 )
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/guest-workspace/",
+        WhiteboardGuestWorkspaceEndpoint.as_view(http_method_names=["post", "options"]),
+        name="whiteboard-guest-workspace",
+    ),
     path(
         "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/guest/",
         WhiteboardGuestEndpoint.as_view(http_method_names=["get", "post", "options"]),

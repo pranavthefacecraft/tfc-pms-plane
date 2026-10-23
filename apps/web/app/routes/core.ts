@@ -48,6 +48,10 @@ export const coreRoutes: RouteConfigEntry[] = [
   // ========================================================================
   layout("./(all)/layout.tsx", [
     route(
+      ":workspaceSlug/tool/shared-whiteboards/:sharedWorkspaceSlug/:pageId",
+      "./(all)/[workspaceSlug]/(projects)/tool/shared-whiteboards/page.tsx"
+    ),
+    route(
       ":workspaceSlug/tool/whiteboards/:pageId",
       "./(all)/[workspaceSlug]/(projects)/tool/whiteboards/[pageId]/page.tsx"
     ),

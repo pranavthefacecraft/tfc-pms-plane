@@ -5,16 +5,18 @@
  */
 
 import { useState } from "react";
+import { Navigate } from "react-router";
 import useSWR from "swr";
 import { Button } from "@makeplane/propel/components/button";
 import { setToast } from "@plane/blocks/toast";
 import { API_BASE_URL } from "@plane/constants";
 import { APIService } from "@/services/api.service";
+import { useWorkspace } from "@/hooks/store/use-workspace";
+import { useUserProfile, useUserSettings } from "@/hooks/store/user";
 import { WorkspaceShell } from "@/app/(all)/[workspaceSlug]/layout";
 import { ProjectShell } from "@/components/workspace/project-shell";
 import { WhiteboardDetailRoot } from "./detail-root";
 import { GuestWhiteboard } from "./guest-whiteboard";
-import { GuestWhiteboardShell } from "./guest-shell";
 
 type GuestAccess = { is_member: boolean; joined: boolean; guest_role: "disabled" | "viewer" | "editor" };
 
@@ -28,14 +30,28 @@ class GuestService extends APIService {
   async join(url: string): Promise<GuestAccess> {
     return (await this.post(url)).data;
   }
+  async prepareWorkspace(url: string): Promise<{ workspace_slug: string }> {
+    return (await this.post(url)).data;
+  }
 }
 
 const service = new GuestService();
 
-export function WhiteboardGuestEntry({ workspaceSlug, pageId }: { workspaceSlug: string; pageId: string }) {
+export function WhiteboardGuestEntry({
+  workspaceSlug,
+  pageId,
+  navigationWorkspaceSlug,
+}: {
+  workspaceSlug: string;
+  pageId: string;
+  navigationWorkspaceSlug?: string;
+}) {
   const [joining, setJoining] = useState(false);
   const url = `/api/workspaces/${workspaceSlug}/workspace-pages/${pageId}/guest/`;
   const { data, error, mutate } = useSWR(url, () => service.access(url), { shouldRetryOnError: false });
+
+  if (data?.is_member && navigationWorkspaceSlug)
+    return <Navigate replace to={`/${workspaceSlug}/tool/whiteboards/${pageId}`} />;
 
   if (data?.is_member)
     return (
@@ -48,9 +64,11 @@ export function WhiteboardGuestEntry({ workspaceSlug, pageId }: { workspaceSlug:
 
   if (data?.joined)
     return (
-      <GuestWhiteboardShell workspaceSlug={workspaceSlug}>
-        <GuestWhiteboard workspaceSlug={workspaceSlug} pageId={pageId} />
-      </GuestWhiteboardShell>
+      <GuestWorkspaceEntry
+        workspaceSlug={workspaceSlug}
+        pageId={pageId}
+        navigationWorkspaceSlug={navigationWorkspaceSlug}
+      />
     );
 
   return (
@@ -75,6 +93,51 @@ export function WhiteboardGuestEntry({ workspaceSlug, pageId }: { workspaceSlug:
         }
       }}
     />
+  );
+}
+
+function GuestWorkspaceEntry({
+  workspaceSlug,
+  pageId,
+  navigationWorkspaceSlug,
+}: {
+  workspaceSlug: string;
+  pageId: string;
+  navigationWorkspaceSlug?: string;
+}) {
+  const { fetchWorkspaces } = useWorkspace();
+  const { fetchUserProfile } = useUserProfile();
+  const { fetchCurrentUserSettings } = useUserSettings();
+  const url = `/api/workspaces/${workspaceSlug}/workspace-pages/${pageId}/guest-workspace/`;
+  const { data, error, mutate } = useSWR(
+    url,
+    async () => {
+      const result = await service.prepareWorkspace(url);
+      await Promise.all([fetchWorkspaces(), fetchUserProfile(), fetchCurrentUserSettings(true)]);
+      return result;
+    },
+    {
+      shouldRetryOnError: false,
+      revalidateOnFocus: false,
+      onError: (cause) => console.error("Could not prepare whiteboard guest workspace", cause),
+    }
+  );
+  if (error)
+    return (
+      <div className="m-auto flex max-w-md flex-col items-center gap-4 p-6 text-center">
+        <p role="alert">Could not open your workspace. Please retry or contact your instance administrator.</p>
+        <Button label="Retry" variant="secondary" size="sm" stretch="auto" onClick={() => void mutate()} />
+      </div>
+    );
+  if (!data) return <p role="status">Preparing your workspace...</p>;
+  if (data.workspace_slug !== navigationWorkspaceSlug)
+    return <Navigate replace to={`/${data.workspace_slug}/tool/shared-whiteboards/${workspaceSlug}/${pageId}`} />;
+  return (
+    <WorkspaceShell workspaceSlug={data.workspace_slug}>
+      <ProjectShell>
+        <GuestWhiteboard workspaceSlug={workspaceSlug} pageId={pageId} />
+      </ProjectShell>
+    </WorkspaceShell>
   );
 }
 
