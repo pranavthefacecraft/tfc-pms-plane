@@ -98,6 +98,9 @@ items, projects, pages, whiteboards, and workspace invitations. Existing creatio
 flows and workspace permissions apply: invitations are admin-only, and work items
 require a joined project. The sidebar New work item action remains available.
 Board-only guests do not receive workspace creation actions.
+The main workspace content background and primary breadcrumb/page-title bar use
+`#FAFAFA` in light mode. The first top bar and sidebar retain their own backgrounds,
+and dark mode retains its themed surface colors.
 
 Scheduling date pickers (work items/drafts, Intake, cycles, modules, snooze
 and token expiry) disable dates before the user's local today. Custom date

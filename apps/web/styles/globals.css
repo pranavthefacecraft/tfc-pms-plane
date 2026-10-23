@@ -4,6 +4,14 @@
 @import "./emoji.css";
 @plugin "@tailwindcss/typography";
 
+.workspace-content-area {
+  --workspace-page-background: #fafafa;
+
+  @variant dark {
+    --workspace-page-background: var(--bg-surface-1);
+  }
+}
+
 body:has(.auth-page) {
   background-color: #fdfdfe;
 }

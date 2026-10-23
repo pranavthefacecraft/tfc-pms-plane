@@ -27,7 +27,7 @@ export const ProjectShell = observer(function ProjectShell({ children }: { child
         <div className="relative flex size-full overflow-hidden">
           <ProjectAppSidebar />
           <ExtendedProjectSidebar />
-          <main className="relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
+          <main className="relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[var(--workspace-page-background,var(--bg-surface-1))]">
             <TopNavigationRoot showWorkspaceMenu={sidebarCollapsed || isNotificationsPath} />
             {children}
           </main>

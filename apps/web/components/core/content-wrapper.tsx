@@ -15,7 +15,7 @@ export interface ContentWrapperProps {
 
 export function ContentWrapper({ className, children }: ContentWrapperProps) {
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div className="h-full w-full overflow-hidden bg-[var(--workspace-page-background,var(--bg-surface-1))]">
       <div className={cn("relative h-full w-full overflow-x-hidden overflow-y-scroll", className)}>{children}</div>
     </div>
   );

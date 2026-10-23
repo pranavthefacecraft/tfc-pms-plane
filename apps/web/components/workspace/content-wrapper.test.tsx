@@ -81,6 +81,8 @@ it("puts exactly one top bar in the main content, beside the full-height sidebar
   expect(sidebar?.parentElement).toBe(topBar?.parentElement?.parentElement);
   expect(topBar?.querySelector("button")).toBeNull();
   expect(host.textContent).toContain("Home content");
+  expect(host.querySelector(".workspace-content-area")).not.toBeNull();
+  expect(topBar?.parentElement?.className).toContain("bg-[var(--workspace-page-background,var(--bg-surface-1))]");
 });
 
 it.each(["collapsed", "notifications"])("retains workspace switching when sidebar is %s", async (state) => {
