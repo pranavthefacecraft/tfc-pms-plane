@@ -100,6 +100,9 @@ require a joined project. The sidebar New work item action remains available.
 The top-bar search closes on outside pointer presses (mouse, touch, or pen),
 including sidebar controls, unrelated popup menus, and controls that stop event
 propagation, while interactions inside its results remain available.
+Search temporarily hides the Documentation, Join our Forum, and Report a bug
+help commands using their visibility predicates. Their definitions and links are
+retained for future use; Open keyboard shortcuts remains visible.
 Shared-whiteboard visitors use their own workspace's navigation and creation
 actions, never the board owner's workspace actions.
 
