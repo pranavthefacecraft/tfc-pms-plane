@@ -43,7 +43,7 @@ export const useExpandableSearch = (options?: UseExpandableSearchOptions) => {
   }, [isOpen, handleClose]);
 
   // Outside click detection
-  useOutsideClickDetector(containerRef, handleOutsideClick);
+  useOutsideClickDetector(containerRef, handleOutsideClick, true, isOpen);
 
   // Track keyboard shortcuts that trigger focus (Cmd+F / Ctrl+F)
   useEffect(() => {
