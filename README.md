@@ -97,8 +97,9 @@ The workspace top bar uses `#FAFAFA` in light mode and includes a Create menu fo
 items, projects, pages, whiteboards, and workspace invitations. Existing creation
 flows and workspace permissions apply: invitations are admin-only, and work items
 require a joined project. The sidebar New work item action remains available.
-The top-bar search closes on outside presses, including clicks on controls that
-stop event propagation, while interactions inside its results remain available.
+The top-bar search closes on outside pointer presses (mouse, touch, or pen),
+including sidebar controls, unrelated popup menus, and controls that stop event
+propagation, while interactions inside its results remain available.
 Shared-whiteboard visitors use their own workspace's navigation and creation
 actions, never the board owner's workspace actions.
 

@@ -5,7 +5,6 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useOutsideClickDetector } from "@plane/hooks";
 
 type UseExpandableSearchOptions = {
   onClose?: () => void;
@@ -35,15 +34,18 @@ export const useExpandableSearch = (options?: UseExpandableSearchOptions) => {
     onClose?.();
   }, [onClose]);
 
-  // Outside click handler - memoized to prevent unnecessary re-registrations
-  const handleOutsideClick = useCallback(() => {
-    if (isOpen) {
-      handleClose();
-    }
-  }, [isOpen, handleClose]);
+  useEffect(() => {
+    if (!isOpen) return;
 
-  // Outside click detection
-  useOutsideClickDetector(containerRef, handleOutsideClick, true, isOpen);
+    const handleOutsidePress = (event: PointerEvent) => {
+      const container = containerRef.current;
+      if (container && !event.composedPath().includes(container)) handleClose();
+    };
+
+    // Search must dismiss even on unrelated portals and outside-click-protected sidebars.
+    window.addEventListener("pointerdown", handleOutsidePress, true);
+    return () => window.removeEventListener("pointerdown", handleOutsidePress, true);
+  }, [isOpen, handleClose]);
 
   // Track keyboard shortcuts that trigger focus (Cmd+F / Ctrl+F)
   useEffect(() => {
