@@ -119,8 +119,9 @@ The workspace switcher sits at the top of the project sidebar without a divider
 underneath. New work item sits below the personal links (Home, Drafts, Your work)
 and above the Workspace section. Search, Inbox and profile stay in a top bar
 over the main content instead of spanning the sidebar. When the sidebar is
-collapsed or hidden on the notifications screen, the top bar retains the
-workspace switcher. Settings and other layouts keep their existing top bar.
+collapsed, the top bar retains the workspace switcher. Notifications show the
+normal workspace sidebar alongside the inbox list, with the same collapse and
+resize behavior as other workspace pages. Settings and other layouts keep their existing top bar.
 On narrow viewports the sidebar opens as an overlay. Only its visible normal
 or peek content is mounted, so hidden sidebar outside-click handlers cannot
 close the visible sidebar. Entering the mobile breakpoint initially collapses it.

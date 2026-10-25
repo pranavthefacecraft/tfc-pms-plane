@@ -6,7 +6,6 @@
 
 import { observer } from "mobx-react";
 import type { ReactNode } from "react";
-import { useLocation, useParams } from "react-router";
 import { ProjectsAppPowerKProvider } from "@/components/power-k/projects-app-provider";
 import { TopNavigationRoot } from "@/components/navigation/top-navigation-root";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -15,9 +14,6 @@ import { ExtendedProjectSidebar } from "@/app/(all)/[workspaceSlug]/(projects)/e
 
 export const ProjectShell = observer(function ProjectShell({ children }: { children: ReactNode }) {
   const { sidebarCollapsed } = useAppTheme();
-  const { workspaceSlug } = useParams();
-  const { pathname } = useLocation();
-  const isNotificationsPath = pathname.includes(`/${workspaceSlug}/notifications`);
 
   return (
     <>
@@ -28,7 +24,7 @@ export const ProjectShell = observer(function ProjectShell({ children }: { child
           <ProjectAppSidebar />
           <ExtendedProjectSidebar />
           <main className="relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
-            <TopNavigationRoot showWorkspaceMenu={sidebarCollapsed || isNotificationsPath} />
+            <TopNavigationRoot showWorkspaceMenu={sidebarCollapsed} />
             {children}
           </main>
         </div>

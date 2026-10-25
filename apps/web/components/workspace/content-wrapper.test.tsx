@@ -83,11 +83,22 @@ it("puts exactly one top bar in the main content, beside the full-height sidebar
   expect(host.textContent).toContain("Home content");
 });
 
-it.each(["collapsed", "notifications"])("retains workspace switching when sidebar is %s", async (state) => {
-  mocks.collapsed = state === "collapsed";
-  await render(state === "notifications" ? "/workspace/notifications" : "/workspace");
+it.each(["/workspace", "/workspace/notifications"])(
+  "retains workspace switching with collapsed sidebar on %s",
+  async (path) => {
+    mocks.collapsed = true;
+    await render(path);
+    expect(host.querySelectorAll('[data-testid="top-navigation"]')).toHaveLength(1);
+    expect(host.querySelector("header button")?.textContent).toBe("Workspace");
+  }
+);
+
+it("keeps notifications beside the workspace sidebar without duplicating its workspace switcher", async () => {
+  await render("/workspace/notifications");
+  expect(host.querySelector('[data-testid="sidebar"]')).not.toBeNull();
   expect(host.querySelectorAll('[data-testid="top-navigation"]')).toHaveLength(1);
-  expect(host.querySelector("header button")?.textContent).toBe("Workspace");
+  expect(host.querySelector("header button")).toBeNull();
+  expect(host.textContent).toContain("Inbox content");
 });
 
 it("preserves the outer top bar for settings layouts", async () => {
