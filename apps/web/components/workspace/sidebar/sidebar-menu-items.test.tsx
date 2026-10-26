@@ -8,6 +8,9 @@ vi.mock("@plane/i18n", () => ({ useTranslation: () => ({ t: (key: string) => key
 vi.mock("@/hooks/store/use-app-theme", () => ({
   useAppTheme: () => ({ isExtendedSidebarOpened: false, toggleExtendedSidebar: vi.fn() }),
 }));
+vi.mock("@/components/workspace-notifications/notification-app-sidebar-option", () => ({
+  NotificationAppSidebarOption: () => <span>Unread</span>,
+}));
 vi.mock("@/hooks/use-local-storage", () => ({ default: () => ({ storedValue: true, setValue: vi.fn() }) }));
 vi.mock("@/hooks/use-navigation-preferences", () => ({
   usePersonalNavigationPreferences: () => ({
@@ -38,4 +41,12 @@ it("places creation after personal links and before Workspace", () => {
   expect(action?.textContent).toBe("New work item");
   expect(action?.nextElementSibling?.textContent).toContain("common.workspace");
   expect(host.querySelectorAll("button").length).toBe(2);
+});
+
+it("always lists Inbox directly after Home, ahead of optional personal links", () => {
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(<SidebarMenuItems />);
+  const personalLinks = Array.from(host.firstElementChild?.querySelectorAll("a") ?? []);
+  expect(personalLinks.slice(0, 2).map((link) => link.textContent)).toEqual(["home", "inbox"]);
+  expect(personalLinks.filter((link) => link.textContent === "inbox")).toHaveLength(1);
 });

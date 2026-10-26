@@ -18,6 +18,7 @@ import {
 import { useTranslation } from "@plane/i18n";
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
+import { NotificationAppSidebarOption } from "@/components/workspace-notifications/notification-app-sidebar-option";
 // store hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -51,7 +52,10 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
 
   // Filter static navigation items based on personal preferences
   const filteredStaticNavigationItems = useMemo(() => {
-    const items = [...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS];
+    const items = [
+      ...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS,
+      WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["inbox"],
+    ];
     const personalItems: Array<(typeof items)[0] & { sort_order: number }> = [];
 
     // Add personal items based on preferences with their sort_order
@@ -98,9 +102,15 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
   return (
     <>
       <div className="flex flex-col gap-0.5">
-        {filteredStaticNavigationItems.map((item, _index) => (
-          // oxlint-disable-next-line react/no-array-index-key
-          <SidebarItemBase key={`static_${_index}`} item={item} />
+        {filteredStaticNavigationItems.map((item) => (
+          <SidebarItemBase
+            key={item.key}
+            item={item}
+            additionalStaticItems={["inbox"]}
+            additionalRender={(itemKey, workspaceSlug) =>
+              itemKey === "inbox" ? <NotificationAppSidebarOption workspaceSlug={workspaceSlug} /> : null
+            }
+          />
         ))}
       </div>
       <SidebarQuickActions />

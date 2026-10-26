@@ -14,6 +14,7 @@ import { Spinner } from "@plane/blocks/spinner";
 // components
 import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/project-level";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
+import { AddSection } from "@/components/project-states/add-section";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
@@ -79,7 +80,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
         {({ filter: projectWorkItemsFilter }) => (
           <div className="relative flex h-full w-full flex-col overflow-hidden">
             {projectWorkItemsFilter && <WorkItemFiltersRow filter={projectWorkItemsFilter} />}
-            <div className="relative h-full w-full overflow-auto bg-surface-1">
+            <div className="relative min-h-0 w-full flex-1 overflow-auto bg-surface-1">
               {/* mutation loader */}
               {issues?.getIssueLoader() === "mutation" && (
                 <div className="shadow-sm fixed top-[70px] right-[20px] z-50 flex h-[40px] w-[40px] items-center justify-center rounded-sm bg-layer-1">
@@ -88,6 +89,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
               )}
               <ProjectIssueLayout activeLayout={activeLayout} />
             </div>
+            <AddSection workspaceSlug={workspaceSlug} projectId={projectId} />
             {/* peek overview */}
             <IssuePeekOverview />
           </div>

@@ -117,7 +117,9 @@ content spacing is unchanged.
 
 The workspace switcher sits at the top of the project sidebar without a divider
 underneath. New work item sits below the personal links (Home, Drafts, Your work)
-and above the Workspace section. Search, Inbox and profile stay in a top bar
+and above the Workspace section. Inbox also appears directly below Home in the
+sidebar, with an unread badge, and opens notifications and received messages.
+Search, Inbox and profile remain available in a top bar
 over the main content instead of spanning the sidebar. When the sidebar is
 collapsed, the top bar retains the workspace switcher. Notifications show the
 normal workspace sidebar alongside the inbox list, with the same collapse and
@@ -439,6 +441,18 @@ Please read [CONTRIBUTING.md](https://github.com/makeplane/plane/blob/master/CON
 <a href="https://github.com/makeplane/plane/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=makeplane/plane" />
 </a>
+
+## Project sections
+
+Project work-item layouts (List, Board, Calendar, Spreadsheet and Timeline) have
+an Add section shortcut at the bottom. It is also available in project saved
+views, modules and unfinished cycles. Project admins can create a named state
+with a group, color and description without leaving the view. These are the
+same states managed in Project Settings, not independent per-view sections.
+Existing grouping and filters are preserved: group by State and show empty
+groups to display new sections immediately in List or Board. Date-based
+layouts show work items rather than empty state columns. The shortcut is hidden
+for non-admins, archived projects and completed cycles.
 
 ## License
 
