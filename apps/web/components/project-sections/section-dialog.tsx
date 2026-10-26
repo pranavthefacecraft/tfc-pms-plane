@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Button } from "@makeplane/propel/components/button";
 import { Input, InputGroup } from "@makeplane/propel/components/input";
@@ -32,6 +32,12 @@ type Props = {
   onCreated: () => Promise<void>;
 };
 
+type TSectionDraft = { name: string } & TSectionAppearance;
+
+function sectionDraft(section: TProjectSection): TSectionDraft {
+  return { name: section.name, icon: section.icon ?? "", icon_color: section.icon_color ?? "#6d7b8a" };
+}
+
 export const SectionDialog = observer(function SectionDialog({
   workspaceSlug,
   projectId,
@@ -46,6 +52,8 @@ export const SectionDialog = observer(function SectionDialog({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState<TProjectSection | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, TSectionDraft>>({});
+  const manageFormId = useId();
   const pending = useRef(false);
   const close = () => {
     if (!pending.current) onClose();
@@ -85,6 +93,43 @@ export const SectionDialog = observer(function SectionDialog({
     });
   };
   const items = sections.getSections(workspaceSlug, projectId);
+  const changedSections = items.filter((section) => {
+    const draft = drafts[section.id];
+    const saved = sectionDraft(section);
+    return (
+      draft && (draft.name.trim() !== saved.name || draft.icon !== saved.icon || draft.icon_color !== saved.icon_color)
+    );
+  });
+  const save = async () => {
+    if (!changedSections.length || deleting) return;
+    if (changedSections.some((section) => !drafts[section.id].name.trim())) {
+      setError("Section name is required. Fill in each section name before saving.");
+      return;
+    }
+    await perform(async () => {
+      const results = await Promise.allSettled(
+        changedSections.map(async (section) => {
+          const draft = drafts[section.id];
+          await sections.update(workspaceSlug, projectId, section.id, { ...draft, name: draft.name.trim() });
+          setDrafts((current) => {
+            const next = { ...current };
+            delete next[section.id];
+            return next;
+          });
+        })
+      );
+      const failures = results.flatMap((result, index) =>
+        result.status === "rejected"
+          ? [`Could not save "${changedSections[index].name}": ${sectionErrorMessage(result.reason)}`]
+          : []
+      );
+      if (failures.length)
+        throw new Error(
+          `${failures.join("; ")}. Successful changes are kept; remaining edits are retained. Try Save again.`
+        );
+      setToast({ type: "success", title: "Sections saved", message: "All section changes have been saved." });
+    });
+  };
   return (
     <Dialog
       open
@@ -136,22 +181,26 @@ export const SectionDialog = observer(function SectionDialog({
                 </fieldset>
               </form>
             ) : (
-              <div className="max-h-96 space-y-2 overflow-auto">
+              <form
+                id={manageFormId}
+                className="max-h-96 space-y-2 overflow-auto"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void save();
+                }}
+              >
                 {!items.length && (
                   <p className="text-13 text-secondary">No sections yet. Use Add section to create one.</p>
                 )}
                 {items.map((section, index) => (
                   <SectionRow
-                    key={`${section.id}:${section.name}:${section.icon}:${section.icon_color}`}
+                    key={section.id}
                     section={section}
+                    value={drafts[section.id] ?? sectionDraft(section)}
                     busy={busy}
                     first={index === 0}
                     last={index === items.length - 1}
-                    onSave={(value) =>
-                      void perform(async () => {
-                        await sections.update(workspaceSlug, projectId, section.id, value);
-                      })
-                    }
+                    onChange={(value) => setDrafts((current) => ({ ...current, [section.id]: value }))}
                     onMove={(direction) =>
                       void perform(async () => {
                         await sections.move(workspaceSlug, projectId, section.id, direction);
@@ -160,7 +209,7 @@ export const SectionDialog = observer(function SectionDialog({
                     onDelete={() => setDeleting(section)}
                   />
                 ))}
-              </div>
+              </form>
             )}
             {deleting && (
               <div className="mt-4 space-y-2 rounded border border-subtle p-3">
@@ -176,6 +225,11 @@ export const SectionDialog = observer(function SectionDialog({
                   onClick={() =>
                     void perform(async () => {
                       await sections.remove(workspaceSlug, projectId, deleting.id);
+                      setDrafts((current) => {
+                        const next = { ...current };
+                        delete next[deleting.id];
+                        return next;
+                      });
                       setDeleting(null);
                       try {
                         await onDeleted();
@@ -203,7 +257,18 @@ export const SectionDialog = observer(function SectionDialog({
                 {error}
               </p>
             )}
-            <div className="mt-4">
+            <div className="mt-4 flex items-center justify-end gap-2">
+              {mode === "manage" && (
+                <Button
+                  type="submit"
+                  form={manageFormId}
+                  variant="primary"
+                  size="md"
+                  stretch="auto"
+                  label={busy ? "Saving..." : "Save"}
+                  disabled={busy || !changedSections.length || Boolean(deleting)}
+                />
+              )}
               <Button
                 variant="secondary"
                 size="md"
@@ -222,83 +287,67 @@ export const SectionDialog = observer(function SectionDialog({
 
 function SectionRow({
   section,
+  value,
   busy,
   first,
   last,
-  onSave,
+  onChange,
   onMove,
   onDelete,
 }: {
   section: TProjectSection;
+  value: TSectionDraft;
   busy: boolean;
   first: boolean;
   last: boolean;
-  onSave: (data: { name: string } & TSectionAppearance) => void;
+  onChange: (data: TSectionDraft) => void;
   onMove: (direction: -1 | 1) => void;
   onDelete: () => void;
 }) {
-  const [nameDraft, setName] = useState<string>();
-  const name = nameDraft ?? section.name;
-  const [appearanceDraft, setAppearance] = useState<Partial<TSectionAppearance>>({});
-  const appearance: TSectionAppearance = {
-    icon: section.icon ?? "",
-    icon_color: section.icon_color ?? "#6d7b8a",
-    ...appearanceDraft,
-  };
-  const unchanged =
-    name.trim() === section.name &&
-    appearance.icon === (section.icon ?? "") &&
-    appearance.icon_color === (section.icon_color ?? "#6d7b8a");
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (name.trim()) onSave({ name: name.trim(), ...appearance });
-      }}
-    >
-      <fieldset disabled={busy} className="flex flex-wrap items-center gap-2 rounded border border-subtle p-2">
-        <div className="min-w-0 flex-1">
-          <InputGroup size="md">
-            <Input
-              aria-label={`Rename ${section.name}`}
-              size="md"
-              value={name}
-              maxLength={100}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </InputGroup>
-        </div>
-        <SectionAppearance value={appearance} onChange={setAppearance} disabled={busy} />
-        <button type="submit" disabled={!name.trim() || unchanged} className="text-13">
-          Save
-        </button>
-        <button
-          type="button"
-          aria-label={`Move ${section.name} up`}
-          disabled={first}
-          onClick={() => onMove(-1)}
-          className="text-13"
-        >
-          Up
-        </button>
-        <button
-          type="button"
-          aria-label={`Move ${section.name} down`}
-          disabled={last}
-          onClick={() => onMove(1)}
-          className="text-13"
-        >
-          Down
-        </button>
-        <button
-          type="button"
-          aria-label={`Delete ${section.name}`}
-          onClick={onDelete}
-          className="text-13 text-danger-primary"
-        >
-          Delete
-        </button>
-      </fieldset>
-    </form>
+    <fieldset disabled={busy} className="flex flex-wrap items-center gap-2 rounded border border-subtle p-2">
+      <div className="min-w-0 flex-1">
+        <InputGroup size="md">
+          <Input
+            aria-label={`Rename ${section.name}`}
+            size="md"
+            value={value.name}
+            maxLength={100}
+            onChange={(event) => onChange({ ...value, name: event.target.value })}
+          />
+        </InputGroup>
+      </div>
+      <SectionAppearance
+        value={value}
+        onChange={(appearance) => onChange({ ...value, ...appearance })}
+        disabled={busy}
+      />
+      <button
+        type="button"
+        aria-label={`Move ${section.name} up`}
+        disabled={first}
+        onClick={() => onMove(-1)}
+        className="text-13"
+      >
+        Up
+      </button>
+      <button
+        type="button"
+        aria-label={`Move ${section.name} down`}
+        disabled={last}
+        onClick={() => onMove(1)}
+        className="text-13"
+      >
+        Down
+      </button>
+      <button
+        type="button"
+        aria-label={`Delete ${section.name}`}
+        onClick={onDelete}
+        className="text-13 text-danger-primary"
+      >
+        Delete
+      </button>
+    </fieldset>
   );
 }

@@ -460,6 +460,12 @@ symbol. Icons appear in section group headers and beside the selected section
 in task pickers. Existing sections retain their default symbol and color.
 This customization requires migration `0132_section_icons`.
 
+Manage sections has one Save button beside Close at the bottom. It saves all
+pending name, icon and color edits; unchanged sections are not submitted.
+Close discards unsaved edits. Reordering and confirmed deletion still apply
+immediately. If saving fails partway through, already-saved changes are kept,
+remaining edits stay in the dialog, and Save retries only those remaining edits.
+
 New project List and Board defaults group by Sections and show empty sections.
 Existing saved grouping preferences are preserved; use Group by Sections in the
 footer to switch an existing view and show empty sections. Creating a section

@@ -181,7 +181,9 @@ it("saves appearance without renaming, retains failed edits, and allows resettin
   await act(() => button("Choose section icon").click());
   state.update.mockRejectedValueOnce({ response: { data: { icon_color: ["Invalid icon color."] } } });
   await act(() => button("Save").click());
-  expect(document.querySelector('[role="alert"]')?.textContent).toBe("Invalid icon color.");
+  expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+    'Could not save "Design": Invalid icon color.'
+  );
   expect(document.querySelector("[data-section-icon=palette]")).not.toBeNull();
   await act(() => button("Save").click());
   expect(state.update).toHaveBeenLastCalledWith("workspace", "project", "design", {
@@ -189,6 +191,7 @@ it("saves appearance without renaming, retains failed edits, and allows resettin
     icon: "palette",
     icon_color: "#ff0088",
   });
+  await act(() => button("Choose section icon").click());
   await act(() => button("Reset icon").click());
   await act(() => button("Save").click());
   expect(state.update).toHaveBeenLastCalledWith("workspace", "project", "design", {
@@ -196,6 +199,90 @@ it("saves appearance without renaming, retains failed edits, and allows resettin
     icon: "",
     icon_color: "#ff0088",
   });
+});
+it("offers one footer Save for every edited section and skips unchanged rows", async () => {
+  await render();
+  await act(() => button("Manage sections").click());
+  expect(Array.from(document.querySelectorAll("button")).filter((item) => item.textContent === "Save")).toHaveLength(1);
+  expect(button("Save").disabled).toBe(true);
+  expect(button("Save").parentElement).toBe(button("Close").parentElement);
+  await input(" Creative ", 'input[aria-label="Rename Design"]');
+  await input("#123abc", 'fieldset:nth-child(2) input[type="color"]');
+  expect(state.update).not.toHaveBeenCalled();
+  await act(() => button("Save").click());
+  expect(state.update).toHaveBeenCalledTimes(2);
+  expect(state.update).toHaveBeenNthCalledWith(1, "workspace", "project", "design", {
+    name: "Creative",
+    icon: "",
+    icon_color: "#6d7b8a",
+  });
+  expect(state.update).toHaveBeenNthCalledWith(2, "workspace", "project", "dev", {
+    name: "Development",
+    icon: "",
+    icon_color: "#123abc",
+  });
+  expect(button("Save").disabled).toBe(true);
+  expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+});
+it("validates all names before saving any section", async () => {
+  await render();
+  await act(() => button("Manage sections").click());
+  await input("Creative", 'input[aria-label="Rename Design"]');
+  await input(" ", 'input[aria-label="Rename Development"]');
+  await act(() => button("Save").click());
+  expect(state.update).not.toHaveBeenCalled();
+  expect(document.querySelector('[role="alert"]')?.textContent).toContain("Section name is required");
+});
+it("retains unsaved rows on partial failure and retries only remaining edits", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  await render();
+  await act(() => button("Manage sections").click());
+  await input("Creative", 'input[aria-label="Rename Design"]');
+  await input("Engineering", 'input[aria-label="Rename Development"]');
+  state.update.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("Offline"));
+  await act(() => button("Save").click());
+  expect(document.querySelector('[role="alert"]')?.textContent).toContain('Could not save "Development": Offline');
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="Rename Development"]')?.value).toBe("Engineering");
+  await act(() => button("Save").click());
+  expect(state.update).toHaveBeenCalledTimes(3);
+  expect(state.update).toHaveBeenLastCalledWith("workspace", "project", "dev", {
+    name: "Engineering",
+    icon: "",
+    icon_color: "#6d7b8a",
+  });
+});
+it("locks the dialog and prevents duplicate batch saves while saving", async () => {
+  let complete: (() => void) | undefined;
+  state.update.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        complete = resolve;
+      })
+  );
+  await render();
+  await act(() => button("Manage sections").click());
+  await input("Creative", 'input[aria-label="Rename Design"]');
+  const saveButton = button("Save");
+  await act(() => {
+    saveButton.click();
+    saveButton.click();
+  });
+  expect(state.update).toHaveBeenCalledOnce();
+  expect(button("Close").disabled).toBe(true);
+  expect(button("Saving...").disabled).toBe(true);
+  await act(() => complete!());
+  expect(button("Save").disabled).toBe(true);
+});
+it("Close discards pending text and appearance changes without saving them", async () => {
+  await render();
+  await act(() => button("Manage sections").click());
+  await input("Creative", 'input[aria-label="Rename Design"]');
+  await act(() => button("Choose section icon").click());
+  await act(() => button("Close").click());
+  expect(state.update).not.toHaveBeenCalled();
+  await act(() => button("Manage sections").click());
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="Rename Design"]')?.value).toBe("Design");
+  expect(button("Save").disabled).toBe(true);
 });
 it("hides mutations in completed cycles while keeping section grouping available", async () => {
   await act(() => root.render(<AddSection workspaceSlug="workspace" projectId="project" readOnly />));
