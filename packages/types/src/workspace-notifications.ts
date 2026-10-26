@@ -28,6 +28,7 @@ export type TNotificationIssueLite = {
 };
 
 export type TNotificationData = {
+  message_id?: string;
   page_id?: string;
   thread_id?: string;
   custom_field_id?: string;
@@ -51,7 +52,7 @@ export type TNotification = {
   entity_name: string | undefined;
   message_html: string | undefined;
   message: undefined;
-  message_stripped: undefined;
+  message_stripped: string | null | undefined;
   sender: string | undefined;
   receiver: string | undefined;
   triggered_by: string | undefined;

@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 from django.urls import path
+from plane.app.views.notification.message import WorkspaceMessageEndpoint
 
 
 from plane.app.views import (
@@ -14,6 +15,8 @@ from plane.app.views import (
 
 
 urlpatterns = [
+    path("workspaces/<str:slug>/messages/", WorkspaceMessageEndpoint.as_view(), name="workspace-messages"),
+    path("workspaces/<str:slug>/messages/<uuid:pk>/", WorkspaceMessageEndpoint.as_view(), name="workspace-message"),
     path(
         "workspaces/<str:slug>/users/notifications/",
         NotificationViewSet.as_view({"get": "list"}),

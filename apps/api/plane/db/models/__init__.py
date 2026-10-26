@@ -49,6 +49,7 @@ from .issue import (
 )
 from .module import Module, ModuleIssue, ModuleLink, ModuleMember, ModuleUserProperties
 from .notification import EmailNotificationLog, Notification, UserNotificationPreference
+from .workspace_message import WorkspaceMessage, WorkspaceMessageRecipient
 from .page import (
     Page,
     PageEntityLink,

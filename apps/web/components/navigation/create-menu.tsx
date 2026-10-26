@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
+import { Mail } from "lucide-react";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/components/menu";
 import { AddOutline, AddWorkItemOutline, PagesOutline, ProjectsOutline, UserOutline } from "@makeplane/propel/icons";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -19,9 +20,11 @@ import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { WorkspaceMessageComposer } from "@/components/workspace-messages/composer";
 
 export const TopNavCreateMenu = observer(function TopNavCreateMenu({ workspaceSlug }: { workspaceSlug: string }) {
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
   const { t } = useTranslation();
   const { toggleCreateIssueModal, toggleCreateProjectModal } = useCommandPalette();
   const { joinedProjectIds } = useProject();
@@ -95,6 +98,7 @@ export const TopNavCreateMenu = observer(function TopNavCreateMenu({ workspaceSl
             disabled={page.isCreating}
             onClick={() => void page.createPage()}
           />
+          <MenuItem icon={<Mail className="size-4" />} label="Message" onClick={() => setMessageOpen(true)} />
           <MenuItem
             icon={<WhiteboardIcon className="size-4" />}
             label="Whiteboard"
@@ -110,6 +114,7 @@ export const TopNavCreateMenu = observer(function TopNavCreateMenu({ workspaceSl
           )}
         </MenuContent>
       </Menu>
+      {messageOpen && <WorkspaceMessageComposer workspaceSlug={workspaceSlug} onClose={() => setMessageOpen(false)} />}
       {canInvite && inviteOpen && (
         <SendWorkspaceInvitationModal
           isOpen={inviteOpen}

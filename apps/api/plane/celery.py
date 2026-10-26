@@ -42,6 +42,10 @@ app = Celery("plane")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.conf.beat_schedule = {
+    "retry-pending-workspace-message-emails": {
+        "task": "plane.bgtasks.workspace_message_task.queue_workspace_message_emails",
+        "schedule": crontab(minute="*/5"),
+    },
     # Intra day recurring jobs
     "check-every-five-minutes-to-send-email-notifications": {
         "task": "plane.bgtasks.email_notification_task.stack_email_notification",

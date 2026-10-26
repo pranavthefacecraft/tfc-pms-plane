@@ -7,6 +7,7 @@
 import { useCallback } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { useSearchParams } from "react-router";
 // plane imports
 import type { TNotificationTab } from "@plane/constants";
 import { NOTIFICATION_TABS } from "@plane/constants";
@@ -27,6 +28,7 @@ import { NotificationCardListRoot } from "../notification-card/root";
 
 export const NotificationsSidebarRoot = observer(function NotificationsSidebarRoot() {
   const { workspaceSlug } = useParams();
+  const [searchParams] = useSearchParams();
   // hooks
   const { getWorkspaceBySlug } = useWorkspace();
   const {
@@ -58,7 +60,7 @@ export const NotificationsSidebarRoot = observer(function NotificationsSidebarRo
     <div
       className={cn(
         "relative z-[10] h-full flex-shrink-0 border-0 border-subtle bg-surface-1 transition-all max-md:overflow-hidden md:border-r",
-        currentSelectedNotificationId ? "w-0 md:w-3/12" : "w-full md:w-3/12"
+        currentSelectedNotificationId || searchParams.get("message") ? "w-0 md:w-3/12" : "w-full md:w-3/12"
       )}
     >
       <div className="relative flex h-full w-full flex-col">

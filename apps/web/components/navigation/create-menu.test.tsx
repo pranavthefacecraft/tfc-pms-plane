@@ -49,6 +49,11 @@ vi.mock("@/components/workspace/members", () => ({
   SendWorkspaceInvitationModal: ({ isOpen }: { isOpen: boolean }) =>
     isOpen ? <div data-testid="invite-modal" /> : null,
 }));
+vi.mock("@/components/workspace-messages/composer", () => ({
+  WorkspaceMessageComposer: ({ workspaceSlug }: { workspaceSlug: string }) => (
+    <div data-testid="message-composer">{workspaceSlug}</div>
+  ),
+}));
 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -90,12 +95,19 @@ function item(label: string) {
   );
 }
 
-it("opens the Create menu with all five admin actions", async () => {
+it("opens the Create menu with all six admin actions", async () => {
   await openMenu();
-  for (const label of ["common.work_item", "common.project", "common.page", "Whiteboard", "common.invite"]) {
+  for (const label of ["common.work_item", "common.project", "common.page", "Message", "Whiteboard", "common.invite"]) {
     expect(item(label)).toBeDefined();
   }
   expect(host.querySelector("button")?.getAttribute("aria-expanded")).toBe("true");
+});
+
+it("opens a message draft in the current workspace", async () => {
+  await openMenu();
+  await act(() => item("Message")?.click());
+  expect(host.querySelector('[data-testid="message-composer"]')?.textContent).toBe("thefacecraft");
+  expect(host.querySelector("button")?.getAttribute("aria-expanded")).toBe("false");
 });
 
 it.each([

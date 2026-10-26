@@ -122,6 +122,21 @@ over the main content instead of spanning the sidebar. When the sidebar is
 collapsed, the top bar retains the workspace switcher. Notifications show the
 normal workspace sidebar alongside the inbox list, with the same collapse and
 resize behavior as other workspace pages. Settings and other layouts keep their existing top bar.
+Create > Message opens a floating draft with a subject, plain-text body, and
+multiple existing workspace recipients (up to 100). Active members and admins
+can send; guests can receive messages addressed to them. Drafts are saved
+automatically in the same browser, separately for each account and workspace,
+and can be minimized, reopened, or discarded. One draft is kept per workspace.
+Messages appear in recipients' Inbox with read, archive and snooze controls,
+and a full message preview. Email delivery uses the instance SMTP configuration
+and links back to the Inbox message. Missing email configuration blocks sending
+with an explicit error. Delivery failures are retried by the worker and pending
+email deliveries are requeued every five minutes. Repeating a send with the same
+draft ID does not duplicate Inbox messages or completed email deliveries.
+Only the sender and addressed recipients can open a message while they remain
+workspace members. Replies and attachments are not supported.
+This feature requires database migration `0130_workspace_messages` and updated
+API, worker, beat-worker, and web services.
 On narrow viewports the sidebar opens as an overlay. Only its visible normal
 or peek content is mounted, so hidden sidebar outside-click handlers cannot
 close the visible sidebar. Entering the mobile breakpoint initially collapses it.

@@ -44,6 +44,47 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
   const notificationField = notification?.data?.issue_activity?.field || undefined;
   const notificationTriggeredBy = notification.triggered_by_details || undefined;
 
+  if (notification?.entity_name === "workspace_message") {
+    return (
+      <div
+        className={cn("flex items-center gap-2 border-b border-subtle p-4 text-13", {
+          "bg-accent-primary/5": notification.read_at === null,
+          "bg-layer-1/30": currentSelectedNotificationId === notificationId,
+        })}
+      >
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          onClick={() => {
+            setPeekIssue(undefined);
+            setCurrentSelectedNotificationId(notificationId);
+            if (notification.read_at === null)
+              void markNotificationAsRead(workspaceSlug).catch((error: unknown) =>
+                console.error("Could not mark message read", error)
+              );
+          }}
+        >
+          <p className="truncate font-medium text-primary">{notification.title}</p>
+          <p className="mt-1 truncate text-secondary">
+            {notificationTriggeredBy?.display_name || notificationTriggeredBy?.first_name}
+          </p>
+          <p className="mt-1 truncate text-secondary">{notification.message_stripped}</p>
+          <p className="mt-1 text-11 text-tertiary">
+            {notification.created_at && calculateTimeAgo(notification.created_at)}
+          </p>
+        </button>
+        <NotificationOption
+          workspaceSlug={workspaceSlug}
+          notificationId={notificationId}
+          isSnoozeStateModalOpen={isSnoozeStateModalOpen}
+          setIsSnoozeStateModalOpen={setIsSnoozeStateModalOpen}
+          customSnoozeModal={customSnoozeModal}
+          setCustomSnoozeModal={setCustomSnoozeModal}
+        />
+      </div>
+    );
+  }
+
   const handleNotificationIssuePeekOverview = async () => {
     if (workspaceSlug && projectId && issueId && !isSnoozeStateModalOpen && !customSnoozeModal) {
       setPeekIssue(undefined);

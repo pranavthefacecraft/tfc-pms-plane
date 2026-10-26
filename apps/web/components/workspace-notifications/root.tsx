@@ -7,6 +7,8 @@
 import { useCallback, useEffect } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
+import { useSearchParams } from "react-router";
+import { WorkspaceMessageDetail } from "@/components/workspace-messages/message-detail";
 // plane imports
 import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
 import { EmptyStateCompact } from "@plane/blocks/empty-state";
@@ -35,9 +37,19 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
     notificationLiteByNotificationId,
     notificationIdsByWorkspaceId,
     getNotifications,
+    notifications,
+    getUnreadNotificationsCount,
   } = useWorkspaceNotifications();
   const { fetchUserProjectInfo } = useUserPermissions();
   const { isWorkItem, PeekOverviewComponent, setPeekWorkItem } = useNotificationPreview();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedNotification = currentSelectedNotificationId ? notifications[currentSelectedNotificationId] : undefined;
+  const messageId =
+    selectedNotification?.entity_name === "workspace_message"
+      ? selectedNotification.entity_identifier
+      : currentSelectedNotificationId
+        ? undefined
+        : searchParams.get("message");
   // derived values
   const { workspace_slug, project_id, issue_id, is_inbox_issue } =
     notificationLiteByNotificationId(currentSelectedNotificationId);
@@ -84,7 +96,33 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
 
   return (
     <div className={cn("h-full w-full overflow-hidden", isWorkItem && "overflow-y-auto")}>
-      {!currentSelectedNotificationId ? (
+      {messageId && workspaceSlug ? (
+        <WorkspaceMessageDetail
+          key={`${workspaceSlug}:${messageId}`}
+          workspaceSlug={workspaceSlug}
+          messageId={messageId}
+          onRead={() => {
+            const notification = Object.values(notifications).find(
+              (item) =>
+                item.entity_name === "workspace_message" &&
+                item.entity_identifier === messageId &&
+                item.workspace === currentWorkspace?.id
+            );
+            if (notification && !notification.read_at)
+              notification.mutateNotification({ read_at: new Date().toISOString() });
+            void getUnreadNotificationsCount(workspaceSlug).catch((error: unknown) =>
+              console.error("Could not refresh unread message count", error)
+            );
+          }}
+          onClose={() => {
+            setCurrentSelectedNotificationId(undefined);
+            setSearchParams((params) => {
+              params.delete("message");
+              return params;
+            });
+          }}
+        />
+      ) : !currentSelectedNotificationId ? (
         <div className="flex size-full items-center justify-center">
           <EmptyStateCompact assetKey="unknown" assetClassName="size-20" />
         </div>
