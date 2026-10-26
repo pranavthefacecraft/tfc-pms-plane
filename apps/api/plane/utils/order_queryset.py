@@ -93,6 +93,7 @@ PAGE_ORDER_BY_ALLOWLIST = frozenset({
 ISSUE_GROUP_BY_ALLOWLIST = frozenset({
     "state_id",
     "state__group",
+    "section_id",
     "priority",
     "labels__id",
     "assignees__id",

@@ -147,6 +147,7 @@ export const getGroupByColumns = ({
     cycle: getCycleColumns,
     module: getModuleColumns,
     state: getStateColumns,
+    section: getSectionColumns,
     "state_detail.group": getStateGroupColumns,
     priority: getPriorityColumns,
     labels: getLabelsColumns,
@@ -157,6 +158,21 @@ export const getGroupByColumns = ({
 
   // Get and return the columns for the specified group by option
   return groupByColumnMap[groupBy]?.({ isWorkspaceLevel, projectId });
+};
+
+const getSectionColumns = ({ projectId }: TGetColumns): IGroupByColumn[] => {
+  const workspaceSlug = store.router.workspaceSlug;
+  const currentProjectId = projectId ?? store.router.projectId;
+  const sections = workspaceSlug && currentProjectId ? store.section.getSections(workspaceSlug, currentProjectId) : [];
+  return [
+    ...sections.map((section) => ({
+      id: section.id,
+      name: section.name,
+      payload: { section_id: section.id },
+      icon: <ModuleOutline className="size-3.5" />,
+    })),
+    { id: "None", name: "No section", payload: { section_id: null }, icon: <ModuleOutline className="size-3.5" /> },
+  ];
 };
 
 const getProjectColumns = (): IGroupByColumn[] | undefined => {

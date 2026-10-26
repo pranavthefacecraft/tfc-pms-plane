@@ -14,7 +14,7 @@ import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
 // hooks
 import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/project-level";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
-import { AddSection } from "@/components/project-states/add-section";
+import { AddSection } from "@/components/project-sections/add-section";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProjectView } from "@/hooks/store/use-project-view";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";

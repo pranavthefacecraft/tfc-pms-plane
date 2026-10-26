@@ -8,6 +8,7 @@ from plane.app.views.project.custom_fields import (
     ProjectCustomFieldEndpoint,
     IssueCustomFieldValuesEndpoint,
 )
+from plane.app.views.project.section import ProjectSectionEndpoint, ProjectSectionsEndpoint
 
 from plane.app.views import (
     ProjectViewSet,
@@ -27,6 +28,16 @@ from plane.app.views import (
 
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/sections/",
+        ProjectSectionsEndpoint.as_view(),
+        name="project-sections",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/sections/<uuid:pk>/",
+        ProjectSectionEndpoint.as_view(),
+        name="project-section",
+    ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/custom-fields/",
         ProjectCustomFieldsEndpoint.as_view(),

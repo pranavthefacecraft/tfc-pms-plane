@@ -104,6 +104,24 @@ def filter_state_group(params, issue_filter, method, prefix=""):
     return issue_filter
 
 
+def filter_section(params, issue_filter, method, prefix=""):
+    if method == "GET":
+        sections = [item.strip() for item in params.get("section").split(",") if item.strip()]
+        if any(item.lower() in {"none", "null"} for item in sections):
+            issue_filter[f"{prefix}section__isnull"] = True
+            return issue_filter
+        sections = filter_valid_uuids(sections)
+        if len(sections) and "" not in sections:
+            issue_filter[f"{prefix}section_id__in"] = sections
+    else:
+        sections = params.get("section")
+        if isinstance(sections, str) and sections.lower() in {"none", "null"}:
+            issue_filter[f"{prefix}section__isnull"] = True
+        elif sections:
+            issue_filter[f"{prefix}section_id__in"] = sections
+    return issue_filter
+
+
 def filter_estimate_point(params, issue_filter, method, prefix=""):
     if method == "GET":
         estimate_points = [item for item in params.get("estimate_point").split(",") if item != "null"]
@@ -430,6 +448,7 @@ def issue_filters(query_params, method, prefix=""):
 
     ISSUE_FILTER = {
         "state": filter_state,
+        "section": filter_section,
         "state_group": filter_state_group,
         "estimate_point": filter_estimate_point,
         "priority": filter_priority,

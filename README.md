@@ -446,13 +446,28 @@ Please read [CONTRIBUTING.md](https://github.com/makeplane/plane/blob/master/CON
 
 Project work-item layouts (List, Board, Calendar, Spreadsheet and Timeline) have
 an Add section shortcut at the bottom. It is also available in project saved
-views, modules and unfinished cycles. Project admins can create a named state
-with a group, color and description without leaving the view. These are the
-same states managed in Project Settings, not independent per-view sections.
-Existing grouping and filters are preserved: group by State and show empty
-groups to display new sections immediately in List or Board. Date-based
-layouts show work items rather than empty state columns. The shortcut is hidden
-for non-admins, archived projects and completed cycles.
+views, modules and unfinished cycles. Sections are independent project-wide
+records, not workflow states: creating, renaming, reordering or deleting one
+does not change work-item status or completion. Project admins and members
+can create a section with a name only and use Manage sections to rename it,
+move it up/down, or delete it after confirmation. Deletion keeps its tasks and
+moves them to No section, including archived tasks and drafts.
+
+New project List and Board defaults group by Sections and show empty sections.
+Existing saved grouping preferences are preserved; use Group by Sections in the
+footer to switch an existing view and show empty sections. Creating a section
+from List or Board also switches that view to Sections and shows empty groups,
+so the new section is visible immediately. Other filters are preserved. Drag work items
+between sections or use the Section picker on cards, in the create form,
+or in work-item details/preview. Calendar, Spreadsheet and Timeline keep their
+usual layouts; their work-item details allow section assignment. Sections
+are shared across all project views, modules and cycles, not per-view copies.
+Guests can view sections but cannot manage them. Archived projects and
+completed cycles do not expose section management in their layout footer.
+
+This feature requires migration `0131_project_sections` and updated API and web
+services. No states or existing work items are migrated into sections
+automatically; unassigned work items appear under No section.
 
 ## License
 

@@ -13,6 +13,7 @@ export type TIssueLayouts = "list" | "kanban" | "calendar" | "spreadsheet" | "ga
 
 export type TIssueGroupByOptions =
   | "state"
+  | "section"
   | "priority"
   | "labels"
   | "created_by"
@@ -61,6 +62,7 @@ export type TIssueGroupingFilters = "active" | "backlog";
 export type TIssueExtraOptions = "show_empty_groups" | "sub_issue";
 
 export type TIssueParams =
+  | "section"
   | "priority"
   | "state_group"
   | "state"

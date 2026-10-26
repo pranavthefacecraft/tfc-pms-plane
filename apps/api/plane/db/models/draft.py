@@ -35,6 +35,13 @@ class DraftIssue(WorkspaceBaseModel):
         blank=True,
         related_name="state_draft_issue",
     )
+    section = models.ForeignKey(
+        "db.Section",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="draft_issues",
+    )
     estimate_point = models.ForeignKey(
         "db.EstimatePoint",
         on_delete=models.SET_NULL,

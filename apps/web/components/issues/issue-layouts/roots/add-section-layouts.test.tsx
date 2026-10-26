@@ -56,12 +56,23 @@ vi.mock("@/components/work-item-filters/filters-row", () => ({ WorkItemFiltersRo
 vi.mock("@/components/issues/peek-overview", () => ({ IssuePeekOverview: () => null }));
 vi.mock("@/components/cycles/transfer-issues", () => ({ TransferIssues: () => null }));
 vi.mock("@/components/cycles/transfer-issues-modal", () => ({ TransferIssuesModal: () => null }));
-vi.mock("@/components/project-states/add-section", () => ({
-  AddSection: ({ workspaceSlug, projectId }: { workspaceSlug: string; projectId: string }) => (
-    <button data-project={projectId} data-workspace={workspaceSlug}>
-      Add section
-    </button>
-  ),
+vi.mock("@/components/project-sections/add-section", () => ({
+  AddSection: ({
+    workspaceSlug,
+    projectId,
+    readOnly,
+  }: {
+    workspaceSlug: string;
+    projectId: string;
+    readOnly?: boolean;
+  }) =>
+    readOnly ? (
+      <span data-sections-loaded="true" />
+    ) : (
+      <button data-project={projectId} data-workspace={workspaceSlug}>
+        Add section
+      </button>
+    ),
 }));
 vi.mock("../list/roots/project-root", () => ({ ListLayout: () => <div>List</div> }));
 vi.mock("../kanban/roots/project-root", () => ({ KanBanLayout: () => <div>Board</div> }));
@@ -126,4 +137,5 @@ it("does not offer new sections in completed cycles", async () => {
   state.completed = true;
   await act(() => root.render(<CycleLayoutRoot />));
   expect(host.querySelector("button")).toBeNull();
+  expect(host.querySelector("[data-sections-loaded]")).not.toBeNull();
 });

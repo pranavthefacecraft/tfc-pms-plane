@@ -69,6 +69,7 @@ from .project import (
     ProjectNetwork,
     ProjectPublicMember,
     ProjectUserProperty,
+    Section,
 )
 from .session import Session
 from .social_connection import SocialLoginConnection

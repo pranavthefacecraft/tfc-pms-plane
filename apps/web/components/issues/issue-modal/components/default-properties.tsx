@@ -28,6 +28,7 @@ import { MemberSelect } from "@/components/dropdowns/member/member-select";
 import { ModuleSelect } from "@/components/dropdowns/module/module-select";
 import { PrioritySelect } from "@/components/dropdowns/priority/priority-select";
 import { StateSelect } from "@/components/dropdowns/state/state-select";
+import { SectionSelect } from "@/components/project-sections/section-select";
 import { ParentIssuesListModal } from "@/components/issues/parent-issues-list-modal";
 import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
 // hooks
@@ -87,6 +88,23 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {projectId && (
+        <Controller
+          control={control}
+          name="section_id"
+          render={({ field: { value, onChange } }) => (
+            <SectionSelect
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              value={value}
+              onChange={(sectionId) => {
+                onChange(sectionId);
+                handleFormChange();
+              }}
+            />
+          )}
+        />
+      )}
       <Controller
         control={control}
         name="state_id"

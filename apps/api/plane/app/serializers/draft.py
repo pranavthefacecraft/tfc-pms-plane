@@ -22,7 +22,9 @@ from plane.db.models import (
     DraftIssueModule,
     ProjectMember,
     EstimatePoint,
+    Section,
 )
+from plane.utils.section import is_active_section_in_project
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
@@ -32,6 +34,12 @@ from plane.app.permissions import ROLE
 
 class DraftIssueCreateSerializer(BaseSerializer):
     # ids
+    section = serializers.PrimaryKeyRelatedField(
+        queryset=Section.objects.all(), required=False, allow_null=True, write_only=True
+    )
+    section_id = serializers.PrimaryKeyRelatedField(
+        source="section", queryset=Section.objects.all(), required=False, allow_null=True
+    )
     state_id = serializers.PrimaryKeyRelatedField(
         source="state", queryset=State.objects.all(), required=False, allow_null=True
     )
@@ -69,6 +77,14 @@ class DraftIssueCreateSerializer(BaseSerializer):
         return data
 
     def validate(self, attrs):
+        target_project = attrs.get("project")
+        target_project_id = target_project.id if target_project else None
+        if target_project_id is None:
+            target_project_id = getattr(self.instance, "project_id", None) or self.context.get("project_id")
+        section = attrs.get("section", getattr(self.instance, "section", None))
+        if not is_active_section_in_project(section, target_project_id):
+            raise serializers.ValidationError({"section_id": "Section must be active and belong to this project"})
+
         if (
             attrs.get("start_date", None) is not None
             and attrs.get("target_date", None) is not None
@@ -300,6 +316,7 @@ class DraftIssueCreateSerializer(BaseSerializer):
 class DraftIssueSerializer(BaseSerializer):
     # ids
     cycle_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    section_id = serializers.UUIDField(read_only=True)
     module_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
 
     # Many to many
@@ -312,6 +329,7 @@ class DraftIssueSerializer(BaseSerializer):
             "id",
             "name",
             "state_id",
+            "section_id",
             "sort_order",
             "completed_at",
             "estimate_point",

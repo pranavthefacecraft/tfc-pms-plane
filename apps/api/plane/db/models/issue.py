@@ -52,6 +52,7 @@ def get_default_filters():
         "assignees": None,
         "created_by": None,
         "labels": None,
+        "section_id": None,
         "start_date": None,
         "target_date": None,
         "subscriber": None,
@@ -60,7 +61,7 @@ def get_default_filters():
 
 def get_default_display_filters():
     return {
-        "group_by": None,
+        "group_by": "section",
         "order_by": "-created_at",
         "type": None,
         "sub_issue": True,
@@ -124,6 +125,13 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
         null=True,
         blank=True,
         related_name="state_issue",
+    )
+    section = models.ForeignKey(
+        "db.Section",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="issues",
     )
     point = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(12)], null=True, blank=True)
     estimate_point = models.ForeignKey(

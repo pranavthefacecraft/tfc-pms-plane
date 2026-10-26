@@ -19,6 +19,7 @@ from plane.db.models import (
     Module,
     Project,
     ProjectMember,
+    Section,
     State,
     WorkspaceMember,
 )
@@ -95,6 +96,7 @@ def issue_on_results(
         "cycle_id",
         "created_by",
         "state__group",
+        "section_id",
     ]
 
     if group_by in FIELD_MAPPER:
@@ -194,6 +196,11 @@ def issue_group_values(
             return list(queryset.filter(project_id=project_id))
         else:
             return list(queryset)
+    if field == "section_id":
+        queryset = Section.objects.filter(workspace__slug=slug).values_list("id", flat=True)
+        if project_id:
+            return list(queryset.filter(project_id=project_id)) + ["None"]
+        return list(queryset) + ["None"]
     if field == "labels__id":
         queryset = Label.objects.filter(workspace__slug=slug).values_list("id", flat=True)
         if project_id:

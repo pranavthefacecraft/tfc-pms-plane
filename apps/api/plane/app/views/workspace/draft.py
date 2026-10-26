@@ -136,6 +136,7 @@ class WorkspaceDraftIssueViewSet(BaseViewSet):
                     "target_date",
                     "project_id",
                     "parent_id",
+                    "section_id",
                     "cycle_id",
                     "module_ids",
                     "label_ids",

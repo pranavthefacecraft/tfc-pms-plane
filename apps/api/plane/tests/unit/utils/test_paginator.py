@@ -112,6 +112,18 @@ class TestPaginateGroupByValidation:
         assert response.data["grouped_by"] == "priority"
         assert response.data["sub_grouped_by"] == "state_id"
 
+    def test_section_id_is_a_valid_group_field(self):
+        request = _make_request(group_by="section_id")
+        response = BasePaginator().paginate(
+            request=request,
+            queryset=None,
+            paginator_cls=_StubGroupedPaginator,
+            group_by_field_name="section_id",
+            group_by_fields=[],
+            count_filter=None,
+        )
+        assert response.data["grouped_by"] == "section_id"
+
     def test_no_group_by_is_unaffected(self):
         # Plain (non-grouped) pagination must not be touched by this fix.
         request = _make_request()

@@ -246,10 +246,10 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
             _filters.displayFilters.sub_group_by = null;
             updatedDisplayFilters.sub_group_by = null;
           }
-          // set group_by to state if layout is switched to kanban and group_by is null
+          // Use sections when switching to kanban without an explicit grouping.
           if (_filters.displayFilters.layout === "kanban" && _filters.displayFilters.group_by === null) {
-            _filters.displayFilters.group_by = "state";
-            updatedDisplayFilters.group_by = "state";
+            _filters.displayFilters.group_by = "section";
+            updatedDisplayFilters.group_by = "section";
           }
 
           runInAction(() => {

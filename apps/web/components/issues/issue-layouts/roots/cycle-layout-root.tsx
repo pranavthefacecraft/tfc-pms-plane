@@ -18,7 +18,7 @@ import { TransferIssuesModal } from "@/components/cycles/transfer-issues-modal";
 // hooks
 import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/project-level";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
-import { AddSection } from "@/components/project-states/add-section";
+import { AddSection } from "@/components/project-sections/add-section";
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
@@ -116,7 +116,7 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
               <div className="min-h-0 w-full flex-1 overflow-auto">
                 <CycleIssueLayout activeLayout={activeLayout} cycleId={cycleId} isCompletedCycle={isCompletedCycle} />
               </div>
-              {!isCompletedCycle && <AddSection workspaceSlug={workspaceSlug} projectId={projectId} />}
+              <AddSection workspaceSlug={workspaceSlug} projectId={projectId} readOnly={isCompletedCycle} />
               {/* peek overview */}
               <IssuePeekOverview />
             </div>

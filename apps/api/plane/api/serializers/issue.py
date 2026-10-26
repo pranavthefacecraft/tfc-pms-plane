@@ -26,7 +26,9 @@ from plane.db.models import (
     State,
     User,
     EstimatePoint,
+    Section,
 )
+from plane.utils.section import is_active_section_in_project
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
@@ -66,13 +68,24 @@ class IssueSerializer(BaseSerializer):
     type_id = serializers.PrimaryKeyRelatedField(
         source="type", queryset=IssueType.objects.all(), required=False, allow_null=True
     )
+    section_id = serializers.PrimaryKeyRelatedField(
+        source="section", queryset=Section.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Issue
         read_only_fields = ["id", "workspace", "project", "updated_by", "updated_at", "completed_at"]
-        exclude = ["description_json", "description_stripped"]
+        exclude = ["description_json", "description_stripped", "section"]
 
     def validate(self, data):
+        target_project = data.get("project")
+        target_project_id = target_project.id if target_project else None
+        if target_project_id is None:
+            target_project_id = getattr(self.instance, "project_id", None) or self.context.get("project_id")
+        section = data.get("section", getattr(self.instance, "section", None))
+        if not is_active_section_in_project(section, target_project_id):
+            raise serializers.ValidationError({"section_id": "Section must be active and belong to this project"})
+
         if (
             data.get("start_date", None) is not None
             and data.get("target_date", None) is not None

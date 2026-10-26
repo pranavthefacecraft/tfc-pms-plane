@@ -42,7 +42,9 @@ from plane.db.models import (
     IssueDescriptionVersion,
     ProjectMember,
     EstimatePoint,
+    Section,
 )
+from plane.utils.section import is_active_section_in_project
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
@@ -81,6 +83,12 @@ class IssueProjectLiteSerializer(BaseSerializer):
 ## Find a better approach to save manytomany?
 class IssueCreateSerializer(BaseSerializer):
     # ids
+    section = serializers.PrimaryKeyRelatedField(
+        queryset=Section.objects.all(), required=False, allow_null=True, write_only=True
+    )
+    section_id = serializers.PrimaryKeyRelatedField(
+        source="section", queryset=Section.objects.all(), required=False, allow_null=True
+    )
     state_id = serializers.PrimaryKeyRelatedField(
         source="state", queryset=State.all_state_objects.all(), required=False, allow_null=True
     )
@@ -124,6 +132,13 @@ class IssueCreateSerializer(BaseSerializer):
     def validate(self, attrs):
         allow_triage = self.context.get("allow_triage_state", False)
         state_manager = State.triage_objects if allow_triage else State.objects
+        target_project = attrs.get("project")
+        target_project_id = target_project.id if target_project else None
+        if target_project_id is None:
+            target_project_id = getattr(self.instance, "project_id", None) or self.context.get("project_id")
+        section = attrs.get("section", getattr(self.instance, "section", None))
+        if not is_active_section_in_project(section, target_project_id):
+            raise serializers.ValidationError({"section_id": "Section must be active and belong to this project"})
 
         if (
             attrs.get("start_date", None) is not None
@@ -770,6 +785,7 @@ class IssueIntakeSerializer(DynamicBaseSerializer):
 class IssueSerializer(DynamicBaseSerializer):
     # ids
     cycle_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    section_id = serializers.UUIDField(read_only=True)
     module_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
 
     # Many to many
@@ -796,6 +812,7 @@ class IssueSerializer(DynamicBaseSerializer):
             "sequence_id",
             "project_id",
             "parent_id",
+            "section_id",
             "cycle_id",
             "module_ids",
             "label_ids",
@@ -853,6 +870,7 @@ class IssueListDetailSerializer(serializers.Serializer):
             "sequence_id": instance.sequence_id,
             "project_id": instance.project_id,
             "parent_id": instance.parent_id,
+            "section_id": instance.section_id,
             "created_at": instance.created_at,
             "updated_at": instance.updated_at,
             "created_by": instance.created_by_id,

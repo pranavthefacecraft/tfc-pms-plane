@@ -49,7 +49,7 @@ export const FilterSubGroupBy = observer(function FilterSubGroupBy(props: Props)
                 key={subGroupBy?.key}
                 isChecked={selectedSubGroupBy === subGroupBy?.key ? true : false}
                 onClick={() => handleUpdate(subGroupBy.key)}
-                title={t(subGroupBy.titleTranslationKey)}
+                title={subGroupBy.key === "section" ? "Sections" : t(subGroupBy.titleTranslationKey)}
                 multiple={false}
               />
             );

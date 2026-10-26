@@ -45,12 +45,13 @@ def get_default_props():
             "assignees": None,
             "created_by": None,
             "labels": None,
+            "section_id": None,
             "start_date": None,
             "target_date": None,
             "subscriber": None,
         },
         "display_filters": {
-            "group_by": None,
+            "group_by": "section",
             "order_by": "-created_at",
             "type": None,
             "sub_issue": True,
@@ -202,6 +203,15 @@ class ProjectBaseModel(BaseModel):
     def save(self, *args, **kwargs):
         self.workspace = self.project.workspace
         super(ProjectBaseModel, self).save(*args, **kwargs)
+
+
+class Section(ProjectBaseModel):
+    name = models.CharField(max_length=100)
+    sort_order = models.FloatField(default=65535)
+
+    class Meta:
+        db_table = "project_sections"
+        ordering = ("sort_order", "name")
 
 
 class ProjectMemberInvite(ProjectBaseModel):

@@ -26,6 +26,7 @@ import { EstimateSelect } from "@/components/dropdowns/estimate/estimate-select"
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 import { PrioritySelect } from "@/components/dropdowns/priority/priority-select";
 import { StateSelect } from "@/components/dropdowns/state/state-select";
+import { SectionSelect } from "@/components/project-sections/section-select";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 // helpers
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -71,6 +72,17 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
     <div>
       <h6 className="text-body-xs-medium">{t("common.properties")}</h6>
       <div className={`mt-3 w-full space-y-3 ${disabled ? "opacity-60" : ""}`}>
+        <SidebarPropertyListItem icon={ModuleOutline} label="Section">
+          <SectionSelect
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            value={issue.section_id}
+            disabled={disabled}
+            onChange={(sectionId) =>
+              issueOperations.update(workspaceSlug, projectId, issueId, { section_id: sectionId })
+            }
+          />
+        </SidebarPropertyListItem>
         <SidebarPropertyListItem icon={StateOutline} label={t("common.state")}>
           <StateSelect
             testId="work-item-state-select"

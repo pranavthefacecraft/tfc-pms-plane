@@ -32,6 +32,7 @@ import { MemberSelect } from "@/components/dropdowns/member/member-select";
 import { ModuleSelect } from "@/components/dropdowns/module/module-select";
 import { PrioritySelect } from "@/components/dropdowns/priority/priority-select";
 import { StateSelect } from "@/components/dropdowns/state/state-select";
+import { SectionSelect } from "@/components/project-sections/section-select";
 // hooks
 import { useProjectEstimates } from "@/hooks/store/estimates";
 import { useIssues } from "@/hooks/store/use-issues";
@@ -205,6 +206,15 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
 
   return (
     <div className={className}>
+      {workspaceSlug && issue.project_id && !isEpic && (
+        <SectionSelect
+          workspaceSlug={workspaceSlug.toString()}
+          projectId={issue.project_id}
+          value={issue.section_id}
+          disabled={isReadOnly || !updateIssue}
+          onChange={(sectionId) => updateIssue?.(issue.project_id, issue.id, { section_id: sectionId })}
+        />
+      )}
       {/* basic properties */}
       {/* state */}
       <WithDisplayPropertiesHOC displayProperties={displayProperties} displayPropertyKey="state">

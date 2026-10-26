@@ -26,6 +26,7 @@ import { EstimateSelect } from "@/components/dropdowns/estimate/estimate-select"
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 import { PrioritySelect } from "@/components/dropdowns/priority/priority-select";
 import { StateSelect } from "@/components/dropdowns/state/state-select";
+import { SectionSelect } from "@/components/project-sections/section-select";
 // hooks
 import { useProjectEstimates } from "@/hooks/store/estimates";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -76,6 +77,17 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
         <div className="h-full w-full overflow-y-auto px-6">
           <h5 className="mt-5 text-body-xs-medium">{t("common.properties")}</h5>
           <div className={`mt-4 mb-2 space-y-2.5 truncate ${!isEditable ? "opacity-60" : ""}`}>
+            <SidebarPropertyListItem icon={ModuleOutline} label="Section">
+              <SectionSelect
+                workspaceSlug={workspaceSlug}
+                projectId={projectId}
+                value={issue.section_id}
+                disabled={!isEditable}
+                onChange={(sectionId) =>
+                  issueOperations.update(workspaceSlug, projectId, issueId, { section_id: sectionId })
+                }
+              />
+            </SidebarPropertyListItem>
             <SidebarPropertyListItem icon={StateOutline} label={t("common.state")}>
               <StateSelect
                 testId="work-item-state-select"
