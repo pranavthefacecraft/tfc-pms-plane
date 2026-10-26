@@ -6,6 +6,7 @@
  */
 
 import type { CSSProperties } from "react";
+import { SectionIcon } from "@/components/project-sections/section-icon";
 import { extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
 import { clone, isNil, pull, uniq, concat } from "lodash-es";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
@@ -169,7 +170,7 @@ const getSectionColumns = ({ projectId }: TGetColumns): IGroupByColumn[] => {
       id: section.id,
       name: section.name,
       payload: { section_id: section.id },
-      icon: <ModuleOutline className="size-3.5" />,
+      icon: <SectionIcon section={section} />,
     })),
     { id: "None", name: "No section", payload: { section_id: null }, icon: <ModuleOutline className="size-3.5" /> },
   ];

@@ -453,6 +453,13 @@ can create a section with a name only and use Manage sections to rename it,
 move it up/down, or delete it after confirmation. Deletion keeps its tasks and
 moves them to No section, including archived tasks and drafts.
 
+Add section and Manage sections also offer an optional icon picker and icon
+color. Select an icon, choose its color, and save; existing sections can update
+their icon/color without renaming them. Reset icon restores the default section
+symbol. Icons appear in section group headers and beside the selected section
+in task pickers. Existing sections retain their default symbol and color.
+This customization requires migration `0132_section_icons`.
+
 New project List and Board defaults group by Sections and show empty sections.
 Existing saved grouping preferences are preserved; use Group by Sections in the
 footer to switch an existing view and show empty sections. Creating a section

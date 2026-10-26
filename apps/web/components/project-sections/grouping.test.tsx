@@ -10,7 +10,7 @@ import { getGroupByColumns, handleGroupDragDrop } from "@/components/issues/issu
 
 const state = vi.hoisted(() => ({
   sections: [
-    { id: "design", name: "Design", sort_order: 10000 },
+    { id: "design", name: "Design", sort_order: 10000, icon: "palette", icon_color: "#ff0088" },
     { id: "dev", name: "Development", sort_order: 20000 },
   ],
 }));
@@ -52,6 +52,8 @@ it("renders independent sections and a separate No section column", () => {
     { id: "dev", name: "Development", payload: { section_id: "dev" } },
     { id: "None", name: "No section", payload: { section_id: null } },
   ]);
+  expect(columns?.[0].icon).toHaveProperty("props.section.icon", "palette");
+  expect(columns?.[0].icon).toHaveProperty("props.section.icon_color", "#ff0088");
 });
 it.each([
   ["dev", "dev"],

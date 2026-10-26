@@ -10,6 +10,7 @@ import useSWR from "swr";
 import { setToast } from "@plane/blocks/toast";
 import { useProjectSection } from "@/hooks/store/use-project-section";
 import { sectionErrorMessage } from "./errors";
+import { SectionIcon } from "./section-icon";
 
 export const SectionSelect = observer(function SectionSelect({
   workspaceSlug,
@@ -43,7 +44,8 @@ export const SectionSelect = observer(function SectionSelect({
     }
   };
   return (
-    <div className="min-w-0">
+    <div className="flex min-w-0 flex-wrap items-center gap-1">
+      {value && <SectionIcon section={sections.find((section) => section.id === value)} />}
       <select
         aria-label="Section"
         aria-describedby={error ? id : undefined}

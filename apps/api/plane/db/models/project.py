@@ -208,6 +208,8 @@ class ProjectBaseModel(BaseModel):
 class Section(ProjectBaseModel):
     name = models.CharField(max_length=100)
     sort_order = models.FloatField(default=65535)
+    icon = models.CharField(max_length=100, blank=True, default="")
+    icon_color = models.CharField(max_length=7, default="#6d7b8a")
 
     class Meta:
         db_table = "project_sections"

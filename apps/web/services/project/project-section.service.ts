@@ -11,7 +11,11 @@ export type TProjectSection = {
   id: string;
   name: string;
   sort_order: number;
+  icon?: string;
+  icon_color?: string;
 };
+
+export type TSectionAppearance = { icon: string; icon_color: string };
 
 export class ProjectSectionService extends APIService {
   constructor() {
@@ -27,8 +31,13 @@ export class ProjectSectionService extends APIService {
     return response.data;
   }
 
-  async create(workspaceSlug: string, projectId: string, name: string): Promise<TProjectSection> {
-    const response = await this.post(this.path(workspaceSlug, projectId), { name });
+  async create(
+    workspaceSlug: string,
+    projectId: string,
+    name: string,
+    appearance?: TSectionAppearance
+  ): Promise<TProjectSection> {
+    const response = await this.post(this.path(workspaceSlug, projectId), { name, ...appearance });
     return response.data;
   }
 
@@ -36,7 +45,7 @@ export class ProjectSectionService extends APIService {
     workspaceSlug: string,
     projectId: string,
     id: string,
-    data: Partial<Pick<TProjectSection, "name" | "sort_order">>
+    data: Partial<Pick<TProjectSection, "name" | "sort_order" | "icon" | "icon_color">>
   ): Promise<TProjectSection> {
     const response = await this.patch(`${this.path(workspaceSlug, projectId)}${id}/`, data);
     return response.data;

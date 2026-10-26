@@ -9,7 +9,7 @@ export function sectionErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null) {
     if ("response" in error && error.response) return sectionErrorMessage(error.response);
     if ("data" in error && error.data) return sectionErrorMessage(error.data);
-    for (const key of ["name", "sort_order", "detail", "error", "message"]) {
+    for (const key of ["name", "icon", "icon_color", "sort_order", "detail", "error", "message"]) {
       if (key in error) {
         const value: unknown = Reflect.get(error, key);
         if (typeof value === "string") return value;

@@ -46,6 +46,8 @@ class ProjectSectionsEndpoint(BaseAPIView):
         section = Section.objects.create(
             name=serializer.validated_data["name"],
             sort_order=sort_order,
+            icon=serializer.validated_data.get("icon", ""),
+            icon_color=serializer.validated_data.get("icon_color", "#6d7b8a"),
             project=project,
             workspace=project.workspace,
         )

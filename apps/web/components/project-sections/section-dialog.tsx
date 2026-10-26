@@ -19,8 +19,9 @@ import {
 } from "@makeplane/propel/components/dialog";
 import { setToast } from "@plane/blocks/toast";
 import { useProjectSection } from "@/hooks/store/use-project-section";
-import type { TProjectSection } from "@/services/project/project-section.service";
+import type { TProjectSection, TSectionAppearance } from "@/services/project/project-section.service";
 import { sectionErrorMessage } from "./errors";
+import { SectionAppearance } from "./section-appearance";
 
 type Props = {
   workspaceSlug: string;
@@ -41,6 +42,7 @@ export const SectionDialog = observer(function SectionDialog({
 }: Props) {
   const sections = useProjectSection();
   const [name, setName] = useState("");
+  const [appearance, setAppearance] = useState<TSectionAppearance>({ icon: "", icon_color: "#6d7b8a" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState<TProjectSection | null>(null);
@@ -72,7 +74,7 @@ export const SectionDialog = observer(function SectionDialog({
       return;
     }
     await perform(async () => {
-      await sections.create(workspaceSlug, projectId, trimmed);
+      await sections.create(workspaceSlug, projectId, trimmed, appearance);
       await onCreated();
       setToast({
         type: "success",
@@ -123,6 +125,7 @@ export const SectionDialog = observer(function SectionDialog({
                       onChange={(event) => setName(event.target.value)}
                     />
                   </InputGroup>
+                  <SectionAppearance value={appearance} onChange={setAppearance} disabled={busy} />
                   <Button
                     type="submit"
                     variant="primary"
@@ -139,14 +142,14 @@ export const SectionDialog = observer(function SectionDialog({
                 )}
                 {items.map((section, index) => (
                   <SectionRow
-                    key={`${section.id}:${section.name}`}
+                    key={`${section.id}:${section.name}:${section.icon}:${section.icon_color}`}
                     section={section}
                     busy={busy}
                     first={index === 0}
                     last={index === items.length - 1}
-                    onRename={(value) =>
+                    onSave={(value) =>
                       void perform(async () => {
-                        await sections.update(workspaceSlug, projectId, section.id, { name: value });
+                        await sections.update(workspaceSlug, projectId, section.id, value);
                       })
                     }
                     onMove={(direction) =>
@@ -222,7 +225,7 @@ function SectionRow({
   busy,
   first,
   last,
-  onRename,
+  onSave,
   onMove,
   onDelete,
 }: {
@@ -230,16 +233,27 @@ function SectionRow({
   busy: boolean;
   first: boolean;
   last: boolean;
-  onRename: (name: string) => void;
+  onSave: (data: { name: string } & TSectionAppearance) => void;
   onMove: (direction: -1 | 1) => void;
   onDelete: () => void;
 }) {
-  const [name, setName] = useState(section.name);
+  const [nameDraft, setName] = useState<string>();
+  const name = nameDraft ?? section.name;
+  const [appearanceDraft, setAppearance] = useState<Partial<TSectionAppearance>>({});
+  const appearance: TSectionAppearance = {
+    icon: section.icon ?? "",
+    icon_color: section.icon_color ?? "#6d7b8a",
+    ...appearanceDraft,
+  };
+  const unchanged =
+    name.trim() === section.name &&
+    appearance.icon === (section.icon ?? "") &&
+    appearance.icon_color === (section.icon_color ?? "#6d7b8a");
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        if (name.trim()) onRename(name.trim());
+        if (name.trim()) onSave({ name: name.trim(), ...appearance });
       }}
     >
       <fieldset disabled={busy} className="flex flex-wrap items-center gap-2 rounded border border-subtle p-2">
@@ -254,7 +268,8 @@ function SectionRow({
             />
           </InputGroup>
         </div>
-        <button type="submit" disabled={!name.trim() || name.trim() === section.name} className="text-13">
+        <SectionAppearance value={appearance} onChange={setAppearance} disabled={busy} />
+        <button type="submit" disabled={!name.trim() || unchanged} className="text-13">
           Save
         </button>
         <button

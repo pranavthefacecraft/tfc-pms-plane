@@ -74,7 +74,9 @@ def test_section_crud_is_project_scoped_and_returns_section_fields(
     response = session_client.post(collection_url, {"name": "Planning", "sort_order": 10}, format="json")
     assert response.status_code == status.HTTP_201_CREATED
     section_id = response.data["id"]
-    assert response.data == {"id": section_id, "name": "Planning", "sort_order": 10.0}
+    assert response.data == {
+        "id": section_id, "name": "Planning", "sort_order": 10.0, "icon": "", "icon_color": "#6d7b8a"
+    }
     assert (
         session_client.post(collection_url, {"name": "x" * 101}, format="json").status_code
         == status.HTTP_400_BAD_REQUEST
@@ -87,7 +89,9 @@ def test_section_crud_is_project_scoped_and_returns_section_fields(
     detail_url = f"{collection_url}{section_id}/"
     response = session_client.patch(detail_url, {"name": "Design", "sort_order": 20}, format="json")
     assert response.status_code == status.HTTP_200_OK
-    assert response.data == {"id": section_id, "name": "Design", "sort_order": 20.0}
+    assert response.data == {
+        "id": section_id, "name": "Design", "sort_order": 20.0, "icon": "", "icon_color": "#6d7b8a"
+    }
 
     other_detail_url = f"{collection_url}{other_section.id}/"
     response = session_client.get(other_detail_url)
@@ -102,6 +106,52 @@ def test_section_crud_is_project_scoped_and_returns_section_fields(
     response = session_client.delete(detail_url)
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert not Section.objects.filter(id=section_id).exists()
+
+
+@pytest.mark.contract
+@pytest.mark.django_db
+@pytest.mark.parametrize("icon", ["star", "123"])
+def test_section_icon_and_color_persist_and_can_be_changed(session_client, workspace, project, icon):
+    url = _sections_url(workspace, project)
+    response = session_client.post(
+        url, {"name": "Creative", "icon": icon, "icon_color": "#ff0088"}, format="json"
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    section_id = response.data["id"]
+    assert response.data["icon"] == icon
+    assert response.data["icon_color"] == "#ff0088"
+    assert session_client.get(url).data[0]["icon"] == icon
+    detail = f"{url}{section_id}/"
+    response = session_client.patch(detail, {"icon_color": "#123abc"}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["icon"] == icon
+    assert response.data["icon_color"] == "#123abc"
+    response = session_client.patch(detail, {"icon": ""}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["icon"] == ""
+    section = Section.objects.get(id=section_id)
+    assert section.name == "Creative"
+    assert section.icon_color == "#123abc"
+
+
+@pytest.mark.contract
+@pytest.mark.django_db
+@pytest.mark.parametrize("data", [
+    {"icon": "<script>"},
+    {"icon": "x" * 101},
+    {"icon": None},
+    {"icon_color": "red"},
+    {"icon_color": "#12345z"},
+    {"icon_color": None},
+])
+def test_section_rejects_invalid_appearance(session_client, workspace, project, data):
+    url = _sections_url(workspace, project)
+    assert session_client.post(url, {"name": "Invalid", **data}, format="json").status_code == 400
+    section = Section.objects.create(name="Unchanged", workspace=workspace, project=project)
+    assert session_client.patch(f"{url}{section.id}/", data, format="json").status_code == 400
+    section.refresh_from_db()
+    assert section.icon == ""
+    assert section.icon_color == "#6d7b8a"
 
 
 @pytest.mark.contract

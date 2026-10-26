@@ -63,6 +63,21 @@ it("moves sections with persistent sort order", async () => {
   expect(service.update).toHaveBeenCalledWith("workspace", "project", "design", { sort_order: 30000 });
   expect(store.getSections("workspace", "project").map((item) => item.id)).toEqual(["dev", "design"]);
 });
+it("passes and caches icon/color on create and appearance-only updates", async () => {
+  const appearance = { icon: "palette", icon_color: "#ff0088" };
+  vi.mocked(service.create).mockResolvedValueOnce({ ...design, ...appearance });
+  await store.create("workspace", "project", "Design", appearance);
+  expect(service.create).toHaveBeenCalledWith("workspace", "project", "Design", appearance);
+  expect(store.getSections("workspace", "project")[0]).toMatchObject(appearance);
+  vi.mocked(service.update).mockResolvedValueOnce({ ...design, ...appearance, icon_color: "#123abc" });
+  await store.update("workspace", "project", "design", { icon_color: "#123abc" });
+  expect(service.update).toHaveBeenCalledWith("workspace", "project", "design", { icon_color: "#123abc" });
+  expect(store.getSections("workspace", "project")[0]).toMatchObject({
+    name: "Design",
+    icon: "palette",
+    icon_color: "#123abc",
+  });
+});
 it("preserves sections on failed deletion", async () => {
   vi.mocked(service.list).mockResolvedValueOnce([design]);
   await store.fetch("workspace", "project");

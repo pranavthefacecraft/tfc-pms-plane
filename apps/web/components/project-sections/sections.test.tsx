@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { AddSection } from "./add-section";
 import { SectionSelect } from "./section-select";
+import type { ReactNode } from "react";
 
 const state = vi.hoisted(() => ({
   role: 20,
@@ -22,6 +23,28 @@ const state = vi.hoisted(() => ({
   retry: vi.fn(),
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
+vi.mock("@plane/blocks/emoji-icon-picker", () => ({
+  EmojiPicker: ({
+    label,
+    onChange,
+    disabled,
+  }: {
+    label: ReactNode;
+    disabled: boolean;
+    onChange: (value: { type: "icon"; value: { name: string; color: string } }) => void;
+  }) => (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange({ type: "icon", value: { name: "palette", color: "#ff0088" } })}
+    >
+      {label}
+    </button>
+  ),
+  Logo: ({ logo }: { logo: { icon: { name: string; color: string } } }) => (
+    <span data-section-icon={logo.icon.name} style={{ color: logo.icon.color }} />
+  ),
+}));
 vi.mock("swr", () => ({ default: () => ({ error: state.loadError, mutate: state.retry }) }));
 vi.mock("next/navigation", () => ({ useParams: () => ({}) }));
 vi.mock("@/hooks/use-issue-layout-store", () => ({ useIssueStoreType: () => "PROJECT" }));
@@ -109,7 +132,10 @@ it.each([EUserPermissions.ADMIN, EUserPermissions.MEMBER])(
     expect(document.querySelector("select")).toBeNull();
     await input("  Marketing  ");
     await act(() => button("Create section").click());
-    expect(state.create).toHaveBeenCalledExactlyOnceWith("workspace", "project", "Marketing");
+    expect(state.create).toHaveBeenCalledExactlyOnceWith("workspace", "project", "Marketing", {
+      icon: "",
+      icon_color: "#6d7b8a",
+    });
     expect(state.updateFilters).toHaveBeenCalledWith("project", "display_filters", {
       group_by: "section",
       sub_group_by: null,
@@ -134,6 +160,42 @@ it("hides management for archived projects", async () => {
   state.archived = true;
   await render();
   expect(host.textContent).not.toContain("Add section");
+});
+it("creates a section with its selected icon and color", async () => {
+  await render();
+  await act(() => button("Add section").click());
+  await input("Creative");
+  await act(() => button("Choose section icon").click());
+  await input("#123abc", 'input[type="color"]');
+  expect(document.querySelector("[data-section-icon=palette]")?.getAttribute("style")).toContain("rgb(18, 58, 188)");
+  await act(() => button("Create section").click());
+  expect(state.create).toHaveBeenCalledExactlyOnceWith("workspace", "project", "Creative", {
+    icon: "palette",
+    icon_color: "#123abc",
+  });
+});
+it("saves appearance without renaming, retains failed edits, and allows resetting the icon", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  await render();
+  await act(() => button("Manage sections").click());
+  await act(() => button("Choose section icon").click());
+  state.update.mockRejectedValueOnce({ response: { data: { icon_color: ["Invalid icon color."] } } });
+  await act(() => button("Save").click());
+  expect(document.querySelector('[role="alert"]')?.textContent).toBe("Invalid icon color.");
+  expect(document.querySelector("[data-section-icon=palette]")).not.toBeNull();
+  await act(() => button("Save").click());
+  expect(state.update).toHaveBeenLastCalledWith("workspace", "project", "design", {
+    name: "Design",
+    icon: "palette",
+    icon_color: "#ff0088",
+  });
+  await act(() => button("Reset icon").click());
+  await act(() => button("Save").click());
+  expect(state.update).toHaveBeenLastCalledWith("workspace", "project", "design", {
+    name: "Design",
+    icon: "",
+    icon_color: "#ff0088",
+  });
 });
 it("hides mutations in completed cycles while keeping section grouping available", async () => {
   await act(() => root.render(<AddSection workspaceSlug="workspace" projectId="project" readOnly />));
@@ -182,7 +244,11 @@ it("renames and reorders sections without changing task statuses", async () => {
   await act(() => button("Manage sections").click());
   await input("Creative", 'input[aria-label="Rename Design"]');
   await act(() => button("Save").click());
-  expect(state.update).toHaveBeenCalledWith("workspace", "project", "design", { name: "Creative" });
+  expect(state.update).toHaveBeenCalledWith("workspace", "project", "design", {
+    name: "Creative",
+    icon: "",
+    icon_color: "#6d7b8a",
+  });
   expect(button("Move Design up").disabled).toBe(true);
   await act(() => button("Move Design down").click());
   expect(state.move).toHaveBeenCalledWith("workspace", "project", "design", 1);
@@ -229,7 +295,7 @@ it("does not change Calendar grouping when creating a section", async () => {
   await act(() => button("Add section").click());
   await input("Marketing");
   await act(() => button("Create section").click());
-  expect(state.create).toHaveBeenCalledWith("workspace", "project", "Marketing");
+  expect(state.create).toHaveBeenCalledWith("workspace", "project", "Marketing", { icon: "", icon_color: "#6d7b8a" });
   expect(state.updateFilters).not.toHaveBeenCalled();
 });
 it("exposes section load failures with retry", async () => {

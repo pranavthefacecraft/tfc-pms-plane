@@ -6,7 +6,7 @@
 
 import { makeAutoObservable, runInAction } from "mobx";
 import { orderBy } from "lodash-es";
-import type { TProjectSection } from "@/services/project/project-section.service";
+import type { TProjectSection, TSectionAppearance } from "@/services/project/project-section.service";
 import { ProjectSectionService } from "@/services/project/project-section.service";
 import type { TIssue } from "@plane/types";
 
@@ -51,8 +51,8 @@ export class SectionStore {
     this.sections[key] = orderBy([...sections, section], ["sort_order", "id"], ["asc", "asc"]);
   }
 
-  async create(workspaceSlug: string, projectId: string, name: string) {
-    const section = await this.service.create(workspaceSlug, projectId, name);
+  async create(workspaceSlug: string, projectId: string, name: string, appearance?: TSectionAppearance) {
+    const section = await this.service.create(workspaceSlug, projectId, name, appearance);
     runInAction(() => this.save(workspaceSlug, projectId, section));
     return section;
   }
@@ -61,7 +61,7 @@ export class SectionStore {
     workspaceSlug: string,
     projectId: string,
     id: string,
-    data: Partial<Pick<TProjectSection, "name" | "sort_order">>
+    data: Partial<Pick<TProjectSection, "name" | "sort_order" | "icon" | "icon_color">>
   ) {
     const section = await this.service.update(workspaceSlug, projectId, id, data);
     runInAction(() => this.save(workspaceSlug, projectId, section));
