@@ -172,7 +172,12 @@ const getSectionColumns = ({ projectId }: TGetColumns): IGroupByColumn[] => {
       payload: { section_id: section.id },
       icon: <SectionIcon section={section} />,
     })),
-    { id: "None", name: "No section", payload: { section_id: null }, icon: <ModuleOutline className="size-3.5" /> },
+    {
+      id: "None",
+      name: "Untitled section",
+      payload: { section_id: null },
+      icon: <ModuleOutline className="size-3.5" />,
+    },
   ];
 };
 

@@ -451,7 +451,7 @@ records, not workflow states: creating, renaming, reordering or deleting one
 does not change work-item status or completion. Project admins and members
 can create a section with a name only and use Manage sections to rename it,
 move it up/down, or delete it after confirmation. Deletion keeps its tasks and
-moves them to No section, including archived tasks and drafts.
+moves them to Untitled section, including archived tasks and drafts.
 
 Add section and Manage sections also offer an optional icon picker and icon
 color. Select an icon, choose its color, and save; existing sections can update
@@ -480,7 +480,14 @@ completed cycles do not expose section management in their layout footer.
 
 This feature requires migration `0131_project_sections` and updated API and web
 services. No states or existing work items are migrated into sections
-automatically; unassigned work items appear under No section.
+automatically; unassigned work items appear under Untitled section. This label
+represents unassigned tasks, not a stored section; task statuses and assignments
+are unchanged by the display name.
+
+List and Board quick-add use the selected section's ID (or a null assignment
+under Untitled section), including Board subgroups. If task creation fails,
+the temporary card is removed instead of leaving a work item with an undefined
+identifier.
 
 ## License
 

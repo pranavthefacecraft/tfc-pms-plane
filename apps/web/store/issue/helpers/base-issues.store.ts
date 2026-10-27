@@ -650,10 +650,11 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
     // Add issue to store with a temporary Id
     this.addIssue(data);
     // call Create issue method
-    const response = await this.createIssue(workspaceSlug, projectId, data);
-    runInAction(() => {
-      this.removeIssueFromList(data.id);
-      this.rootIssueStore.issues.removeIssue(data.id);
+    const response = await this.createIssue(workspaceSlug, projectId, data).finally(() => {
+      runInAction(() => {
+        this.removeIssueFromList(data.id);
+        this.rootIssueStore.issues.removeIssue(data.id);
+      });
     });
     const currentCycleId = data.cycle_id !== "" && data.cycle_id === "None" ? undefined : data.cycle_id;
     const currentModuleIds =

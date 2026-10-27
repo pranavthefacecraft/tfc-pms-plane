@@ -345,7 +345,7 @@ it("confirms deletion, keeps tasks and reloads the active view", async () => {
   await act(() => button("Manage sections").click());
   await act(() => button("Delete Design").click());
   expect(state.remove).not.toHaveBeenCalled();
-  expect(document.body.textContent).toContain("tasks will be kept under No section");
+  expect(document.body.textContent).toContain("tasks will be kept under Untitled section");
   await act(() => button("Delete section").click());
   expect(state.remove).toHaveBeenCalledWith("workspace", "project", "design");
   expect(state.fetchIssues).toHaveBeenCalledWith("mutation", { canGroup: true, perPageCount: 50 }, "project");
@@ -395,6 +395,9 @@ it("assigns and clears sections independently from status", async () => {
   const change = vi.fn();
   await act(() => root.render(<SectionSelect workspaceSlug="workspace" projectId="project" onChange={change} />));
   const select = host.querySelector("select")!;
+  expect(select.options[0].textContent).toBe("Untitled section");
+  expect(select.options[0].value).toBe("");
+  expect(select.value).toBe("");
   await act(() => {
     select.value = "design";
     select.dispatchEvent(new Event("change", { bubbles: true }));

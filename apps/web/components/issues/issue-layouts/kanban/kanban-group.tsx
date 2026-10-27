@@ -45,6 +45,7 @@ import { useIssuesStore } from "@/hooks/use-issue-layout-store";
 import { GroupDragOverlay } from "../group-drag-overlay";
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { KanbanQuickAddIssueButton, QuickAddIssueRoot } from "../quick-add";
+import { getSectionQuickAddData } from "../quick-add/utils";
 import { KanbanIssueBlocksList } from "./blocks-list";
 
 interface IKanbanGroup {
@@ -208,6 +209,8 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
     if (groupByKey) {
       if (groupByKey === "state") {
         preloadedData = { ...preloadedData, state_id: groupValue };
+      } else if (groupByKey === "section") {
+        preloadedData = { ...preloadedData, ...getSectionQuickAddData(groupValue) };
       } else if (groupByKey === "priority") {
         preloadedData = { ...preloadedData, priority: groupValue };
       } else if (groupByKey === "cycle") {
@@ -228,6 +231,8 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
     if (subGroupByKey) {
       if (subGroupByKey === "state") {
         preloadedData = { ...preloadedData, state_id: subGroupValue };
+      } else if (subGroupByKey === "section") {
+        preloadedData = { ...preloadedData, ...getSectionQuickAddData(subGroupValue) };
       } else if (subGroupByKey === "priority") {
         preloadedData = { ...preloadedData, priority: subGroupValue };
       } else if (subGroupByKey === "cycle") {

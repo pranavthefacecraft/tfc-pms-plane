@@ -7,6 +7,7 @@ import {
   ISSUE_DISPLAY_FILTERS_BY_PAGE,
 } from "@plane/constants";
 import { getGroupByColumns, handleGroupDragDrop } from "@/components/issues/issue-layouts/utils";
+import { getSectionQuickAddData } from "@/components/issues/issue-layouts/quick-add/utils";
 
 const state = vi.hoisted(() => ({
   sections: [
@@ -45,12 +46,12 @@ vi.mock("@/store/issue/helpers/base-issues.store", () => ({
   ISSUE_FILTER_DEFAULT_DATA: { section: "section_id", state: "state_id" },
 }));
 
-it("renders independent sections and a separate No section column", () => {
+it("renders independent sections and a separate Untitled section column", () => {
   const columns = getGroupByColumns({ groupBy: "section", includeNone: true, isWorkspaceLevel: false });
   expect(columns?.map(({ id, name, payload }) => ({ id, name, payload }))).toEqual([
     { id: "design", name: "Design", payload: { section_id: "design" } },
     { id: "dev", name: "Development", payload: { section_id: "dev" } },
-    { id: "None", name: "No section", payload: { section_id: null } },
+    { id: "None", name: "Untitled section", payload: { section_id: null } },
   ]);
   expect(columns?.[0].icon).toHaveProperty("props.section.icon", "palette");
   expect(columns?.[0].icon).toHaveProperty("props.section.icon_color", "#ff0088");
@@ -86,4 +87,16 @@ it("maps section grouping and group pagination to the backend field", () => {
   for (const layout of ["list", "kanban"] as const) {
     expect(ISSUE_DISPLAY_FILTERS_BY_PAGE.issues.layoutOptions[layout].display_filters.group_by).toContain("section");
   }
+});
+it.each([
+  ["None", null],
+  ["54cfe4be-0f96-426d-9d8b-81b2512b4916", "54cfe4be-0f96-426d-9d8b-81b2512b4916"],
+] as const)("quick-add maps section %s to a valid assignment without changing status", (groupId, sectionId) => {
+  const data = getSectionQuickAddData(groupId);
+  expect(data).toEqual({ section_id: sectionId });
+  expect(data).not.toHaveProperty("section");
+  expect(createIssuePayload("project", { state_id: "backlog", ...data })).toMatchObject({
+    section_id: sectionId,
+    state_id: "backlog",
+  });
 });

@@ -36,6 +36,7 @@ import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 // local imports
 import { GroupDragOverlay } from "../group-drag-overlay";
 import { ListQuickAddIssueButton, QuickAddIssueRoot } from "../quick-add";
+import { getSectionQuickAddData } from "../quick-add/utils";
 import type { GroupDropLocation } from "../utils";
 import {
   getDestinationFromDropPayload,
@@ -156,6 +157,8 @@ export const ListGroup = observer(function ListGroup(props: Props) {
     } else {
       if (groupByKey === "state") {
         preloadedData = { ...preloadedData, state_id: value };
+      } else if (groupByKey === "section") {
+        preloadedData = { ...preloadedData, ...getSectionQuickAddData(value) };
       } else if (groupByKey === "priority") {
         preloadedData = { ...preloadedData, priority: value };
       } else if (groupByKey === "labels" && value != "None") {

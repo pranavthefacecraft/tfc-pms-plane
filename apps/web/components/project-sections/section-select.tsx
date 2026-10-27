@@ -55,7 +55,7 @@ export const SectionSelect = observer(function SectionSelect({
         className="max-w-full rounded border border-subtle bg-surface-1 px-2 py-1 text-12 text-secondary"
         onChange={(event) => void assign(event.target.value || null)}
       >
-        <option value="">No section</option>
+        <option value="">Untitled section</option>
         {value && !sections.some((section) => section.id === value) && <option value={value}>Current section</option>}
         {sections.map((section) => (
           <option key={section.id} value={section.id}>
