@@ -22,9 +22,20 @@ interface EmptyStateProps {
   searchTerm: string;
   debouncedSearchTerm: string;
   isSearching: boolean;
+  isRelationSearch?: boolean;
 }
 
-export function IssueSearchModalEmptyState({ issues, searchTerm, debouncedSearchTerm, isSearching }: EmptyStateProps) {
+function EmptyStateContainer({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-col items-center justify-center px-3 py-8 text-center">{children}</div>;
+}
+
+export function IssueSearchModalEmptyState({
+  issues,
+  searchTerm,
+  debouncedSearchTerm,
+  isSearching,
+  isRelationSearch = false,
+}: EmptyStateProps) {
   // theme hook
   const { resolvedTheme } = useTheme();
   // plane hooks
@@ -32,10 +43,6 @@ export function IssueSearchModalEmptyState({ issues, searchTerm, debouncedSearch
   // derived values
   const searchResolvedPath = resolvedTheme === "light" ? lightSearchAsset : darkSearchAsset;
   const issuesResolvedPath = resolvedTheme === "light" ? lightIssuesAsset : darkIssuesAsset;
-
-  function EmptyStateContainer({ children }: { children: React.ReactNode }) {
-    return <div className="flex flex-col items-center justify-center px-3 py-8 text-center">{children}</div>;
-  }
 
   if (issues.length === 0 && searchTerm !== "" && debouncedSearchTerm !== "" && !isSearching) {
     return (
@@ -47,6 +54,12 @@ export function IssueSearchModalEmptyState({ issues, searchTerm, debouncedSearch
     return (
       <EmptyStateContainer>
         <SimpleEmptyState title={t("issue_relation.empty_state.search.title")} assetPath={searchResolvedPath} />
+        {isRelationSearch && !isSearching && (
+          <p className="mt-2 max-w-sm text-13 text-secondary">
+            This list only shows work items you can add. The current work item and already-linked work items are
+            excluded, including links in the opposite direction. Existing links remain visible on the work item.
+          </p>
+        )}
       </EmptyStateContainer>
     );
   }

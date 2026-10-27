@@ -120,7 +120,7 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
 
       <div
         className={cn(
-          "group flex items-center gap-2 rounded-sm px-2 py-0.5 outline-none",
+          "group flex max-w-full min-w-0 items-center gap-2 rounded-sm px-2 py-0.5 outline-none",
           {
             "cursor-not-allowed": disabled,
             "hover:bg-layer-1": !disabled,
@@ -129,9 +129,9 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
           className
         )}
       >
-        <div className="flex w-full items-start justify-between">
+        <div className="flex w-full min-w-0 items-start justify-between">
           {relationIssueIds.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 py-0.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 py-0.5">
               {relationIssueIds.map((relationIssueId) => {
                 const currentIssue = issueMap[relationIssueId];
                 if (!currentIssue) return;
@@ -141,9 +141,13 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                 return (
                   <div
                     key={relationIssueId}
-                    className={`group flex items-center gap-1 rounded-sm px-1.5 pt-1 pb-1 leading-3 hover:bg-surface-2 ${currRelationOption?.className}`}
+                    className={`group flex max-w-full min-w-0 items-center gap-1 rounded-sm px-1.5 pt-1 pb-1 leading-3 hover:bg-surface-2 ${currRelationOption?.className}`}
                   >
-                    <Tooltip label={`Title: ${currentIssue.name}`} layout="stacked" disabled={isMobile}>
+                    <Tooltip
+                      label={`${projectDetails?.identifier}-${currentIssue.sequence_id}: ${currentIssue.name}`}
+                      layout="stacked"
+                      disabled={isMobile}
+                    >
                       <Link
                         href={generateWorkItemLink({
                           workspaceSlug,
@@ -154,17 +158,18 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                         })}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-caption-sm-medium"
+                        className="min-w-0 truncate text-caption-sm-medium"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {`${projectDetails?.identifier}-${currentIssue?.sequence_id}`}
+                        {currentIssue.name}
                       </Link>
                     </Tooltip>
                     {!disabled && (
                       <Tooltip label="Remove" side="bottom" disabled={isMobile}>
                         <button
                           type="button"
-                          aria-label={`${t("common.remove")} ${projectDetails?.identifier}-${currentIssue.sequence_id}`}
+                          aria-label={`${t("common.remove")} ${currentIssue.name}`}
+                          className="shrink-0"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();

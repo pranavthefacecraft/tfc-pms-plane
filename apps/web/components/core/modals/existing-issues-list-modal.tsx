@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useEffectEvent, useState, useRef } from "react";
 import { Combobox, ComboboxItem, ComboboxList, ComboboxSearch } from "@makeplane/propel/components/combobox";
 import {
   Dialog,
@@ -105,7 +105,7 @@ export function ExistingIssuesListModal(props: Props) {
     handleClose();
   };
 
-  const handleSearch = () => {
+  const handleSearch = useEffectEvent(() => {
     if (!isOpen || !workspaceSlug) return;
     setIsLoading(true);
     const searchService =
@@ -124,7 +124,7 @@ export function ExistingIssuesListModal(props: Props) {
         setIsSearching(false);
         setIsLoading(false);
       });
-  };
+  });
 
   const handleSelectIssues = () => {
     setSelectedIssues((prevData) => (prevData.length === filteredIssues.length ? [] : [...filteredIssues]));
@@ -270,6 +270,7 @@ export function ExistingIssuesListModal(props: Props) {
                       isSearching={isSearching}
                       issues={filteredIssues}
                       searchTerm={searchTerm}
+                      isRelationSearch={searchParams.issue_relation === true}
                     />
                   ) : (
                     <ComboboxList aria-label={t("issue.add.existing")}>

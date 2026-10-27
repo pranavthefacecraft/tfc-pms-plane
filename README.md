@@ -495,6 +495,17 @@ under No section), including Board subgroups. If task creation fails,
 the temporary card is removed instead of leaving a work item with an undefined
 identifier.
 
+## Work item dependencies
+
+Blocked by lists tasks this work item depends on; Blocking lists tasks that depend
+on this work item. Adding either link automatically shows the reverse relationship
+on the other task. Dependency chips display task names, with the work item
+identifier available in the tooltip.
+
+The relation picker adds new links only. It excludes the current task and tasks
+already linked in either direction. With only two tasks already linked, an empty
+picker is expected; it does not mean the existing dependency is missing.
+
 ## License
 
 This project is licensed under the [GNU Affero General Public License v3.0](https://github.com/makeplane/plane/blob/master/LICENSE.txt).
