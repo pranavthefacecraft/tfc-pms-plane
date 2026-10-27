@@ -497,6 +497,9 @@ identifier.
 
 ## Work item dependencies
 
+The task preview Properties panel hides the built-in State row. This is a
+display-only change: stored task states and state controls elsewhere are unchanged.
+
 Blocked by lists tasks this work item depends on; Blocking lists tasks that depend
 on this work item. Adding either link automatically shows the reverse relationship
 on the other task. Dependency chips display task names, with the work item

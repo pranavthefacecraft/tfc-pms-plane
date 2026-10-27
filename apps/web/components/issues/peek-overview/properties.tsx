@@ -16,7 +16,6 @@ import {
   ParentOutline,
   PriorityOutline,
   StartDateOutline,
-  StateOutline,
   UserOutline,
 } from "@makeplane/propel/icons";
 import { DateSelect } from "@plane/blocks/property-select";
@@ -25,7 +24,6 @@ import { getDate, renderFormattedPayloadDate } from "@plane/utils";
 import { EstimateSelect } from "@/components/dropdowns/estimate/estimate-select";
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 import { PrioritySelect } from "@/components/dropdowns/priority/priority-select";
-import { StateSelect } from "@/components/dropdowns/state/state-select";
 import { SectionSelect } from "@/components/project-sections/section-select";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 // helpers
@@ -83,18 +81,6 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
             }
           />
         </SidebarPropertyListItem>
-        <SidebarPropertyListItem icon={StateOutline} label={t("common.state")}>
-          <StateSelect
-            testId="work-item-state-select"
-            value={issue?.state_id}
-            onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { state_id: val })}
-            projectId={projectId}
-            disabled={disabled}
-            variant="select-ghost-md"
-            tooltip
-          />
-        </SidebarPropertyListItem>
-
         <SidebarPropertyListItem icon={PriorityOutline} label={t("common.priority")}>
           <PrioritySelect
             testId="work-item-priority-select"
