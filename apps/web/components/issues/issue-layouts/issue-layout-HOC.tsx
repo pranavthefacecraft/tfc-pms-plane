@@ -47,15 +47,20 @@ export const IssueLayoutHOC = observer(function IssueLayoutHOC(props: Props) {
   const { layout } = props;
 
   const storeType = useIssueStoreType();
-  const { issues } = useIssues(storeType);
+  const { issues, issuesFilter } = useIssues(storeType);
 
   const issueCount = issues.getGroupIssueCount(undefined, undefined, false);
+  const displayFilters = issuesFilter.issueFilters?.displayFilters;
+  const showEmptySections =
+    (layout === EIssueLayoutTypes.LIST || layout === EIssueLayoutTypes.KANBAN) &&
+    displayFilters?.group_by === "section" &&
+    displayFilters.show_empty_groups === true;
 
   if (issues?.getIssueLoader() === "init-loader" || issueCount === undefined) {
     return <ActiveLoader layout={layout} />;
   }
 
-  if (issues.getGroupIssueCount(undefined, undefined, false) === 0 && layout !== EIssueLayoutTypes.CALENDAR) {
+  if (issueCount === 0 && layout !== EIssueLayoutTypes.CALENDAR && !showEmptySections) {
     return <IssueLayoutEmptyState storeType={storeType} />;
   }
 

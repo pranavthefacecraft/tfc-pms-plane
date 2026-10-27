@@ -494,6 +494,9 @@ List and Board quick-add use the selected section's ID (or a null assignment
 under No section), including Board subgroups. If task creation fails,
 the temporary card is removed instead of leaving a work item with an undefined
 identifier.
+When grouped by Sections with empty groups enabled, List and Board show the
+section layout even before the first task is created. This keeps new sections
+and their Add task controls visible in empty projects.
 
 ## Your work
 
