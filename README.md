@@ -504,6 +504,8 @@ Blocked by lists tasks this work item depends on; Blocking lists tasks that depe
 on this work item. Adding either link automatically shows the reverse relationship
 on the other task. Dependency chips display task names, with the work item
 identifier available in the tooltip.
+The Parent field also displays the parent task's name, with its identifier in
+the tooltip; opening or removing the parent link works as before.
 
 The relation picker adds new links only. It excludes the current task and tasks
 already linked in either direction. With only two tasks already linked, an empty
