@@ -17,6 +17,7 @@ import { ProfileIssuesListLayout } from "@/components/issues/issue-layouts/list/
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import { WorkspaceLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/workspace-level";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
+import { PersonalTasks } from "./personal-tasks";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
@@ -65,6 +66,7 @@ export const ProfileIssuesPage = observer(function ProfileIssuesPage(props: Prop
             <div className="flex h-full w-full flex-col">
               {profileWorkItemsFilter && <WorkItemFiltersRow filter={profileWorkItemsFilter} />}
               <div className="relative h-full w-full overflow-auto">
+                {(type === "assigned" || type === "created") && <PersonalTasks />}
                 {activeLayout === "list" ? (
                   <ProfileIssuesListLayout />
                 ) : activeLayout === "kanban" ? (

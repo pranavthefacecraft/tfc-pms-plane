@@ -499,10 +499,29 @@ identifier.
 
 The Assigned, Created, and Subscribed tabs on your own Your work page include
 an Add work item button beside the layout and display controls. It opens the
-standard task creation dialog, where you choose a project and task details.
-The button is available to workspace admins and members, and is disabled
-when you have not joined any projects. Other users' profiles and the Summary
-and Activity tabs are unchanged.
+personal task dialog with no project required. Use Create in a project instead
+to open the standard project task dialog; entered text, priority, and dates
+are preserved. The button is available to workspace admins and members,
+including members who have not joined any projects. Other users' profiles
+and the Summary and Activity tabs are unchanged.
+
+Personal tasks are workspace-scoped and private to their creator, including
+against other workspace admins. A separate Personal tasks section above
+project tasks on your Assigned and Created tabs supports editing, completion,
+reopening, and confirmed deletion. It remains a list in both List and Board
+layouts; project filters and display settings apply only to project tasks.
+Personal tasks support a name, plain-text description, priority, start date,
+and due date. They do not have project-only sections, labels, dependencies,
+comments, cycles, or modules until moved into a project.
+
+Move to project requires active member/admin access to an unarchived project
+in the same workspace and warns that project members will gain visibility.
+The move atomically creates a project work item assigned to you, uses the
+project's default section, preserves dates, priority, description, and
+completion, and removes the item from the personal list. Completed tasks need
+a completed state in the destination; open tasks need an open state. Repeated
+move requests cannot create duplicate project tasks. Existing project tasks
+and their schema are unchanged; migration 0134 adds the separate personal task table.
 
 ## Work item dependencies
 

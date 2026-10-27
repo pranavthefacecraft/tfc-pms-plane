@@ -3,6 +3,11 @@
 # See the LICENSE file for details.
 
 from django.urls import path
+from plane.app.views.workspace.personal_task import (
+    PersonalTasksEndpoint,
+    PersonalTaskEndpoint,
+    MovePersonalTaskEndpoint,
+)
 
 
 from plane.app.views import (
@@ -41,6 +46,13 @@ from plane.app.views import (
 
 
 urlpatterns = [
+    path("workspaces/<str:slug>/personal-tasks/", PersonalTasksEndpoint.as_view(), name="personal-tasks"),
+    path("workspaces/<str:slug>/personal-tasks/<uuid:pk>/", PersonalTaskEndpoint.as_view(), name="personal-task"),
+    path(
+        "workspaces/<str:slug>/personal-tasks/<uuid:pk>/move/",
+        MovePersonalTaskEndpoint.as_view(),
+        name="move-personal-task",
+    ),
     path(
         "workspace-slug-check/",
         WorkSpaceAvailabilityCheckEndpoint.as_view(),
