@@ -451,7 +451,7 @@ records, not workflow states: creating, renaming, reordering or deleting one
 does not change work-item status or completion. Project admins and members
 can create a section with a name only and use Manage sections to rename it,
 move it up/down, or delete it after confirmation. Deletion keeps its tasks and
-moves them to Untitled section, including archived tasks and drafts.
+moves them to No section, including archived tasks and drafts.
 
 Add section and Manage sections also offer an optional icon picker and icon
 color. Select an icon, choose its color, and save; existing sections can update
@@ -479,13 +479,19 @@ Guests can view sections but cannot manage them. Archived projects and
 completed cycles do not expose section management in their layout footer.
 
 This feature requires migration `0131_project_sections` and updated API and web
-services. No states or existing work items are migrated into sections
-automatically; unassigned work items appear under Untitled section. This label
-represents unassigned tasks, not a stored section; task statuses and assignments
-are unchanged by the display name.
+services. Task statuses remain independent of section assignment.
+Migration `0133_default_project_sections` creates a real
+Untitled section in existing projects and assigns previously unassigned tasks
+and drafts to it without changing their statuses. New projects also get this
+default section. It can be renamed, reordered, given an icon/color, or deleted
+in Manage sections like any other section. New tasks and drafts without a section
+use the project's default section while it exists. Explicitly choosing No section,
+clearing an existing task's section, or deleting a section keeps tasks unassigned.
+Deleting the default does not recreate it; subsequent unassigned tasks remain
+under No section.
 
 List and Board quick-add use the selected section's ID (or a null assignment
-under Untitled section), including Board subgroups. If task creation fails,
+under No section), including Board subgroups. If task creation fails,
 the temporary card is removed instead of leaving a work item with an undefined
 identifier.
 

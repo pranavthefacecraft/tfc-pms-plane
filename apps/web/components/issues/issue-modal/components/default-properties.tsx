@@ -97,6 +97,7 @@ export const IssueDefaultProperties = observer(function IssueDefaultProperties(p
               workspaceSlug={workspaceSlug}
               projectId={projectId}
               value={value}
+              useProjectDefault={!id}
               onChange={(sectionId) => {
                 onChange(sectionId);
                 handleFormChange();

@@ -174,7 +174,7 @@ const getSectionColumns = ({ projectId }: TGetColumns): IGroupByColumn[] => {
     })),
     {
       id: "None",
-      name: "Untitled section",
+      name: "No section",
       payload: { section_id: null },
       icon: <ModuleOutline className="size-3.5" />,
     },

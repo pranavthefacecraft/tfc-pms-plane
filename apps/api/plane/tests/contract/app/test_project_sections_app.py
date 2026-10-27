@@ -75,7 +75,8 @@ def test_section_crud_is_project_scoped_and_returns_section_fields(
     assert response.status_code == status.HTTP_201_CREATED
     section_id = response.data["id"]
     assert response.data == {
-        "id": section_id, "name": "Planning", "sort_order": 10.0, "icon": "", "icon_color": "#6d7b8a"
+        "id": section_id, "name": "Planning", "sort_order": 10.0,
+        "icon": "", "icon_color": "#6d7b8a", "is_default": False
     }
     assert (
         session_client.post(collection_url, {"name": "x" * 101}, format="json").status_code
@@ -84,13 +85,15 @@ def test_section_crud_is_project_scoped_and_returns_section_fields(
 
     response = session_client.get(collection_url)
     assert response.status_code == status.HTTP_200_OK
-    assert [item["id"] for item in response.data] == [section_id]
+    assert {str(item["id"]) for item in response.data} == {
+        str(section_id), str(Section.objects.get(project=project, is_default=True).id)
+    }
 
     detail_url = f"{collection_url}{section_id}/"
     response = session_client.patch(detail_url, {"name": "Design", "sort_order": 20}, format="json")
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {
-        "id": section_id, "name": "Design", "sort_order": 20.0, "icon": "", "icon_color": "#6d7b8a"
+        "id": section_id, "name": "Design", "sort_order": 20.0, "icon": "", "icon_color": "#6d7b8a", "is_default": False
     }
 
     other_detail_url = f"{collection_url}{other_section.id}/"
@@ -120,7 +123,7 @@ def test_section_icon_and_color_persist_and_can_be_changed(session_client, works
     section_id = response.data["id"]
     assert response.data["icon"] == icon
     assert response.data["icon_color"] == "#ff0088"
-    assert session_client.get(url).data[0]["icon"] == icon
+    assert next(item for item in session_client.get(url).data if item["id"] == section_id)["icon"] == icon
     detail = f"{url}{section_id}/"
     response = session_client.patch(detail, {"icon_color": "#123abc"}, format="json")
     assert response.status_code == status.HTTP_200_OK
@@ -340,6 +343,7 @@ def test_section_group_filter_supports_uuid_and_unassigned_values(
 
         assert {str(group_id) for group_id in issue_group_values("section_id", workspace.slug, project.id)} == {
             str(section.id),
+            str(Section.objects.get(project=project, is_default=True).id),
             "None",
         }
 

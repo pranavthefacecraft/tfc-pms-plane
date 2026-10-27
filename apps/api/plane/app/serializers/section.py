@@ -14,5 +14,5 @@ class SectionSerializer(BaseSerializer):
 
     class Meta:
         model = Section
-        fields = ["id", "name", "sort_order", "icon", "icon_color"]
-        read_only_fields = ["id"]
+        fields = ["id", "name", "sort_order", "icon", "icon_color", "is_default"]
+        read_only_fields = ["id", "is_default"]

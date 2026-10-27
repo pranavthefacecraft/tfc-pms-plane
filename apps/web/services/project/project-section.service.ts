@@ -13,6 +13,7 @@ export type TProjectSection = {
   sort_order: number;
   icon?: string;
   icon_color?: string;
+  is_default?: boolean;
 };
 
 export type TSectionAppearance = { icon: string; icon_color: string };

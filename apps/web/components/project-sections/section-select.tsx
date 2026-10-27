@@ -18,12 +18,14 @@ export const SectionSelect = observer(function SectionSelect({
   value,
   onChange,
   disabled = false,
+  useProjectDefault = false,
 }: {
   workspaceSlug: string;
   projectId: string;
   value?: string | null;
   onChange: (sectionId: string | null) => Promise<unknown> | void;
   disabled?: boolean;
+  useProjectDefault?: boolean;
 }) {
   const store = useProjectSection();
   const id = useId();
@@ -32,6 +34,8 @@ export const SectionSelect = observer(function SectionSelect({
     store.fetch(workspaceSlug, projectId)
   );
   const sections = store.getSections(workspaceSlug, projectId);
+  const selectedValue =
+    useProjectDefault && value === undefined ? sections.find((section) => section.is_default)?.id : value;
   const assign = async (sectionId: string | null) => {
     setSaving(true);
     try {
@@ -45,17 +49,17 @@ export const SectionSelect = observer(function SectionSelect({
   };
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1">
-      {value && <SectionIcon section={sections.find((section) => section.id === value)} />}
+      {selectedValue && <SectionIcon section={sections.find((section) => section.id === selectedValue)} />}
       <select
         aria-label="Section"
         aria-describedby={error ? id : undefined}
-        value={value ?? ""}
+        value={selectedValue ?? ""}
         onClick={(event) => event.stopPropagation()}
         disabled={disabled || saving || isLoading || Boolean(error)}
         className="max-w-full rounded border border-subtle bg-surface-1 px-2 py-1 text-12 text-secondary"
         onChange={(event) => void assign(event.target.value || null)}
       >
-        <option value="">Untitled section</option>
+        <option value="">No section</option>
         {value && !sections.some((section) => section.id === value) && <option value={value}>Current section</option>}
         {sections.map((section) => (
           <option key={section.id} value={section.id}>

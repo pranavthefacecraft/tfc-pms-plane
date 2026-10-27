@@ -28,7 +28,7 @@ from plane.db.models import (
     EstimatePoint,
     Section,
 )
-from plane.utils.section import is_active_section_in_project
+from plane.utils.section import apply_default_section, is_active_section_in_project
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
@@ -190,6 +190,7 @@ class IssueSerializer(BaseSerializer):
             issue_type = IssueType.objects.filter(project_issue_types__project_id=project_id, is_default=True).first()
             issue_type = issue_type
 
+        apply_default_section(validated_data, project_id)
         issue = Issue.objects.create(**validated_data, project_id=project_id, type=issue_type)
 
         # Issue Audit Users

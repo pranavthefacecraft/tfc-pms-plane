@@ -65,7 +65,7 @@ vi.mock("@/hooks/store/use-project", () => ({
 vi.mock("@/hooks/store/use-project-section", () => ({
   useProjectSection: () => ({
     getSections: () => [
-      { id: "design", name: "Design", sort_order: 10000 },
+      { id: "design", name: "Design", sort_order: 10000, is_default: true },
       { id: "dev", name: "Development", sort_order: 20000 },
     ],
     create: state.create,
@@ -105,6 +105,22 @@ afterEach(async () => {
   Reflect.deleteProperty(Element.prototype, "getAnimations");
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+});
+
+it("shows the renamed project default for new tasks but preserves an explicit No section choice", async () => {
+  const change = vi.fn();
+  await act(() =>
+    root.render(<SectionSelect workspaceSlug="workspace" projectId="project" onChange={change} useProjectDefault />)
+  );
+  expect(host.querySelector("select")!.value).toBe("design");
+  expect(change).not.toHaveBeenCalled();
+  await act(() =>
+    root.render(
+      <SectionSelect workspaceSlug="workspace" projectId="project" value={null} onChange={change} useProjectDefault />
+    )
+  );
+  expect(host.querySelector("select")!.value).toBe("");
+  expect(host.querySelector("select")!.selectedOptions[0].textContent).toBe("No section");
 });
 function button(label: string) {
   const result = Array.from(document.querySelectorAll("button")).find(
@@ -345,7 +361,7 @@ it("confirms deletion, keeps tasks and reloads the active view", async () => {
   await act(() => button("Manage sections").click());
   await act(() => button("Delete Design").click());
   expect(state.remove).not.toHaveBeenCalled();
-  expect(document.body.textContent).toContain("tasks will be kept under Untitled section");
+  expect(document.body.textContent).toContain("tasks will be kept under No section");
   await act(() => button("Delete section").click());
   expect(state.remove).toHaveBeenCalledWith("workspace", "project", "design");
   expect(state.fetchIssues).toHaveBeenCalledWith("mutation", { canGroup: true, perPageCount: 50 }, "project");
@@ -395,7 +411,7 @@ it("assigns and clears sections independently from status", async () => {
   const change = vi.fn();
   await act(() => root.render(<SectionSelect workspaceSlug="workspace" projectId="project" onChange={change} />));
   const select = host.querySelector("select")!;
-  expect(select.options[0].textContent).toBe("Untitled section");
+  expect(select.options[0].textContent).toBe("No section");
   expect(select.options[0].value).toBe("");
   expect(select.value).toBe("");
   await act(() => {

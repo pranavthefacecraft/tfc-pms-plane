@@ -46,12 +46,12 @@ vi.mock("@/store/issue/helpers/base-issues.store", () => ({
   ISSUE_FILTER_DEFAULT_DATA: { section: "section_id", state: "state_id" },
 }));
 
-it("renders independent sections and a separate Untitled section column", () => {
+it("renders independent sections and a separate No section column", () => {
   const columns = getGroupByColumns({ groupBy: "section", includeNone: true, isWorkspaceLevel: false });
   expect(columns?.map(({ id, name, payload }) => ({ id, name, payload }))).toEqual([
     { id: "design", name: "Design", payload: { section_id: "design" } },
     { id: "dev", name: "Development", payload: { section_id: "dev" } },
-    { id: "None", name: "Untitled section", payload: { section_id: null } },
+    { id: "None", name: "No section", payload: { section_id: null } },
   ]);
   expect(columns?.[0].icon).toHaveProperty("props.section.icon", "palette");
   expect(columns?.[0].icon).toHaveProperty("props.section.icon_color", "#ff0088");

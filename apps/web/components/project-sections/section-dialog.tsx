@@ -214,8 +214,7 @@ export const SectionDialog = observer(function SectionDialog({
             {deleting && (
               <div className="mt-4 space-y-2 rounded border border-subtle p-3">
                 <p className="text-13">
-                  Delete "{deleting.name}"? Its tasks will be kept under Untitled section. Their statuses will not
-                  change.
+                  Delete "{deleting.name}"? Its tasks will be kept under No section. Their statuses will not change.
                 </p>
                 <Button
                   variant="danger"

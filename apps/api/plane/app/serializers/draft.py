@@ -24,7 +24,7 @@ from plane.db.models import (
     EstimatePoint,
     Section,
 )
-from plane.utils.section import is_active_section_in_project
+from plane.utils.section import apply_default_section, is_active_section_in_project
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
@@ -166,6 +166,7 @@ class DraftIssueCreateSerializer(BaseSerializer):
         project_id = self.context["project_id"]
 
         # Create Issue
+        apply_default_section(validated_data, project_id)
         issue = DraftIssue.objects.create(**validated_data, workspace_id=workspace_id, project_id=project_id)
 
         # Issue Audit Users

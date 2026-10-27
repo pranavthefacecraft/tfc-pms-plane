@@ -189,6 +189,10 @@ class Project(BaseModel):
             with transaction.atomic():
                 result = super().save(*args, **kwargs)
                 ProjectCustomField.create_defaults(self)
+                Section.objects.create(
+                    project=self, workspace_id=self.workspace_id, name="Untitled section", is_default=True,
+                    sort_order=0,
+                )
                 return result
         return super().save(*args, **kwargs)
 
@@ -210,10 +214,18 @@ class Section(ProjectBaseModel):
     sort_order = models.FloatField(default=65535)
     icon = models.CharField(max_length=100, blank=True, default="")
     icon_color = models.CharField(max_length=7, default="#6d7b8a")
+    is_default = models.BooleanField(default=False)
 
     class Meta:
         db_table = "project_sections"
         ordering = ("sort_order", "name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project"],
+                condition=Q(is_default=True, deleted_at__isnull=True),
+                name="one_active_default_section_per_project",
+            ),
+        ]
 
 
 class ProjectMemberInvite(ProjectBaseModel):
