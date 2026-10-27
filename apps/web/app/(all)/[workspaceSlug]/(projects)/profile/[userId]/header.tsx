@@ -7,13 +7,14 @@
 // ui
 import { observer } from "mobx-react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronDownOutline, RightSidePaneOutline, YourWorkOutline } from "@makeplane/propel/icons";
+import { AddOutline, ChevronDownOutline, RightSidePaneOutline, YourWorkOutline } from "@makeplane/propel/icons";
 import { PROFILE_VIEWER_TAB, PROFILE_ADMINS_TAB, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { IUserProfileProjectSegregation } from "@plane/types";
 import { Breadcrumbs } from "@plane/blocks/breadcrumb";
 import { Header } from "@plane/blocks/layout";
 import { Icon } from "@makeplane/propel/components/icon";
+import { Button } from "@makeplane/propel/components/button";
 import { IconButton } from "@makeplane/propel/components/icon-button";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/components/menu";
 import { cn } from "@plane/utils";
@@ -22,6 +23,8 @@ import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ProfileIssuesFilter } from "@/components/profile/profile-issues-filter";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { useCommandPalette } from "@/hooks/store/use-command-palette";
+import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 
 type TUserProfileHeader = {
@@ -37,6 +40,8 @@ export const UserProfileHeader = observer(function UserProfileHeader(props: TUse
   const router = useRouter();
   // store hooks
   const { toggleProfileSidebar, profileSidebarCollapsed } = useAppTheme();
+  const { toggleCreateIssueModal } = useCommandPalette();
+  const { joinedProjectIds } = useProject();
   const { data: currentUser } = useUser();
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   const { t } = useTranslation();
@@ -72,6 +77,17 @@ export const UserProfileHeader = observer(function UserProfileHeader(props: TUse
         </Breadcrumbs>
       </Header.LeftItem>
       <Header.RightItem>
+        {isCurrentUser && isAuthorized && showProfileIssuesFilter && (
+          <Button
+            variant="primary"
+            size="md"
+            stretch="auto"
+            label={t("add_work_item")}
+            icon={<AddOutline className="size-4" />}
+            disabled={joinedProjectIds.length === 0}
+            onClick={() => toggleCreateIssueModal(true)}
+          />
+        )}
         <div className="hidden md:flex md:items-center">{showProfileIssuesFilter && <ProfileIssuesFilter />}</div>
         <div className="flex gap-4 md:hidden">
           <Menu>

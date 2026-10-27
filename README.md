@@ -495,6 +495,15 @@ under No section), including Board subgroups. If task creation fails,
 the temporary card is removed instead of leaving a work item with an undefined
 identifier.
 
+## Your work
+
+The Assigned, Created, and Subscribed tabs on your own Your work page include
+an Add work item button beside the layout and display controls. It opens the
+standard task creation dialog, where you choose a project and task details.
+The button is available to workspace admins and members, and is disabled
+when you have not joined any projects. Other users' profiles and the Summary
+and Activity tabs are unchanged.
+
 ## Work item dependencies
 
 The task preview Properties panel hides the built-in State row. This is a
