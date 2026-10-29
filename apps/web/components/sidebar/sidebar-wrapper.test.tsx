@@ -37,6 +37,7 @@ it("retains the Community button inside a hidden footer without hiding navigatio
   expect(community?.parentElement?.hidden).toBe(true);
   expect(community?.parentElement?.classList.contains("hidden")).toBe(true);
   expect(host.querySelector("a")?.closest("[hidden]")).toBeNull();
+  expect(host.querySelector('img[alt="PMS by Clevdex"]')).toBeNull();
 });
 
 it("places the workspace header before navigation and quick actions outside the scroll area", () => {
@@ -51,12 +52,19 @@ it("places the workspace header before navigation and quick actions outside the 
     </SidebarWrapper>
   );
   const header = host.querySelector('[data-testid="workspace-switcher"]');
+  const logo = host.querySelector('img[alt="PMS by Clevdex"]');
   const create = host.querySelector('[data-testid="create"]');
   const navigation = host.querySelector("a");
   expect(header).not.toBeNull();
+  expect(logo?.getAttribute("src")).toBe("/clevdex-pms-lockup.svg");
+  expect(logo?.getAttribute("width")).toBe("184");
+  expect(logo?.getAttribute("height")).toBe("40");
   expect(create).not.toBeNull();
   expect(navigation).not.toBeNull();
-  if (!header || !create || !navigation) throw new Error("Sidebar header, action or navigation missing");
+  if (!logo || !header || !create || !navigation) throw new Error("Sidebar logo, header, action or navigation missing");
+  expect(logo.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(logo.closest("button, a")).toBeNull();
+  expect(logo.parentElement?.classList.contains("bg-white")).toBe(true);
   expect(header.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(create.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(header.parentElement?.classList.contains("shrink-0")).toBe(true);

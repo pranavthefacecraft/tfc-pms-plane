@@ -49,7 +49,20 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
     <>
       <CustomizeNavigationDialog isOpen={isCustomizeNavDialogOpen} onClose={() => setIsCustomizeNavDialogOpen(false)} />
       <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
-        {header && <div className="mb-3 shrink-0 px-3 pb-3">{header}</div>}
+        {header && (
+          <div className="mb-3 flex shrink-0 flex-col gap-3 px-3 pb-3">
+            <div className="rounded-md bg-white p-2">
+              <img
+                src="/clevdex-pms-lockup.svg"
+                alt="PMS by Clevdex"
+                width={184}
+                height={40}
+                className="h-auto max-w-full"
+              />
+            </div>
+            {header}
+          </div>
+        )}
         <div className="flex flex-col gap-3 px-3">
           {/* Workspace switcher and settings */}
 

@@ -115,8 +115,9 @@ bounds still apply. Historical filters and calendar browsing are unchanged.
 Workspace layouts have no outer left, right or bottom padding; page-specific
 content spacing is unchanged.
 
-The workspace switcher sits at the top of the project sidebar without a divider
-underneath. New work item sits below the personal links (Home, Drafts, Your work)
+The supplied PMS by Clevdex SVG logo sits above the workspace switcher in the
+project sidebar, with a white backing to preserve its colors in either theme.
+The workspace switcher has no divider underneath. New work item sits below the personal links (Home, Drafts, Your work)
 and above the Workspace section. Inbox also appears directly below Home in the
 sidebar, with an unread badge, and opens notifications and received messages.
 Search, Inbox and profile remain available in a top bar
