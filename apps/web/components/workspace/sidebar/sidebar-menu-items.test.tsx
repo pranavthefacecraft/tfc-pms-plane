@@ -29,24 +29,40 @@ vi.mock("@makeplane/propel/components/collapsible", () => ({
 vi.mock("./sidebar-item", () => ({
   SidebarItemBase: ({ item }: { item: { key: string } }) => <a href={`/${item.key}`}>{item.key}</a>,
 }));
-vi.mock("./sidebar-tool-menu", () => ({ SidebarToolMenu: () => <div>Tool</div> }));
+vi.mock("./sidebar-tool-menu", () => ({ SidebarToolMenu: () => <div>Tools</div> }));
 vi.mock("./quick-actions", () => ({ SidebarQuickActions: () => <button>New work item</button> }));
 
-it("places creation after personal links and before Workspace", () => {
+it("keeps Tools visible while retaining creation and Workspace in a hidden container", () => {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(<SidebarMenuItems />);
   const personal = host.firstElementChild;
-  const action = personal?.nextElementSibling;
+  const tools = personal?.nextElementSibling;
+  const hiddenSection = tools?.nextElementSibling;
+  const action = hiddenSection?.firstElementChild;
+  expect(tools?.textContent).toBe("Tools");
   expect(personal?.querySelectorAll("a").length).toBeGreaterThan(1);
   expect(action?.textContent).toBe("New work item");
   expect(action?.nextElementSibling?.textContent).toContain("common.workspace");
+  expect(hiddenSection?.hasAttribute("hidden")).toBe(true);
+  expect(hiddenSection?.classList.contains("hidden")).toBe(true);
+  expect(tools?.closest("[hidden]")).toBeNull();
+  expect(host.querySelector('a[href="/projects"]')?.closest("[hidden]")).toBe(hiddenSection);
+  expect(host.querySelector("#extended-sidebar-toggle")?.closest("[hidden]")).toBe(hiddenSection);
   expect(host.querySelectorAll("button").length).toBe(2);
 });
 
-it("always lists Inbox directly after Home, ahead of optional personal links", () => {
+it("retains Inbox and Drafts but hides only their sidebar entries", () => {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(<SidebarMenuItems />);
   const personalLinks = Array.from(host.firstElementChild?.querySelectorAll("a") ?? []);
   expect(personalLinks.slice(0, 2).map((link) => link.textContent)).toEqual(["home", "inbox"]);
   expect(personalLinks.filter((link) => link.textContent === "inbox")).toHaveLength(1);
+  for (const key of ["inbox", "drafts"]) {
+    const link = host.querySelector(`a[href="/${key}"]`);
+    expect(link).not.toBeNull();
+    expect(link?.parentElement?.hidden).toBe(true);
+    expect(link?.parentElement?.classList.contains("hidden")).toBe(true);
+  }
+  const visibleLinks = personalLinks.filter((link) => !link.closest("[hidden]"));
+  expect(visibleLinks.map((link) => link.textContent)).toEqual(["home", "your_work"]);
 });

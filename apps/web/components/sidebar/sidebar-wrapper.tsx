@@ -18,6 +18,7 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 // plane web components
 import { WorkspaceEditionBadge } from "@/components/workspace/edition-badge";
 import { AppSidebarToggleButton } from "./sidebar-toggle-button";
+import { SidebarFooter } from "./sidebar-footer";
 import { IconButton } from "@makeplane/propel/components/icon-button";
 import { Icon } from "@makeplane/propel/components/icon";
 
@@ -51,22 +52,34 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
       <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
         {header && (
           <div className="mb-3 flex shrink-0 flex-col gap-3 px-3 pb-3">
-            <div className="rounded-md bg-white p-2">
-              <img
-                src="/clevdex-pms-lockup.svg"
-                alt="PMS by Clevdex"
-                width={184}
-                height={40}
-                className="h-auto max-w-full"
-              />
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 rounded-md bg-white">
+                <img
+                  src="/clevdex-pms-lockup.svg"
+                  alt="PMS by Clevdex"
+                  width={184}
+                  height={40}
+                  className="h-auto max-w-full"
+                />
+              </div>
+              <div className="shrink-0">
+                <AppSidebarToggleButton />
+              </div>
             </div>
-            {header}
+            {/* Keep the workspace switcher mounted for future use, but hide it from the sidebar. */}
+            <div hidden className="hidden">
+              {header}
+            </div>
           </div>
         )}
         <div className="flex flex-col gap-3 px-3">
           {/* Workspace switcher and settings */}
 
-          <div className="flex items-center justify-between gap-2 px-2">
+          {/* Retain the Projects heading and customization control for future use. */}
+          <div
+            hidden={title === "Projects"}
+            className={title === "Projects" ? "hidden" : "flex items-center justify-between gap-2 px-2"}
+          >
             <span className="pt-1 text-16 font-medium text-primary">{title}</span>
             <div className="flex items-center gap-2">
               {title === "Projects" && (
@@ -78,16 +91,19 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
                   onClick={() => setIsCustomizeNavDialogOpen(true)}
                 />
               )}
-              <AppSidebarToggleButton />
+              {!header && <AppSidebarToggleButton />}
             </div>
           </div>
           {/* Quick actions */}
           {quickActions}
         </div>
 
-        <ScrollArea orientation="vertical">
-          <div className="flex flex-col gap-3 overflow-x-hidden px-3 pt-3 pb-0.5">{children}</div>
-        </ScrollArea>
+        <div className="min-h-0 flex-1">
+          <ScrollArea orientation="vertical">
+            <div className="flex flex-col gap-3 overflow-x-hidden px-3 pt-3 pb-0.5">{children}</div>
+          </ScrollArea>
+        </div>
+        <SidebarFooter />
         {/* Community footer is temporarily hidden; retain it for later use. */}
         <div hidden className="hidden h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
           <WorkspaceEditionBadge />

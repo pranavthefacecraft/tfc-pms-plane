@@ -24,7 +24,9 @@ function WorkspaceDashboardPage() {
 
   return (
     <>
-      <AppHeader header={<WorkspaceDashboardHeader />} />
+      <div hidden className="hidden">
+        <AppHeader header={<WorkspaceDashboardHeader />} />
+      </div>
       <ContentWrapper>
         <PageHead title={pageTitle} />
         <WorkspaceHomeView />

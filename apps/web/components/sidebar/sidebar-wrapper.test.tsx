@@ -17,7 +17,10 @@ vi.mock("@/hooks/store/use-app-theme", () => ({
 }));
 vi.mock("@/hooks/use-window-size", () => ({ default: () => [1200, 800] }));
 vi.mock("@/components/navigation/customize-navigation-dialog", () => ({ CustomizeNavigationDialog: () => null }));
-vi.mock("./sidebar-toggle-button", () => ({ AppSidebarToggleButton: () => null }));
+vi.mock("./sidebar-toggle-button", () => ({
+  AppSidebarToggleButton: () => <button data-testid="sidebar-toggle">Toggle sidebar</button>,
+}));
+vi.mock("./sidebar-footer", () => ({ SidebarFooter: () => <footer>Help Center and Logout Account</footer> }));
 vi.mock("@makeplane/propel/components/scroll-area", () => ({
   ScrollArea: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
@@ -32,15 +35,17 @@ it("retains the Community button inside a hidden footer without hiding navigatio
       <a href="/projects">Projects</a>
     </SidebarWrapper>
   );
-  const community = host.querySelector("button");
+  const community = host.querySelector("[hidden] button");
   expect(community?.textContent).toBe("Community");
   expect(community?.parentElement?.hidden).toBe(true);
   expect(community?.parentElement?.classList.contains("hidden")).toBe(true);
   expect(host.querySelector("a")?.closest("[hidden]")).toBeNull();
   expect(host.querySelector('img[alt="PMS by Clevdex"]')).toBeNull();
+  expect(host.querySelectorAll('[data-testid="sidebar-toggle"]')).toHaveLength(1);
+  expect(host.querySelector("span")?.parentElement?.querySelector('[data-testid="sidebar-toggle"]')).not.toBeNull();
 });
 
-it("places the workspace header before navigation and quick actions outside the scroll area", () => {
+it("retains the hidden workspace switcher without hiding the logo, toggle or navigation", () => {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(
     <SidebarWrapper
@@ -55,6 +60,7 @@ it("places the workspace header before navigation and quick actions outside the 
   const logo = host.querySelector('img[alt="PMS by Clevdex"]');
   const create = host.querySelector('[data-testid="create"]');
   const navigation = host.querySelector("a");
+  const toggle = host.querySelector('[data-testid="sidebar-toggle"]');
   expect(header).not.toBeNull();
   expect(logo?.getAttribute("src")).toBe("/clevdex-pms-lockup.svg");
   expect(logo?.getAttribute("width")).toBe("184");
@@ -65,8 +71,26 @@ it("places the workspace header before navigation and quick actions outside the 
   expect(logo.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(logo.closest("button, a")).toBeNull();
   expect(logo.parentElement?.classList.contains("bg-white")).toBe(true);
+  expect(host.querySelectorAll('[data-testid="sidebar-toggle"]')).toHaveLength(1);
+  expect(toggle?.parentElement?.previousElementSibling).toBe(logo.parentElement);
+  expect(toggle?.parentElement?.parentElement?.classList.contains("flex")).toBe(true);
+  expect(toggle?.parentElement?.classList.contains("shrink-0")).toBe(true);
   expect(header.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(create.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(header.parentElement?.classList.contains("shrink-0")).toBe(true);
-  expect(header.parentElement?.classList.contains("border-b")).toBe(false);
+  expect(header.parentElement?.hidden).toBe(true);
+  expect(header.parentElement?.classList.contains("hidden")).toBe(true);
+  expect(logo.closest("[hidden]")).toBeNull();
+  expect(toggle?.closest("[hidden]")).toBeNull();
+  expect(create.closest("[hidden]")).toBeNull();
+  expect(navigation.closest("[hidden]")).toBeNull();
+  expect(host.querySelector("footer")?.closest("[hidden]")).toBeNull();
+  expect(
+    navigation.compareDocumentPosition(host.querySelector("footer")!) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
+  const heading = Array.from(host.querySelectorAll("span")).find((element) => element.textContent === "Projects");
+  const customize = host.querySelector('button[aria-label="customize_navigation"]');
+  expect(heading?.parentElement?.hidden).toBe(true);
+  expect(heading?.parentElement?.classList.contains("hidden")).toBe(true);
+  expect(customize).not.toBeNull();
+  expect(customize?.closest("[hidden]")).toBe(heading?.parentElement);
 });

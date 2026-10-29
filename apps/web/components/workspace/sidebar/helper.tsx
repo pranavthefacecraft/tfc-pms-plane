@@ -9,19 +9,18 @@ import {
   ArchiveOutline,
   CyclesOutline,
   DraftsOutline,
-  HomeOutline,
   InboxOutline,
   MultipleStickyOutline,
   ProjectsOutline,
   ViewsOutline,
-  YourWorkOutline,
 } from "@makeplane/propel/icons";
+import { Activity, List } from "lucide-react";
 import { cn } from "@plane/utils";
 
 export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
   switch (key) {
     case "home":
-      return <HomeOutline className={cn("size-4 flex-shrink-0", className)} />;
+      return <Activity className={cn("size-4 flex-shrink-0", className)} />;
     case "inbox":
       return <InboxOutline className={cn("size-4 flex-shrink-0", className)} />;
     case "projects":
@@ -33,7 +32,7 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
     case "analytics":
       return <AnalyticsOutline className={cn("size-4 flex-shrink-0", className)} />;
     case "your_work":
-      return <YourWorkOutline className={cn("size-4 flex-shrink-0", className)} />;
+      return <List className={cn("size-4 flex-shrink-0", className)} />;
     case "drafts":
       return <DraftsOutline className={cn("size-4 flex-shrink-0", className)} />;
     case "archives":

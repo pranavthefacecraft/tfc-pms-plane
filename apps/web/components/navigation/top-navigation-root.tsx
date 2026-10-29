@@ -7,14 +7,14 @@
 // components
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@plane/utils";
 import { TopNavPowerK } from "@/components/navigation";
 import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { Tooltip } from "@makeplane/propel/components/tooltip";
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
-import { InboxOutline } from "@makeplane/propel/icons";
+import { Bell } from "lucide-react";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { TopNavCreateMenu } from "./create-menu";
@@ -49,13 +49,17 @@ export const TopNavigationRoot = observer(function TopNavigationRoot({
   return (
     <div
       className={cn(
-        "z-[27] flex min-h-10 w-full items-center gap-3 bg-[#fafafa] px-3.5 transition-all duration-300 dark:bg-surface-1",
+        "z-[27] flex min-h-10 w-full shrink-0 items-center gap-3 border-b border-[#E2E6EF] bg-[#ffffff] px-3.5 py-4 transition-all duration-300 dark:border-subtle dark:bg-surface-1",
         {
           "px-2": !showLabel,
         }
       )}
     >
-      {workspaceSlug && <TopNavCreateMenu workspaceSlug={workspaceSlug.toString()} />}
+      {workspaceSlug && (
+        <div hidden className="hidden">
+          <TopNavCreateMenu workspaceSlug={workspaceSlug.toString()} />
+        </div>
+      )}
       {/* Workspace Menu */}
       {showWorkspaceMenu && (
         <div className="min-w-0 flex-1">
@@ -67,26 +71,20 @@ export const TopNavigationRoot = observer(function TopNavigationRoot({
         <TopNavPowerK />
       </div>
       {/* Additional Actions */}
-      <div className="ml-auto flex shrink-0 items-center justify-end gap-1">
+      <div className="ml-auto flex shrink-0 items-center justify-end gap-3">
         <Tooltip label="Inbox" side="bottom">
-          <AppSidebarItem
-            variant="link"
-            item={{
-              href: `/${workspaceSlug?.toString()}/notifications/`,
-              icon: (
-                <div className="relative">
-                  <InboxOutline className="size-5" />
-                  {totalNotifications > 0 && (
-                    <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />
-                  )}
-                </div>
-              ),
-              isActive: pathname?.includes("/notifications/"),
-            }}
-          />
+          <Link
+            href={`/${workspaceSlug?.toString()}/notifications/`}
+            aria-label="Notifications"
+            aria-current={pathname?.includes("/notifications/") ? "page" : undefined}
+            className="relative flex size-8 items-center justify-center rounded-lg border border-[#E2E6EF] text-[#3A4D66] hover:bg-layer-1 dark:border-subtle dark:text-secondary"
+          >
+            <Bell className="size-5" strokeWidth={2.5} />
+            {totalNotifications > 0 && <span className="absolute -top-1 -right-0.5 size-2 rounded-full bg-[#E5252A]" />}
+          </Link>
         </Tooltip>
         <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
-          <UserMenuRoot />
+          <UserMenuRoot showInitial />
         </div>
       </div>
     </div>

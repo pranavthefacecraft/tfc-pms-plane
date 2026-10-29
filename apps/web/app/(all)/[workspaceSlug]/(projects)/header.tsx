@@ -5,7 +5,8 @@
  */
 
 import { observer } from "mobx-react";
-import { HomeOutline, WidgetOutline } from "@makeplane/propel/icons";
+import { WidgetOutline } from "@makeplane/propel/icons";
+import { Activity } from "lucide-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@makeplane/propel/components/button";
@@ -32,7 +33,7 @@ export const WorkspaceDashboardHeader = observer(function WorkspaceDashboardHead
             <Breadcrumbs>
               <Breadcrumbs.Item
                 component={
-                  <BreadcrumbLink label={t("home.title")} icon={<HomeOutline className="h-4 w-4 text-tertiary" />} />
+                  <BreadcrumbLink label={t("activity")} icon={<Activity className="h-4 w-4 text-tertiary" />} />
                 }
               />
             </Breadcrumbs>

@@ -24,7 +24,7 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useUser } from "@/hooks/store/user";
 
-export const UserMenuRoot = observer(function UserMenuRoot() {
+export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false }: { showInitial?: boolean }) {
   // states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   // router
@@ -36,6 +36,9 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
   const { toggleProfileSettingsModal } = useCommandPalette();
   // derived values
   const isUserInstanceAdmin = false;
+  const userInitial = Array.from(
+    currentUser?.first_name?.trim() || currentUser?.display_name?.trim() || currentUser?.email?.trim() || ""
+  )[0]?.toUpperCase();
   // translation
   const { t } = useTranslation();
 
@@ -68,17 +71,23 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
               className="group flex flex-col items-center justify-center gap-0.5 text-tertiary"
               aria-label={t("aria_labels.projects_sidebar.open_user_menu")}
             >
-              <AppSidebarItem.Icon
-                icon={
-                  <Avatar
-                    alt={currentUser?.display_name}
-                    fallback={currentUser?.display_name?.[0]?.toUpperCase()}
-                    src={getFileURL(currentUser?.avatar_url ?? "")}
-                    size="xs"
-                  />
-                }
-                highlight={isUserMenuOpen}
-              />
+              {showInitial ? (
+                <span className="flex size-8 items-center justify-center rounded-full bg-[#135DDD] text-14 font-medium text-white">
+                  {userInitial}
+                </span>
+              ) : (
+                <AppSidebarItem.Icon
+                  icon={
+                    <Avatar
+                      alt={currentUser?.display_name}
+                      fallback={currentUser?.display_name?.[0]?.toUpperCase()}
+                      src={getFileURL(currentUser?.avatar_url ?? "")}
+                      size="xs"
+                    />
+                  }
+                  highlight={isUserMenuOpen}
+                />
+              )}
             </button>
           }
         />

@@ -103,53 +103,61 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
     <>
       <div className="flex flex-col gap-0.5">
         {filteredStaticNavigationItems.map((item) => (
-          <SidebarItemBase
+          <div
             key={item.key}
-            item={item}
-            additionalStaticItems={["inbox"]}
-            additionalRender={(itemKey, workspaceSlug) =>
-              itemKey === "inbox" ? <NotificationAppSidebarOption workspaceSlug={workspaceSlug} /> : null
-            }
-          />
+            hidden={item.key === "inbox" || item.key === "drafts"}
+            className={item.key === "inbox" || item.key === "drafts" ? "hidden" : undefined}
+          >
+            <SidebarItemBase
+              item={item}
+              additionalStaticItems={["inbox"]}
+              additionalRender={(itemKey, workspaceSlug) =>
+                itemKey === "inbox" ? <NotificationAppSidebarOption workspaceSlug={workspaceSlug} /> : null
+              }
+            />
+          </div>
         ))}
       </div>
-      <SidebarQuickActions />
-      <Collapsible
-        placement="sidebar"
-        open={!!isWorkspaceMenuOpen}
-        onOpenChange={toggleListDisclosure}
-        trigger={
-          <span className="text-13 font-semibold whitespace-nowrap text-placeholder">{t("common.workspace")}</span>
-        }
-      >
-        <div className="flex flex-col gap-0.5">
-          {WORKSPACE_SIDEBAR_STATIC_PINNED_NAVIGATION_ITEMS_LINKS.map((item, _index) => (
-            // oxlint-disable-next-line react/no-array-index-key
-            <SidebarItemBase key={`static_${_index}`} item={item} />
-          ))}
-          {sortedNavigationItems.map((item, _index) => (
-            // oxlint-disable-next-line react/no-array-index-key
-            <SidebarItemBase key={`dynamic_${_index}`} item={item} />
-          ))}
-          <SidebarNavItem>
-            <button
-              type="button"
-              onClick={() => toggleExtendedSidebar()}
-              className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
-              id="extended-sidebar-toggle"
-              aria-label={t(
-                isExtendedSidebarOpened
-                  ? "aria_labels.app_sidebar.close_extended_sidebar"
-                  : "aria_labels.app_sidebar.open_extended_sidebar"
-              )}
-            >
-              <MoreHorizontalOutline className="size-4 flex-shrink-0" />
-              <span>{isExtendedSidebarOpened ? "Hide" : "More"}</span>
-            </button>
-          </SidebarNavItem>
-        </div>
-      </Collapsible>
       <SidebarToolMenu />
+      {/* Retain creation and workspace navigation for future use. */}
+      <div hidden className="hidden">
+        <SidebarQuickActions />
+        <Collapsible
+          placement="sidebar"
+          open={!!isWorkspaceMenuOpen}
+          onOpenChange={toggleListDisclosure}
+          trigger={
+            <span className="text-13 font-semibold whitespace-nowrap text-placeholder">{t("common.workspace")}</span>
+          }
+        >
+          <div className="flex flex-col gap-0.5">
+            {WORKSPACE_SIDEBAR_STATIC_PINNED_NAVIGATION_ITEMS_LINKS.map((item, _index) => (
+              // oxlint-disable-next-line react/no-array-index-key
+              <SidebarItemBase key={`static_${_index}`} item={item} />
+            ))}
+            {sortedNavigationItems.map((item, _index) => (
+              // oxlint-disable-next-line react/no-array-index-key
+              <SidebarItemBase key={`dynamic_${_index}`} item={item} />
+            ))}
+            <SidebarNavItem>
+              <button
+                type="button"
+                onClick={() => toggleExtendedSidebar()}
+                className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
+                id="extended-sidebar-toggle"
+                aria-label={t(
+                  isExtendedSidebarOpened
+                    ? "aria_labels.app_sidebar.close_extended_sidebar"
+                    : "aria_labels.app_sidebar.open_extended_sidebar"
+                )}
+              >
+                <MoreHorizontalOutline className="size-4 flex-shrink-0" />
+                <span>{isExtendedSidebarOpened ? "Hide" : "More"}</span>
+              </button>
+            </SidebarNavItem>
+          </div>
+        </Collapsible>
+      </div>
     </>
   );
 });

@@ -117,9 +117,38 @@ content spacing is unchanged.
 
 The supplied PMS by Clevdex SVG logo sits above the workspace switcher in the
 project sidebar, with a white backing to preserve its colors in either theme.
-The workspace switcher has no divider underneath. New work item sits below the personal links (Home, Drafts, Your work)
-and above the Workspace section. Inbox also appears directly below Home in the
-sidebar, with an unread badge, and opens notifications and received messages.
+The sidebar expand/collapse control sits to the right of the logo.
+Help Center and Logout Account are pinned below the scrollable sidebar navigation.
+Help Center opens https://docs.plane.so/ in a new tab; Logout Account uses the
+existing sign-out flow and displays an error notification if sign-out fails.
+Logout text and icons use `#D50000`.
+The Home navigation entry and dashboard breadcrumb are labeled Activity with a
+pulse icon. Activity uses blue text and icon on hover/selection with the existing
+light-blue sidebar highlight; its route and dashboard functionality are unchanged.
+The dashboard Activity/Manage widgets header row is temporarily hidden, with
+its component and widget-settings actions retained. The sidebar Activity link
+and dashboard widgets remain visible.
+The left-sidebar workspace switcher is temporarily hidden, not removed; its
+component and functionality are retained for future use. The top-bar switcher
+in collapsed mode is unchanged. The top Projects heading and customization icon
+are also temporarily hidden; the customization dialog, handlers, and project
+navigation links remain intact. The sidebar New work item button and entire
+Workspace group (including Projects and More) are temporarily hidden, not
+removed; their components, handlers, and preferences remain intact. The lower
+Projects list is unchanged. The top-bar Create menu is also temporarily hidden,
+with its component and functionality retained. The top-bar notification link
+uses an outline bell and retains its unread badge and inbox navigation.
+The bell has a rounded border and red unread dot. The top-bar profile trigger
+and search controls have 16px of top and bottom padding in the top bar.
+In light mode the top bar is white (`#FFFFFF`) with a 1px `#E2E6EF` bottom border.
+The profile trigger shows the user's first initial in white on blue instead of their photo; the
+profile menu and stored avatar remain unchanged.
+Tools sits directly below My tasks with a four-square grid icon; its Notepad and
+Whiteboard links and expand/collapse preference are unchanged. My tasks is the
+display label for Your work, with a bulleted-list icon; its profile route and
+functionality are unchanged. The sidebar
+Inbox and Drafts entries are temporarily hidden, not removed; their routes,
+components, unread badge, and functionality remain available.
 Search, Inbox and profile remain available in a top bar
 over the main content instead of spanning the sidebar. When the sidebar is
 collapsed, the top bar retains the workspace switcher. Notifications show the

@@ -12,7 +12,7 @@ import { useParams, usePathname } from "next/navigation";
 import type { IWorkspaceSidebarNavigationItem } from "@plane/constants";
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { joinUrlPath } from "@plane/utils";
+import { cn, joinUrlPath } from "@plane/utils";
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // hooks
@@ -66,13 +66,23 @@ export const SidebarItemBase = observer(function SidebarItemBase({
   const itemHref =
     item.key === "your_work" && data?.id ? joinUrlPath(slug, item.href, data?.id) : joinUrlPath(slug, item.href);
   const icon = getSidebarNavigationItemIcon(item.key);
+  const isActivity = item.key === "home";
+  const isActive = item.highlight(pathname, itemHref);
 
   return (
     <Link href={itemHref} onClick={handleLinkClick}>
-      <SidebarNavItem isActive={item.highlight(pathname, itemHref)}>
+      <SidebarNavItem
+        isActive={isActive}
+        className={cn({
+          "dark:hover:text-custom-primary-100 hover:text-[#135DDD]": isActivity,
+          "dark:text-custom-primary-100 text-[#135DDD]": isActivity && isActive,
+        })}
+      >
         <div className="flex items-center gap-1.5 py-[1px]">
           {icon}
-          <p className="text-13 leading-5 font-medium">{t(item.labelTranslationKey)}</p>
+          <p className="text-13 leading-5 font-medium">
+            {item.key === "your_work" ? "My tasks" : t(isActivity ? "activity" : item.labelTranslationKey)}
+          </p>
         </div>
         {additionalRender?.(item.key, slug)}
       </SidebarNavItem>

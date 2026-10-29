@@ -8,7 +8,8 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { Collapsible } from "@makeplane/propel/components/collapsible";
-import { PagesOutline, PenToolOutline, ToolOutline } from "@makeplane/propel/icons";
+import { PagesOutline, PenToolOutline } from "@makeplane/propel/icons";
+import { Grid2X2 } from "lucide-react";
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // hooks
@@ -38,8 +39,8 @@ export const SidebarToolMenu = observer(function SidebarToolMenu() {
       onOpenChange={(open) => setIsOpen(open)}
       trigger={
         <span className="flex items-center gap-1.5 text-13 font-semibold whitespace-nowrap text-placeholder">
-          <ToolOutline className="size-3.5" />
-          Tool
+          <Grid2X2 className="size-4" />
+          Tools
         </span>
       }
     >

@@ -28,7 +28,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("@makeplane/propel/components/collapsible", () => ({
-  Collapsible: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Collapsible: ({ children, trigger }: { children: ReactNode; trigger: ReactNode }) => (
+    <div>
+      <button>{trigger}</button>
+      {children}
+    </div>
+  ),
 }));
 vi.mock("@/components/sidebar/sidebar-navigation", () => ({
   SidebarNavItem: ({ children, isActive }: { children: ReactNode; isActive: boolean }) => (
@@ -75,4 +80,6 @@ it.each([
     "/personal/tool/whiteboards/",
   ]);
   expect(host.querySelector("[disabled]")).toBeNull();
+  expect(host.querySelector("button")?.textContent).toBe("Tools");
+  expect(host.querySelector("button svg.lucide-grid2x2")).not.toBeNull();
 });
