@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { EUserPermissions } from "@plane/constants";
 import { UserProfileHeader } from "@/app/(all)/[workspaceSlug]/(projects)/profile/[userId]/header";
+import { ProfileCreateTaskButton } from "./create-task-button";
 
 const state = vi.hoisted(() => ({
   role: 20,
@@ -20,46 +21,8 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@plane/i18n", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("swr", () => ({ useSWRConfig: () => ({ mutate: state.mutate }) }));
-vi.mock("@/components/profile/personal-task-dialog", () => ({
-  PersonalTaskDialog: ({
-    canCreateProjectTask,
-    onProjectTask,
-  }: {
-    canCreateProjectTask: boolean;
-    onProjectTask: (data: {
-      name: string;
-      description: string;
-      priority: "none";
-      start_date: null;
-      target_date: null;
-    }) => void;
-  }) => (
-    <div data-testid="personal-dialog">
-      No project · Private to you
-      <button
-        disabled={!canCreateProjectTask}
-        onClick={() =>
-          onProjectTask({
-            name: "Keep title",
-            description: "<script>unsafe</script>",
-            priority: "none",
-            start_date: null,
-            target_date: null,
-          })
-        }
-      >
-        Create in a project instead
-      </button>
-    </div>
-  ),
-}));
-vi.mock("@/components/issues/issue-modal/modal", () => ({
-  CreateUpdateIssueModal: ({ data }: { data: { name: string; description_html: string } }) => (
-    <div data-testid="project-dialog">
-      {data.name}
-      {data.description_html}
-    </div>
-  ),
+vi.mock("@/components/profile/new-task-panel", () => ({
+  NewTaskPanel: () => <div data-testid="new-task-panel">No project · Private to you</div>,
 }));
 vi.mock("@/hooks/store/use-app-theme", () => ({
   useAppTheme: () => ({ toggleProfileSidebar: vi.fn(), profileSidebarCollapsed: true }),
@@ -124,26 +87,30 @@ it.each([EUserPermissions.ADMIN, EUserPermissions.MEMBER])(
     expect(addButton()).toBeDefined();
     expect(addButton()!.disabled).toBe(false);
     await act(() => addButton()!.click());
-    expect(host.querySelector('[data-testid="personal-dialog"]')?.textContent).toContain("No project");
+    expect(host.querySelector('[data-testid="new-task-panel"]')?.textContent).toContain("No project");
     expect(host.querySelector('[data-testid="profile-filters"]')).not.toBeNull();
   }
 );
 
-it("allows personal tasks without joined projects but disables project creation", async () => {
+it("allows opening the task panel without joined projects", async () => {
   state.projects = [];
   await render();
   expect(addButton()!.disabled).toBe(false);
   await act(() => addButton()!.click());
-  expect(host.querySelector<HTMLButtonElement>('[data-testid="personal-dialog"] button')!.disabled).toBe(true);
+  expect(host.querySelector('[data-testid="new-task-panel"]')).not.toBeNull();
 });
 
-it("switches to project creation without losing text or injecting HTML", async () => {
-  await render();
-  await act(() => addButton()!.click());
-  await act(() => host.querySelector<HTMLButtonElement>('[data-testid="personal-dialog"] button')!.click());
-  expect(host.querySelector('[data-testid="personal-dialog"]')).toBeNull();
-  expect(host.querySelector('[data-testid="project-dialog"]')?.textContent).toContain("Keep title");
-  expect(host.querySelector('[data-testid="project-dialog"]')?.textContent).toContain("&lt;script&gt;");
+it("reuses task creation from the Overview with its custom label and rounded trigger", async () => {
+  await act(() =>
+    root.render(
+      <ProfileCreateTaskButton workspaceSlug="workspace" userId="me" label="Add task" className="rounded-full!" />
+    )
+  );
+  const trigger = host.querySelector("button");
+  expect(trigger?.textContent).toContain("Add task");
+  expect(trigger?.classList.contains("rounded-full!")).toBe(true);
+  await act(() => trigger?.click());
+  expect(host.querySelector('[data-testid="new-task-panel"]')).not.toBeNull();
 });
 
 it.each([EUserPermissions.GUEST, -1])("hides task creation for unauthorized role %s", async (role) => {

@@ -12,6 +12,7 @@ import type { EIssuesStoreType, TIssue } from "@plane/types";
 // local imports
 import { CreateUpdateIssueModalBase } from "./base";
 import { IssueModalProvider } from "./provider";
+import type { TTaskFormPresentation } from "@/components/common/task-form-content";
 
 export interface IssuesModalProps {
   data?: Partial<TIssue>;
@@ -33,6 +34,7 @@ export interface IssuesModalProps {
   templateId?: string;
   allowedProjectIds?: string[];
   showActionItemsOnUpdate?: boolean;
+  presentation?: TTaskFormPresentation;
 }
 
 export const CreateUpdateIssueModal = observer(function CreateUpdateIssueModal(props: IssuesModalProps) {

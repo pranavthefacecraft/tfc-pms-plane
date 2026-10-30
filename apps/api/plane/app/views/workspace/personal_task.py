@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
@@ -7,6 +8,8 @@ from django.utils import timezone
 from django.utils.html import escape
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
 
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers.issue import IssueCreateSerializer
@@ -51,6 +54,52 @@ class PersonalTaskEndpoint(BaseAPIView):
             task = get_object_or_404(owned_tasks(request, slug).select_for_update(), pk=pk, moved_at__isnull=True)
             task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PersonalTaskShareEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug, pk):
+        task = get_object_or_404(owned_tasks(request, slug), pk=pk, moved_at__isnull=True)
+        return Response({"token": str(task.share_token) if task.share_token else None})
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def post(self, request, slug, pk):
+        with transaction.atomic():
+            task = get_object_or_404(owned_tasks(request, slug).select_for_update(), pk=pk, moved_at__isnull=True)
+            if task.share_token is None:
+                task.share_token = uuid4()
+                task.save(update_fields=["share_token", "updated_at"])
+        return Response({"token": str(task.share_token)})
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def delete(self, request, slug, pk):
+        with transaction.atomic():
+            task = get_object_or_404(owned_tasks(request, slug).select_for_update(), pk=pk, moved_at__isnull=True)
+            task.share_token = None
+            task.save(update_fields=["share_token", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SharedPersonalTaskEndpoint(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        task = get_object_or_404(PersonalTask.objects, share_token=token, moved_at__isnull=True)
+        response = Response(
+            {
+                "name": task.name,
+                "description": task.description,
+                "priority": task.priority,
+                "start_date": task.start_date,
+                "target_date": task.target_date,
+                "completed_at": task.completed_at,
+            }
+        )
+        response["Cache-Control"] = "no-store"
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        response["Referrer-Policy"] = "no-referrer"
+        return response
 
 
 class MovePersonalTaskSerializer(serializers.Serializer):
@@ -122,4 +171,3 @@ class MovePersonalTaskEndpoint(BaseAPIView):
             {"id": str(issue.id), "project_id": str(project.id), "name": issue.name},
             status=status.HTTP_201_CREATED,
         )
-

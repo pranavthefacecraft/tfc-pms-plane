@@ -11,18 +11,17 @@ import useSWR from "swr";
 import { ContentWrapper } from "@plane/blocks/layout";
 // hooks
 import { useHome } from "@/hooks/store/use-home";
-import { useUserProfile, useUser } from "@/hooks/store/user";
+import { useUserProfile } from "@/hooks/store/user";
 // plane web imports
 import { TourRoot } from "@/components/onboarding/tour/root";
 // local imports
 import { DashboardWidgets } from "./home-dashboard-widgets";
-import { UserGreetingsView } from "./user-greetings";
+import { ActivityOverview } from "./activity-overview";
 import { HomePeekOverviewsRoot } from "../issues/peek-overview/peek-overviews";
 
 export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
   // store hooks
   const { workspaceSlug } = useParams();
-  const { data: currentUser } = useUser();
   const { data: currentUserProfile, updateTourCompleted } = useUserProfile();
   const { fetchWidgets } = useHome();
 
@@ -55,8 +54,12 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
       <>
         <HomePeekOverviewsRoot />
         <ContentWrapper className="mx-auto scrollbar-hide gap-6 bg-surface-1 px-page-x">
+          {workspaceSlug && (
+            <div className="mx-auto w-full max-w-[1100px]">
+              <ActivityOverview key={workspaceSlug.toString()} workspaceSlug={workspaceSlug.toString()} />
+            </div>
+          )}
           <div className="mx-auto w-full max-w-[800px]">
-            {currentUser && <UserGreetingsView user={currentUser} />}
             <DashboardWidgets />
           </div>
         </ContentWrapper>

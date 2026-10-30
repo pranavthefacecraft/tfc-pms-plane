@@ -16,6 +16,7 @@ class PersonalTask(BaseModel):
     completed_at = models.DateTimeField(null=True, blank=True)
     moved_at = models.DateTimeField(null=True, blank=True)
     moved_issue = models.ForeignKey("db.Issue", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    share_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
 
     class Meta:
         db_table = "personal_tasks"

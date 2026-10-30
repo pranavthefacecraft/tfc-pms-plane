@@ -19,7 +19,7 @@ import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-ro
 import { useHome } from "@/hooks/store/use-home";
 import { useProject } from "@/hooks/store/use-project";
 // local imports
-import { HomeLoader, NoProjectsEmptyState, RecentActivityWidget } from "./widgets";
+import { HomeLoader, RecentActivityWidget } from "./widgets";
 import { DashboardQuickLinks } from "./widgets/links";
 import { ManageWidgetsModal } from "./widgets/manage";
 import { MyTasksWidget } from "./widgets/my-tasks/root";
@@ -89,9 +89,11 @@ export const DashboardWidgets = observer(function DashboardWidgets() {
         isModalOpen={showWidgetSettings}
         handleOnClose={() => toggleWidgetSettings(false)}
       />
-      {!isWikiApp && <NoProjectsEmptyState />}
-
-      {!isWikiApp && <MyTasksWidget workspaceSlug={workspaceSlug.toString()} />}
+      {!isWikiApp && (
+        <div hidden>
+          <MyTasksWidget workspaceSlug={workspaceSlug.toString()} />
+        </div>
+      )}
 
       {isAnyWidgetEnabled ? (
         <div className="flex flex-col">
@@ -100,7 +102,7 @@ export const DashboardWidgets = observer(function DashboardWidgets() {
             const isEnabled = widgetsMap[key]?.is_enabled;
             if (!WidgetComponent || !isEnabled) return null;
             return (
-              <div key={key} className="py-4">
+              <div key={key} className="py-4" hidden={key === "quick_links" || key === "recents"}>
                 <WidgetComponent workspaceSlug={workspaceSlug.toString()} />
               </div>
             );

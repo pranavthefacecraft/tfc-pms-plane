@@ -42,6 +42,11 @@ vi.mock("@/hooks/store/use-project", () => ({
     getProjectById: (id: string) => ({ id, name: "Destination", archived_at: null }),
   }),
 }));
+vi.mock("@/hooks/store/use-project-state", () => ({
+  useProjectState: () => ({ fetchProjectStates: vi.fn(), getProjectDefaultStateId: () => "" }),
+}));
+vi.mock("@/components/dropdowns/member/member-select", () => ({ MemberSelect: () => null }));
+vi.mock("@/components/core/modals/existing-issues-list-modal", () => ({ ExistingIssuesListModal: () => null }));
 vi.mock("@/services/personal-task.service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/personal-task.service")>()),
   personalTaskService: {
@@ -61,6 +66,12 @@ vi.mock("@makeplane/propel/components/dialog", () => ({
   DialogHeading: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
   DialogBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@/components/common/task-form-content", () => ({
+  TaskFormContent: ({ children, presentation = "dialog" }: { children: ReactNode; presentation?: string }) => (
+    <div data-presentation={presentation}>{children}</div>
+  ),
 }));
 
 const task: TPersonalTask = {
@@ -120,6 +131,8 @@ it("creates a task without project data and closes only after saving", async () 
   await render(<PersonalTaskDialog workspaceSlug="workspace" onClose={state.close} onSaved={state.saved} />);
   expect(host.textContent).toContain("No project");
   expect(button("Save").disabled).toBe(true);
+  expect(host.textContent).toContain("Enter a task name to enable Save.");
+  expect(state.toast).not.toHaveBeenCalled();
   await change(host.querySelector<HTMLInputElement>("input[required]")!, "  My task  ");
   await submit();
   expect(state.create).toHaveBeenCalledExactlyOnceWith("workspace", {
@@ -131,6 +144,11 @@ it("creates a task without project data and closes only after saving", async () 
   });
   expect(state.saved).toHaveBeenCalledWith(task);
   expect(state.close).toHaveBeenCalledOnce();
+  expect(state.toast).toHaveBeenCalledWith({
+    type: "success",
+    title: "Task saved",
+    message: expect.stringContaining("My tasks under Personal tasks"),
+  });
 });
 
 it("preserves input and shows errors when saving fails", async () => {
@@ -144,7 +162,46 @@ it("preserves input and shows errors when saving fails", async () => {
   expect(host.querySelector<HTMLInputElement>("input[required]")!.value).toBe(task.name);
   expect(state.close).not.toHaveBeenCalled();
   expect(state.toast).toHaveBeenCalled();
+  expect(state.toast).not.toHaveBeenCalledWith(expect.objectContaining({ type: "success" }));
   log.mockRestore();
+});
+
+it("opens Add task as a side panel and retains personal-task saving", async () => {
+  await render(<ProfileCreateTaskButton workspaceSlug="workspace" userId="me" label="Add task" />);
+  await click("Add task");
+  expect(host.querySelector('[data-presentation="side-panel"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Close task panel"]')).not.toBeNull();
+  await change(host.querySelector<HTMLInputElement>("input[required]")!, "Panel task");
+  await submit();
+  expect(state.create).toHaveBeenCalledWith("workspace", expect.objectContaining({ name: "Panel task" }));
+  expect(host.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it("keeps the panel open while saving, including when its close control is clicked", async () => {
+  let resolve!: (value: TPersonalTask) => void;
+  state.create.mockImplementation(
+    () =>
+      new Promise<TPersonalTask>((done) => {
+        resolve = done;
+      })
+  );
+  await render(
+    <PersonalTaskDialog
+      presentation="side-panel"
+      workspaceSlug="workspace"
+      onClose={state.close}
+      onSaved={state.saved}
+    />
+  );
+  await change(host.querySelector<HTMLInputElement>("input[required]")!, "Pending task");
+  await submit();
+  const close = host.querySelector<HTMLButtonElement>('[aria-label="Close task panel"]')!;
+  expect(close.disabled).toBe(true);
+  await act(() => close.click());
+  expect(state.close).not.toHaveBeenCalled();
+  expect(state.toast).not.toHaveBeenCalled();
+  await act(() => resolve(task));
+  expect(state.close).toHaveBeenCalledOnce();
 });
 
 it("prevents duplicate submissions while a save is pending", async () => {

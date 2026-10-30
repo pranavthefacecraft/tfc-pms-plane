@@ -128,6 +128,73 @@ light-blue sidebar highlight; its route and dashboard functionality are unchange
 The dashboard Activity/Manage widgets header row is temporarily hidden, with
 its component and widget-settings actions retained. The sidebar Activity link
 and dashboard widgets remain visible.
+Activity now opens with Overview, Add task, Today's Activity, and a navigable
+Monday-first Day/Week/Month calendar. These sections show the current user's private
+personal tasks and assigned project tasks; existing dashboard widgets remain below.
+The legacy greeting/date and quickstart guide below the calendar are hidden.
+Quicklinks and Recents are visually hidden; their components, stored data,
+and widget functionality are retained.
+The My tasks widget below the calendar is also visually hidden but remains mounted;
+the sidebar My tasks page is unchanged.
+Today's Activity includes tasks scheduled today and tasks completed today in the
+user's timezone. Its task table shows the task and project name, blue assignee
+initials, PMS source badge, scheduled date, and an actions menu. Task names,
+assignee-edit buttons, and Edit use the existing task details/editor.
+The three-dot menu offers Edit, Share, and Delete. Delete asks for confirmation;
+project deletion is available only to the creator/project admin and remains
+enforced by the API. Share copies project links with existing access restrictions.
+Personal sharing is opt-in: the owner can enable a read-only public link and
+stop sharing to revoke it. Anyone with that link can see the task name,
+description, priority, dates, and completion status, but not owner/workspace
+details or other tasks. Deleting or moving the task disables its public link.
+Re-enabling after revocation creates a different token. Deploy migration
+0135_personal_task_sharing before using these sharing endpoints.
+Private tasks show their owner only. Task schedules have dates, not times;
+the Time column displays the due/start date without inventing appointment times.
+The table scrolls within its card on small screens.
+The Activity filter dropdown includes Source (PMS), Project Name, and Account.
+Personal means private personal tasks; Company means project tasks. Project
+checkboxes filter project tasks only; personal tasks are controlled by Account.
+Checkbox changes apply only after Apply; Reset selects all options in the draft.
+Clear filters restores all results immediately. Filters affect Today's Activity
+only, not the calendar, and reset when the page is left/reloaded.
+Calendar entries span their start/due dates (or use whichever
+date is set). New personal tasks with neither date set default to a due date of
+today in the user's timezone. Previously undated personal tasks appear on their
+creation day in Activity and the calendar without changing their saved dates.
+User's Calendar uses segmented Day/Week/Month controls, a month/date heading,
+Today/previous/next navigation, and green PMS task cards with date labels.
+Today resets the displayed date and switches to Day view, showing only tasks
+scheduled for today in the user's timezone.
+Crowded week/month days show two cards and an expandable "+ more" control.
+The calendar's "+ New task" button opens the same task creation side panel;
+it is hidden for guests. Meeting/bookings and Clevdex schedule feeds are not
+connected, so their colors and appointment times are not fabricated.
+Explicit start/due dates are preserved, and all tasks remain available in My tasks. Task entries open the
+existing personal-task editor or project-task peek; Add task retains the option
+to create a personal task or a project task. Add task opens a full-height,
+right-side panel (half-width on desktop, full-width on mobile), without dimming
+the dashboard; switching to project creation stays in the panel. Other project
+creation dialogs and personal-task editing keep their existing presentation.
+The New Task panel follows the Assigned to, Due date, Link to Project,
+Dependencies, Priority, Stage, Status, Attach File, Description, and Subtasks
+layout, with task name, optional start date, and an explicit Save button.
+No project creates a private personal task; choosing a joined project enables
+project members, blocked-by dependencies, attachments, and new subtasks.
+Normal priority maps to the existing medium priority. Stage uses a project's
+single-select Stage custom field when present, otherwise its workflow state.
+Status uses the project's single-select Status custom field; if absent, the
+form explains that it is not configured rather than inventing a value.
+Changing projects resets project-specific selections while preserving name,
+description, dates, and priority. Confirmed save steps are retained in the open
+panel so a retry after a detail failure does not repeat completed operations.
+Personal-task saves show confirmation only after the API succeeds, with a
+reminder that private tasks live in My tasks under Personal tasks. The form
+explains that a task name is required and new personal tasks default to today
+when both dates are empty.
+Meetings and bookings are not yet
+connected. Loading and request errors are shown separately from empty states.
+The date-window project-task API requires the updated backend, but no migration.
 The left-sidebar workspace switcher is temporarily hidden, not removed; its
 component and functionality are retained for future use. The top-bar switcher
 in collapsed mode is unchanged. The top Projects heading and customization icon

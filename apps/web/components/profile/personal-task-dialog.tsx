@@ -1,9 +1,9 @@
 import { useId, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@makeplane/propel/components/button";
 import {
   Dialog,
   DialogBody,
-  DialogContent,
   DialogHeader,
   DialogHeading,
   DialogMain,
@@ -12,6 +12,8 @@ import {
 import { setToast } from "@plane/blocks/toast";
 import type { TPersonalTask, TPersonalTaskData } from "@/services/personal-task.service";
 import { personalTaskError, personalTaskService } from "@/services/personal-task.service";
+import { TaskFormContent } from "@/components/common/task-form-content";
+import type { TTaskFormPresentation } from "@/components/common/task-form-content";
 
 type Props = {
   workspaceSlug: string;
@@ -20,6 +22,7 @@ type Props = {
   onSaved: (task: TPersonalTask) => void;
   onProjectTask?: (data: TPersonalTaskData) => void;
   canCreateProjectTask?: boolean;
+  presentation?: TTaskFormPresentation;
 };
 
 const fieldClass = "w-full rounded border border-subtle bg-surface-1 px-3 py-2 text-13";
@@ -31,6 +34,7 @@ export function PersonalTaskDialog({
   onSaved,
   onProjectTask,
   canCreateProjectTask,
+  presentation = "dialog",
 }: Props) {
   const [name, setName] = useState(task?.name ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
@@ -61,6 +65,11 @@ export function PersonalTaskDialog({
         ? await personalTaskService.update(workspaceSlug, task.id, data)
         : await personalTaskService.create(workspaceSlug, data);
       onSaved(saved);
+      setToast({
+        type: "success",
+        title: task ? "Task updated" : "Task saved",
+        message: `"${saved.name}" is saved in My tasks under Personal tasks. Personal tasks stay private unless you enable a public sharing link. Dated tasks also appear in the Activity calendar.`,
+      });
       onClose();
     } catch (cause) {
       console.error("Personal task save failed", cause);
@@ -75,11 +84,25 @@ export function PersonalTaskDialog({
   return (
     <Dialog
       open
+      modal={presentation === "dialog"}
       onOpenChange={(open) => {
         if (!open) close();
       }}
     >
-      <DialogContent size="md">
+      <TaskFormContent size="md" presentation={presentation}>
+        {presentation === "side-panel" && (
+          <div className="border-b border-subtle px-5 py-3">
+            <button
+              type="button"
+              aria-label="Close task panel"
+              disabled={busy}
+              onClick={close}
+              className="rounded p-1 text-secondary hover:bg-layer-1-hover disabled:opacity-50"
+            >
+              <ArrowRight className="size-4" />
+            </button>
+          </div>
+        )}
         <DialogMain>
           <DialogHeader>
             <DialogHeading>
@@ -95,7 +118,12 @@ export function PersonalTaskDialog({
               }}
             >
               <p className="text-13 text-secondary">
-                No project · Private to you. You can move this task into a project later.
+                No project · Private unless you enable a public sharing link. You can move this task into a project
+                later.
+              </p>
+              <p className="text-13 text-secondary">
+                Saved tasks appear in My tasks under Personal tasks. New tasks with both dates empty default to today.
+                Previously undated tasks appear on their creation day in Activity and the calendar.
               </p>
               <label htmlFor={`${id}-name`} className="text-13">
                 Task name
@@ -108,7 +136,11 @@ export function PersonalTaskDialog({
                 maxLength={255}
                 required
                 disabled={busy}
+                aria-describedby={`${id}-name-hint`}
               />
+              <p id={`${id}-name-hint`} className="text-12 text-secondary">
+                Enter a task name to enable Save.
+              </p>
               <label htmlFor={`${id}-description`} className="text-13">
                 Description
               </label>
@@ -216,7 +248,7 @@ export function PersonalTaskDialog({
             </form>
           </DialogBody>
         </DialogMain>
-      </DialogContent>
+      </TaskFormContent>
     </Dialog>
   );
 }

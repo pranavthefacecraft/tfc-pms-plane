@@ -9,7 +9,7 @@ import { isEqual, xor } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // Plane imports
-import { Dialog, DialogContent } from "@makeplane/propel/components/dialog";
+import { Dialog } from "@makeplane/propel/components/dialog";
 import { useTranslation } from "@plane/i18n";
 import { setToast } from "@plane/blocks/toast";
 import type { TBaseIssue, TIssue } from "@plane/types";
@@ -32,6 +32,7 @@ import { DraftIssueLayout } from "./draft-issue-layout";
 import { IssueFormRoot } from "./form";
 import type { IssueFormProps } from "./form";
 import type { IssuesModalProps } from "./modal";
+import { TaskFormContent } from "@/components/common/task-form-content";
 
 export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueModalBase(props: IssuesModalProps) {
   const {
@@ -49,6 +50,7 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     primaryButtonText,
     isProjectSelectionDisabled = false,
     showActionItemsOnUpdate = false,
+    presentation = "dialog",
   } = props;
   const issueStoreType = useIssueStoreType();
 
@@ -409,14 +411,14 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
 
   return (
     /* The modal it replaces passed no `handleClose`, so only its own form dismisses it. */
-    <Dialog open={isOpen} disablePointerDismissal onOpenChange={() => {}}>
-      <DialogContent size="lg">
+    <Dialog open={isOpen} modal={presentation === "dialog"} disablePointerDismissal onOpenChange={() => {}}>
+      <TaskFormContent size="lg" presentation={presentation}>
         {withDraftIssueWrapper ? (
           <DraftIssueLayout {...commonIssueModalProps} changesMade={changesMade} onChange={handleFormChange} />
         ) : (
           <IssueFormRoot {...commonIssueModalProps} />
         )}
-      </DialogContent>
+      </TaskFormContent>
     </Dialog>
   );
 });

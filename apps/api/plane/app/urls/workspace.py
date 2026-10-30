@@ -7,6 +7,8 @@ from plane.app.views.workspace.personal_task import (
     PersonalTasksEndpoint,
     PersonalTaskEndpoint,
     MovePersonalTaskEndpoint,
+    PersonalTaskShareEndpoint,
+    SharedPersonalTaskEndpoint,
 )
 
 
@@ -46,6 +48,12 @@ from plane.app.views import (
 
 
 urlpatterns = [
+    path("shared/personal-tasks/<uuid:token>/", SharedPersonalTaskEndpoint.as_view(), name="shared-personal-task"),
+    path(
+        "workspaces/<str:slug>/personal-tasks/<uuid:pk>/share/",
+        PersonalTaskShareEndpoint.as_view(),
+        name="personal-task-share",
+    ),
     path("workspaces/<str:slug>/personal-tasks/", PersonalTasksEndpoint.as_view(), name="personal-tasks"),
     path("workspaces/<str:slug>/personal-tasks/<uuid:pk>/", PersonalTaskEndpoint.as_view(), name="personal-task"),
     path(

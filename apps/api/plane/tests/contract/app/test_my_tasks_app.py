@@ -7,9 +7,10 @@
 from datetime import date, timedelta
 
 import pytest
+from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import Issue, IssueAssignee, Project, ProjectMember, State
+from plane.db.models import Issue, IssueAssignee, Project, ProjectMember, State, User
 
 TODAY = date(2026, 10, 14)
 
@@ -43,6 +44,76 @@ def _task(project, state, user, name, target_date=None, assign=True):
 
 @pytest.mark.contract
 class TestMyTasks:
+    @pytest.mark.django_db
+    def test_schedule_includes_project_name_and_all_current_assignees(
+        self, session_client, workspace, create_user, project_states
+    ):
+        project, states = project_states
+        issue = _task(project, states["started"], create_user, "Shared task", TODAY)
+        teammate = User.objects.create(email="teammate@example.com", username="teammate")
+        removed = User.objects.create(email="removed@example.com", username="removed")
+        for person in (teammate, removed):
+            ProjectMember.objects.create(workspace=workspace, project=project, member=person, role=20)
+            IssueAssignee.objects.create(issue=issue, assignee=person, project=project, workspace=workspace)
+        IssueAssignee.objects.filter(issue=issue, assignee=removed).update(deleted_at=timezone.now())
+
+        response = session_client.get(_url(workspace.slug, view="schedule", start=TODAY, end=TODAY))
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["project_name"] == project.name
+        assert set(results[0]["assignee_ids"]) == {str(create_user.id), str(teammate.id)}
+
+    @pytest.mark.django_db
+    def test_schedule_includes_spanning_tasks_without_tab_limit(
+        self, session_client, workspace, create_user, project_states
+    ):
+        project, states = project_states
+        spanning = _task(project, states["started"], create_user, "Spanning", TODAY + timedelta(days=3))
+        spanning.start_date = TODAY - timedelta(days=3)
+        spanning.save()
+        start_only = _task(project, states["unstarted"], create_user, "Start only")
+        start_only.start_date = TODAY
+        start_only.save()
+        due = _task(project, states["unstarted"], create_user, "Due today", TODAY)
+        done = _task(project, states["completed"], create_user, "Completed without dates")
+        Issue.objects.filter(id=done.id).update(completed_at=f"{TODAY.isoformat()}T12:00:00Z")
+        _task(project, states["cancelled"], create_user, "Cancelled", TODAY)
+        _task(project, states["started"], create_user, "Other day", TODAY + timedelta(days=5))
+        _task(project, states["started"], create_user, "Unassigned", TODAY, assign=False)
+        _task(project, states["started"], create_user, "Undated")
+
+        response = session_client.get(_url(workspace.slug, view="schedule", start=TODAY, end=TODAY, limit=1))
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["results"]
+        assert {task["id"] for task in results} == {str(task.id) for task in (spanning, start_only, due, done)}
+        assert next(task for task in results if task["id"] == str(spanning.id))["start_date"] == str(
+            spanning.start_date
+        )
+
+    @pytest.mark.django_db
+    def test_schedule_excludes_projects_user_left(self, session_client, workspace, create_user, project_states):
+        project, states = project_states
+        _task(project, states["started"], create_user, "Hidden", TODAY)
+        ProjectMember.objects.filter(project=project, member=create_user).update(is_active=False)
+        response = session_client.get(_url(workspace.slug, view="schedule", start=TODAY, end=TODAY))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"results": []}
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {},
+            {"start": "invalid", "end": TODAY},
+            {"start": TODAY, "end": TODAY - timedelta(days=1)},
+            {"start": TODAY, "end": TODAY + timedelta(days=63)},
+        ],
+    )
+    def test_schedule_rejects_invalid_ranges(self, session_client, workspace, params):
+        response = session_client.get(_url(workspace.slug, view="schedule", **params))
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     @pytest.mark.django_db
     def test_tabs_split_assigned_tasks(self, session_client, workspace, create_user, project_states):
         project, states = project_states

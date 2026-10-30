@@ -39,9 +39,21 @@ export type TMyTasksParams = {
   today: string;
 };
 
+export type TScheduledProjectTask = Pick<
+  TMyTask,
+  "id" | "name" | "project_id" | "project_identifier" | "sequence_id" | "target_date" | "completed_at" | "state_group"
+> & { start_date: string | null; project_name: string; assignee_ids: string[]; created_by: string | null };
+
 export class MyTasksService extends APIService {
   constructor() {
     super(API_BASE_URL);
+  }
+
+  async schedule(workspaceSlug: string, start: string, end: string): Promise<{ results: TScheduledProjectTask[] }> {
+    const response = await this.get(`/api/workspaces/${workspaceSlug}/my-tasks/`, {
+      params: { view: "schedule", start, end },
+    });
+    return response.data;
   }
 
   async list(workspaceSlug: string, params: TMyTasksParams): Promise<TMyTasksResponse> {

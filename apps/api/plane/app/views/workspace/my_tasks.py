@@ -3,9 +3,10 @@
 # See the LICENSE file for details.
 
 # Python imports
-from datetime import date
+from datetime import date, timedelta
 
 # Django imports
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F, OuterRef, Q, Subquery
 from django.utils import timezone
 
@@ -70,6 +71,58 @@ class WorkspaceMyTasksEndpoint(BaseAPIView):
             project__project_projectmember__deleted_at__isnull=True,
         ).values("id")
         base_queryset = Issue.issue_objects.filter(id__in=assigned_issue_ids)
+
+        if request.GET.get("view") == "schedule":
+            start = self._parse_today(request.GET.get("start"))
+            end = self._parse_today(request.GET.get("end"))
+            if (
+                not request.GET.get("start")
+                or not request.GET.get("end")
+                or start is None
+                or end is None
+                or end < start
+                or (end - start).days > 62
+                or start == date.min
+                or end == date.max
+            ):
+                return Response(
+                    {"error": "Expected a valid start/end date range of at most 63 days (YYYY-MM-DD)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # Include adjacent completion dates; the client applies the user's timezone.
+            scheduled = (
+                Q(start_date__lte=end, target_date__gte=start)
+                | Q(start_date__range=(start, end), target_date__isnull=True)
+                | Q(target_date__range=(start, end))
+                | Q(completed_at__date__range=(start - timedelta(days=1), end + timedelta(days=1)))
+            )
+            results = list(
+                base_queryset.exclude(state__group="cancelled")
+                .filter(scheduled)
+                .annotate(
+                    assignee_ids=ArrayAgg(
+                        "issue_assignee__assignee_id",
+                        distinct=True,
+                        filter=Q(issue_assignee__deleted_at__isnull=True),
+                    )
+                )
+                .order_by("target_date", "name", "id")
+                .values(
+                    "id",
+                    "name",
+                    "project_id",
+                    "sequence_id",
+                    "start_date",
+                    "target_date",
+                    "completed_at",
+                    "assignee_ids",
+                    "created_by",
+                    project_identifier=F("project__identifier"),
+                    project_name=F("project__name"),
+                    state_group=F("state__group"),
+                )
+            )
+            return Response({"results": results}, status=status.HTTP_200_OK)
 
         open_queryset = base_queryset.exclude(state__group__in=OPEN_EXCLUDED_GROUPS)
         overdue_filter = Q(target_date__lt=today)

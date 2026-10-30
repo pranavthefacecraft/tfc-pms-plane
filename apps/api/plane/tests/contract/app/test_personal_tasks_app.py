@@ -1,4 +1,5 @@
 from uuid import uuid4
+from datetime import datetime, timezone as datetime_timezone
 
 import pytest
 from django.utils import timezone
@@ -42,6 +43,42 @@ def test_create_without_project_and_update_complete_reopen_delete(
     assert response.data["completed_at"] is None
     assert session_client.delete(detail).status_code == 204
     assert session_client.get(url).data == []
+
+
+@pytest.mark.parametrize("dates", [{}, {"start_date": None, "target_date": None}])
+@pytest.mark.parametrize("user_timezone,expected", [("Asia/Kolkata", "2026-10-31"), ("America/New_York", "2026-10-30")])
+def test_missing_dates_default_to_today_in_user_timezone(
+    session_client, url, create_user, monkeypatch, dates, user_timezone, expected
+):
+    create_user.user_timezone = user_timezone
+    create_user.save(update_fields=["user_timezone"])
+    monkeypatch.setattr(timezone, "now", lambda: datetime(2026, 10, 30, 20, tzinfo=datetime_timezone.utc))
+    response = session_client.post(url, {"name": "Today by default", **dates}, format="json")
+    assert response.status_code == 201
+    assert response.data["target_date"] == expected
+    assert str(PersonalTask.objects.get(id=response.data["id"]).target_date) == expected
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        {"start_date": "2026-11-02", "target_date": None},
+        {"start_date": None, "target_date": "2026-11-03"},
+        {"start_date": "2026-11-02", "target_date": "2026-11-03"},
+    ],
+)
+def test_creation_preserves_explicit_dates(session_client, url, dates):
+    response = session_client.post(url, {"name": "Scheduled", **dates}, format="json")
+    assert response.status_code == 201
+    for field, value in dates.items():
+        assert response.data[field] == value
+
+
+def test_editing_existing_undated_task_does_not_reschedule_it(session_client, url, create_user, workspace):
+    task = PersonalTask.objects.create(owner=create_user, workspace=workspace, name="Undated")
+    response = session_client.patch(f"{url}{task.id}/", {"name": "Renamed"}, format="json")
+    assert response.status_code == 200
+    assert response.data["target_date"] is None
 
 
 @pytest.mark.parametrize(

@@ -27,6 +27,8 @@ class PersonalTaskSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         start = attrs.get("start_date", getattr(self.instance, "start_date", None))
         target = attrs.get("target_date", getattr(self.instance, "target_date", None))
+        if self.instance is None and not start and not target:
+            attrs["target_date"] = timezone.localdate()
         if start and target and start > target:
             raise serializers.ValidationError({"target_date": "Due date must be on or after the start date."})
         if "is_completed" in attrs:

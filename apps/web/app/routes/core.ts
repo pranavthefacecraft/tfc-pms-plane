@@ -8,6 +8,7 @@ import { index, layout, route } from "@react-router/dev/routes";
 import type { RouteConfig, RouteConfigEntry } from "@react-router/dev/routes";
 
 export const coreRoutes: RouteConfigEntry[] = [
+  route("shared/personal-tasks/:token", "./shared-personal-task.tsx"),
   // ========================================================================
   // USER MANAGEMENT ROUTES
   // ========================================================================

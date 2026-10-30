@@ -20,8 +20,15 @@ export type TPersonalTaskData = Pick<
   is_completed?: boolean;
 };
 export const personalTasksKey = (slug: string, userId: string) => ["personal-tasks", slug, userId];
+export type TSharedPersonalTask = Pick<
+  TPersonalTask,
+  "name" | "description" | "priority" | "start_date" | "target_date" | "completed_at"
+>;
 
-export function personalTaskError(error: unknown): string {
+export function personalTaskError(
+  error: unknown,
+  fallback = "Could not save your personal task. Please try again."
+): string {
   if (isAxiosError(error) && error.response?.data) {
     const data: unknown = error.response.data;
     if (typeof data === "object" && data !== null) {
@@ -30,7 +37,7 @@ export function personalTaskError(error: unknown): string {
         .join("; ");
     }
   }
-  return "Could not save your personal task. Please try again.";
+  return fallback;
 }
 
 class PersonalTaskService extends APIService {
@@ -40,6 +47,18 @@ class PersonalTaskService extends APIService {
   async list(slug: string): Promise<TPersonalTask[]> {
     const response = await this.get(`/api/workspaces/${slug}/personal-tasks/`);
     return response.data;
+  }
+  async shareStatus(slug: string, id: string): Promise<{ token: string | null }> {
+    return (await this.get(`/api/workspaces/${slug}/personal-tasks/${id}/share/`)).data;
+  }
+  async share(slug: string, id: string): Promise<{ token: string }> {
+    return (await this.post(`/api/workspaces/${slug}/personal-tasks/${id}/share/`, {})).data;
+  }
+  async revokeShare(slug: string, id: string): Promise<void> {
+    await this.delete(`/api/workspaces/${slug}/personal-tasks/${id}/share/`);
+  }
+  async shared(token: string): Promise<TSharedPersonalTask> {
+    return (await this.get(`/api/shared/personal-tasks/${token}/`)).data;
   }
   async create(slug: string, data: TPersonalTaskData): Promise<TPersonalTask> {
     const response = await this.post(`/api/workspaces/${slug}/personal-tasks/`, data);
