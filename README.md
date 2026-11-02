@@ -284,6 +284,18 @@ item in the project's three-dot menu. Settings access permissions are unchanged.
 The sidebar Community footer is temporarily hidden, not removed; its badge and
 upgrade dialog remain intact for future use.
 
+## Projects page
+
+Clicking the sidebar **Projects** header opens `/<workspace>/projects`, a
+Figma-style table with **+ Create Project**, a **Search projects** box (name or
+identifier), and Name / Collaborators / Last modified columns. Joined projects
+show a green **Joined** label and open their work items; other projects open the
+existing join dialog. Click **Last modified** to flip the sort. Once you are on
+the Projects page, the header collapses or expands the sidebar list as before. A
+**Create a project** link sits under the sidebar list. The previous card grid,
+including its header filters, is still available via **Card view**
+(`?view=cards`).
+
 ## Project overview
 
 Click a project name in the sidebar or project directory to open **Overview**.

@@ -29,6 +29,7 @@ import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
+import { useAppRouter } from "@/hooks/use-app-router";
 // plane web imports
 import type { TProject } from "@plane/types";
 // local imports
@@ -52,6 +53,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   // router params
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
+  const router = useAppRouter();
 
   // auth
   const isAuthorizedUser = allowPermissions(
@@ -144,6 +146,14 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   }, [containerRef]);
 
   const toggleListDisclosure = (isOpen: boolean) => {
+    const projectsHref = `/${workspaceSlug?.toString()}/projects`;
+    // The header opens the Projects page first; once there it collapses/expands the list as before.
+    if (workspaceSlug && pathname.replace(/\/$/, "") !== projectsHref) {
+      setIsAllProjectsListOpen(true);
+      localStorage.setItem("isAllProjectsListOpen", "true");
+      router.push(projectsHref);
+      return;
+    }
     setIsAllProjectsListOpen(isOpen);
     localStorage.setItem("isAllProjectsListOpen", isOpen.toString());
   };
@@ -231,6 +241,18 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                   >
                     <MoreHorizontalOutline className="size-4 flex-shrink-0" />
                     <span>{isExtendedProjectSidebarOpened ? "Hide" : "More"}</span>
+                  </button>
+                </SidebarNavItem>
+              )}
+              {isAuthorizedUser && joinedProjects.length > 0 && (
+                <SidebarNavItem>
+                  <button
+                    type="button"
+                    onClick={() => setIsProjectModalOpen(true)}
+                    className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
+                  >
+                    <AddOutline className="size-4 flex-shrink-0" />
+                    <span>Create a project</span>
                   </button>
                 </SidebarNavItem>
               )}
