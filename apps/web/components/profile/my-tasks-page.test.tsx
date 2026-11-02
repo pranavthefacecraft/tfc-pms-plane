@@ -211,9 +211,12 @@ it("filters by account, project and completion with reset recovery", async () =>
   expect(host.textContent).toContain("No matching tasks");
 });
 
-it("searches task names and clears a no-match search", async () => {
+it("expands search from its icon, searches task names and clears a no-match search", async () => {
   await render();
+  expect(host.querySelector('[aria-label="Search tasks"]')).toBeNull();
+  await click("Open search");
   const input = host.querySelector<HTMLInputElement>('[aria-label="Search tasks"]');
+  expect(document.activeElement).toBe(input);
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
   await act(() => {
     setter?.call(input, "unmatched");
@@ -222,6 +225,13 @@ it("searches task names and clears a no-match search", async () => {
   expect(host.textContent).toContain("No matching tasks");
   await click("Clear filters");
   expect(host.querySelectorAll("tbody tr")).toHaveLength(2);
+  await act(() =>
+    host
+      .querySelector('[aria-label="Search tasks"]')
+      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+  );
+  expect(host.querySelector('[aria-label="Search tasks"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Open search"]')).not.toBeNull();
 });
 
 async function openBoard() {

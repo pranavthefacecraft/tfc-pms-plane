@@ -504,6 +504,45 @@ function ViewTabs({ layout, onChange }: { layout: TLayout; onChange: (layout: TL
   );
 }
 
+function TaskSearch({ query, setQuery }: { query: string; setQuery: (query: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+  if (!open && !query)
+    return (
+      <button
+        type="button"
+        aria-label="Open search"
+        title="Search tasks"
+        className="grid size-8 place-items-center rounded border border-subtle hover:bg-layer-1-hover"
+        onClick={() => setOpen(true)}
+      >
+        <Search className="size-3.5" />
+      </button>
+    );
+  return (
+    <label className="flex h-8 items-center gap-2 rounded border border-[#135DDD] px-2">
+      <Search className="size-3.5" />
+      <input
+        ref={inputRef}
+        aria-label="Search tasks"
+        placeholder="Search tasks..."
+        className="w-48 bg-transparent text-12 outline-none"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          setQuery("");
+          setOpen(false);
+        }}
+      />
+    </label>
+  );
+}
+
 function TaskLoadState({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
   return failed ? (
     <div role="alert" className="py-8 text-13">
@@ -609,16 +648,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
               setStatus={setStatus}
               reset={reset}
             />
-            <label className="flex items-center gap-2 rounded border border-subtle px-2 py-1.5">
-              <Search className="size-3.5" />
-              <input
-                aria-label="Search tasks"
-                placeholder="Search tasks..."
-                className="w-36 bg-transparent text-12 outline-none"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </label>
+            <TaskSearch query={query} setQuery={setQuery} />
           </div>
         </div>
         {layout === "list" && <h2 className="mb-3 text-16 font-semibold">Recently Assigned</h2>}
