@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR, { useSWRConfig } from "swr";
-import { CalendarDays, Check, Filter, GanttChartSquare, KanbanSquare, List, Search } from "lucide-react";
+import { CalendarDays, Check, Filter, GanttChartSquare, KanbanSquare, List, Paperclip, Search } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Popover, PopoverContent, PopoverTrigger } from "@makeplane/propel/components/popover";
 import { setToast } from "@plane/blocks/toast";
@@ -23,6 +23,7 @@ import { PersonalTaskDialog } from "./personal-task-dialog";
 import { MyTasksBoard } from "./my-tasks-board";
 import { MyTasksCalendar } from "./my-tasks-calendar";
 import { MyTasksTimeline } from "./my-tasks-timeline";
+import { MyTasksFiles } from "./my-tasks-files";
 import { boardColumnLabel, projectMovePatch } from "./my-tasks-board.helpers";
 import type { TBoardColumn, TaskRow, TTimelineDates } from "./my-tasks-board.helpers";
 
@@ -179,13 +180,13 @@ function useMyTasks(workspaceSlug: string) {
   const projects = Array.from(
     new Map((assigned.data ?? []).map((task) => [task.project_id, task.project_name])).entries()
   );
-  const visible = rows.filter(
+  const scoped = rows.filter(
     (row) =>
-      row.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()) &&
       (account === "all" || (account === "personal" ? Boolean(row.personal) : Boolean(row.project))) &&
       (!projectId || row.project?.project_id === projectId) &&
       (status === "all" || (status === "completed" ? row.completed : !row.completed))
   );
+  const visible = scoped.filter((row) => row.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const failed = Boolean(personal.error || assigned.error);
   const loading = !user || assigned.isLoading || (canEditPersonal && personal.isLoading);
   const today = zonedDateKey(currentTime, user?.user_timezone);
@@ -273,6 +274,7 @@ function useMyTasks(workspaceSlug: string) {
     setEditing,
     busy,
     projects,
+    scoped,
     visible,
     failed,
     loading,
@@ -489,6 +491,7 @@ const VIEW_TABS = [
   { id: "board", label: "Board", Icon: KanbanSquare },
   { id: "calendar", label: "Task Calendar", Icon: CalendarDays },
   { id: "timeline", label: "Timeline", Icon: GanttChartSquare },
+  { id: "files", label: "Files", Icon: Paperclip },
 ] as const;
 type TLayout = (typeof VIEW_TABS)[number]["id"];
 
@@ -577,6 +580,8 @@ function TaskViews({
   userId?: string;
   canEditPersonal: boolean;
   rows: TaskRow[];
+  scopedRows: TaskRow[];
+  query: string;
   filtered: boolean;
   reset: () => void;
   today: string;
@@ -586,6 +591,16 @@ function TaskViews({
   onToggle: (row: TaskRow) => Promise<void>;
   onReschedule: (row: TaskRow, dates: TTimelineDates) => Promise<void>;
 }) {
+  if (layout === "files")
+    return (
+      <MyTasksFiles
+        workspaceSlug={props.workspaceSlug}
+        userId={userId}
+        rows={props.scopedRows}
+        query={props.query}
+        onOpen={props.onOpen}
+      />
+    );
   if (layout === "calendar") return <MyTasksCalendar rows={props.rows} today={props.today} onOpen={props.onOpen} />;
   if (layout === "timeline")
     return (
@@ -617,6 +632,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
     setEditing,
     busy,
     projects,
+    scoped,
     visible,
     failed,
     loading,
@@ -689,6 +705,8 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
               userId={user?.id}
               canEditPersonal={canEditPersonal}
               rows={visible}
+              scopedRows={scoped}
+              query={query}
               filtered={filtered}
               reset={reset}
               today={today}

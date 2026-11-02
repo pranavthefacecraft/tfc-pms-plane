@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
   peek: vi.fn(),
   toast: vi.fn(),
   sections: vi.fn(),
+  files: vi.fn(),
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("@/hooks/store/user", () => ({
@@ -32,6 +33,7 @@ vi.mock("@/hooks/use-current-time", () => ({
 vi.mock("@/services/workspace-my-tasks.service", () => ({
   MyTasksService: class {
     all = state.assigned;
+    files = state.files;
   },
 }));
 vi.mock("@/services/issue/issue.service", () => ({
@@ -132,6 +134,7 @@ beforeEach(() => {
   Object.defineProperty(Element.prototype, "getAnimations", { configurable: true, value: () => [] });
   state.personal.mockResolvedValue([personal]);
   state.assigned.mockResolvedValue([project]);
+  state.files.mockResolvedValue([]);
   state.update.mockResolvedValue({});
   state.patch.mockResolvedValue({});
   state.sections.mockResolvedValue([
@@ -396,4 +399,81 @@ it("shows filtered tasks on the timeline tab and saves rescheduled dates", async
   await click("Filter");
   await select("Account", "personal");
   expect(host.querySelector('section[aria-label="Task timeline"]')?.textContent).not.toContain("Website Builder");
+});
+
+const fileBase = {
+  size: 10,
+  created_at: "2026-10-31T10:00:00Z",
+  created_by_name: "Pranav Prashar",
+  issue_id: "assigned",
+  issue_name: "Website Builder",
+  sequence_id: 1,
+  project_id: "project",
+  project_identifier: "WEB",
+  state_group: "started" as const,
+};
+it("shows task attachments and links on the files tab with type filters and search", async () => {
+  state.files.mockResolvedValue([
+    { ...fileBase, id: "img", kind: "attachment", name: "image.png", mime_type: "image/png", url: "/api/assets/img/" },
+    { ...fileBase, id: "zip", kind: "attachment", name: "Images.zip", mime_type: "application/zip", url: "/api/z/" },
+    {
+      ...fileBase,
+      id: "figma",
+      kind: "link",
+      name: "https://www.figma.com/design/abc",
+      mime_type: "",
+      url: "https://www.figma.com/design/abc",
+    },
+    { ...fileBase, id: "bad", kind: "link", name: "Unsafe", mime_type: "", url: "javascript:alert(1)" },
+    { ...fileBase, id: "other", kind: "link", name: "Not mine", mime_type: "", url: "https://x.com", issue_id: "gone" },
+  ]);
+  await render();
+  const tab = Array.from(host.querySelectorAll('[role="tab"]')).find((item) => item.textContent === "Files");
+  await act(() => (tab as HTMLButtonElement | undefined)?.click());
+  const section = () => host.querySelector<HTMLElement>('section[aria-label="Task files"]');
+  expect(section()?.querySelectorAll("article")).toHaveLength(4);
+  expect(section()?.textContent).not.toContain("Not mine");
+  expect(section()?.querySelector("img")?.getAttribute("alt")).toBe("image.png");
+  const unsafe = Array.from(section()?.querySelectorAll("a") ?? []).find((link) => link.textContent === "Unsafe");
+  expect(unsafe?.getAttribute("href")).toBe("https://alert(1)");
+  expect(unsafe?.getAttribute("rel")).toBe("noopener noreferrer");
+
+  await click("Images");
+  expect(section()?.querySelectorAll("article")).toHaveLength(1);
+  await click("Links");
+  expect(section()?.querySelectorAll("article")).toHaveLength(2);
+  await click("Documents");
+  expect(section()?.textContent).toContain("Images.zip");
+  expect(section()?.querySelectorAll("article")).toHaveLength(1);
+  await click("All");
+
+  await click("Open search");
+  const input = host.querySelector<HTMLInputElement>('[aria-label="Search tasks"]');
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  await act(() => {
+    setter?.call(input, "figma");
+    input?.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(section()?.querySelectorAll("article")).toHaveLength(1);
+
+  const openTask = section()?.querySelector<HTMLButtonElement>('button[title="Open WEB-1"]');
+  await act(() => openTask?.click());
+  expect(state.peek).toHaveBeenCalledWith({ workspaceSlug: "team", projectId: "project", issueId: "assigned" });
+
+  await act(() =>
+    host
+      .querySelector('[aria-label="Search tasks"]')
+      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+  );
+  expect(section()?.querySelectorAll("article")).toHaveLength(4);
+  await click("Filter");
+  await select("Account", "personal");
+  expect(section()?.textContent).toContain("No files match your filters.");
+});
+
+it("explains when no task has files yet", async () => {
+  await render();
+  const tab = Array.from(host.querySelectorAll('[role="tab"]')).find((item) => item.textContent === "Files");
+  await act(() => (tab as HTMLButtonElement | undefined)?.click());
+  expect(host.textContent).toContain("No files or links yet.");
 });

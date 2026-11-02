@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import Issue, State
+from plane.db.models import FileAsset, Issue, IssueLink, State
 
 from ..base import BaseAPIView
 
@@ -24,6 +24,7 @@ MY_TASK_TABS = ("upcoming", "overdue", "completed")
 OPEN_EXCLUDED_GROUPS = ("completed", "cancelled")
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 100
+FILES_LIMIT = 300
 
 
 class WorkspaceMyTasksEndpoint(BaseAPIView):
@@ -43,6 +44,53 @@ class WorkspaceMyTasksEndpoint(BaseAPIView):
         except ValueError:
             return None
         return max(1, min(limit, MAX_LIMIT))
+
+    def _files(self, slug, issues):
+        """Attachments and links on the user's assigned work items, newest first."""
+        issue_fields = {
+            "issue_name": F("issue__name"),
+            "sequence_id": F("issue__sequence_id"),
+            "project_identifier": F("project__identifier"),
+            "state_group": F("issue__state__group"),
+            "created_by_name": F("created_by__display_name"),
+        }
+        attachments = (
+            FileAsset.objects.filter(
+                issue_id__in=issues.values("id"),
+                entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+                is_uploaded=True,
+                is_deleted=False,
+            )
+            .order_by("-created_at")
+            .values("id", "attributes", "size", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
+        )
+        links = (
+            IssueLink.objects.filter(issue_id__in=issues.values("id"))
+            .order_by("-created_at")
+            .values("id", "title", "url", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
+        )
+        files = [
+            {
+                **{key: value for key, value in item.items() if key != "attributes"},
+                "kind": "attachment",
+                "name": (item["attributes"] or {}).get("name") or "Attachment",
+                "mime_type": (item["attributes"] or {}).get("type") or "",
+                "url": f"/api/assets/v2/workspaces/{slug}/projects/{item['project_id']}/issues/"
+                f"{item['issue_id']}/attachments/{item['id']}/",
+            }
+            for item in attachments
+        ] + [
+            {
+                **{key: value for key, value in item.items() if key != "title"},
+                "kind": "link",
+                "name": item["title"] or item["url"],
+                "mime_type": "",
+                "size": 0,
+            }
+            for item in links
+        ]
+        files.sort(key=lambda item: item["created_at"], reverse=True)
+        return files[:FILES_LIMIT]
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
@@ -80,6 +128,9 @@ class WorkspaceMyTasksEndpoint(BaseAPIView):
                     raise ValueError
             except ValueError:
                 return Response({"error": "Invalid offset"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.GET.get("view") == "files":
+            return Response({"results": self._files(slug, base_queryset)}, status=status.HTTP_200_OK)
 
         if request.GET.get("view") == "schedule":
             start = self._parse_today(request.GET.get("start"))

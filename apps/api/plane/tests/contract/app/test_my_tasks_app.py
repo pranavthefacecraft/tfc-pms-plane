@@ -10,7 +10,7 @@ import pytest
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import Issue, IssueAssignee, Project, ProjectMember, Section, State, User
+from plane.db.models import FileAsset, Issue, IssueAssignee, IssueLink, Project, ProjectMember, Section, State, User
 
 TODAY = date(2026, 10, 14)
 
@@ -216,3 +216,52 @@ class TestMyTasks:
     def test_rejects_invalid_params(self, session_client, workspace, params):
         response = session_client.get(_url(workspace.slug, **params))
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_files_lists_uploaded_attachments_and_links_on_assigned_tasks(
+        self, session_client, workspace, create_user, project_states
+    ):
+        project, states = project_states
+        mine = _task(project, states["completed"], create_user, "Design review")
+        other = _task(project, states["started"], create_user, "Not mine", assign=False)
+
+        def attach(issue, name, **extra):
+            return FileAsset.objects.create(
+                asset=f"{workspace.id}/{name}",
+                attributes={"name": name, "type": "image/png", "size": 10},
+                size=10,
+                workspace=workspace,
+                project=project,
+                issue=issue,
+                entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+                is_uploaded=extra.pop("is_uploaded", True),
+                **extra,
+            )
+
+        image = attach(mine, "image.png")
+        attach(mine, "pending.png", is_uploaded=False)
+        attach(mine, "removed.png", deleted_at=timezone.now())
+        attach(other, "other.png")
+        link = IssueLink.objects.create(
+            url="https://www.figma.com/design/abc", issue=mine, project=project, workspace=workspace
+        )
+        IssueLink.objects.create(url="https://example.com", issue=other, project=project, workspace=workspace)
+
+        response = session_client.get(_url(workspace.slug, view="files"))
+        assert response.status_code == status.HTTP_200_OK
+        results = {item["id"]: item for item in response.json()["results"]}
+        assert set(results) == {str(image.id), str(link.id)}
+        assert results[str(image.id)]["kind"] == "attachment"
+        assert results[str(image.id)]["name"] == "image.png"
+        assert results[str(image.id)]["mime_type"] == "image/png"
+        assert results[str(image.id)]["url"] == (
+            f"/api/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/issues/{mine.id}/attachments/{image.id}/"
+        )
+        assert results[str(link.id)]["kind"] == "link"
+        assert results[str(link.id)]["name"] == "https://www.figma.com/design/abc"
+        assert results[str(link.id)]["issue_name"] == "Design review"
+        assert results[str(link.id)]["state_group"] == "completed"
+        assert results[str(link.id)]["project_identifier"] == "TSK"
+
+        ProjectMember.objects.filter(project=project, member=create_user).update(is_active=False)
+        assert session_client.get(_url(workspace.slug, view="files")).json() == {"results": []}

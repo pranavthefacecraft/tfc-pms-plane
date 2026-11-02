@@ -141,8 +141,7 @@ private personal tasks and assigned project tasks, including undated and complet
 tasks. It includes search, account/project/completion filters, collaborators,
 real project states, completion/reopen actions and the existing task editors.
 Assigned tasks are loaded in paginated requests without a 100-task display cap.
-List, Board, Task Calendar and Timeline tabs are implemented; no placeholder Files
-tab is shown. Board columns (To Do, In Progress, Waiting For Review, Done) follow each
+List, Board, Task Calendar, Timeline and Files tabs are implemented. Board columns (To Do, In Progress, Waiting For Review, Done) follow each
 project's Sections: a task's section name (for example "Waiting for review") picks
 its column, completed tasks are always in Done, and tasks in other sections fall
 back to their state (Started → In Progress, otherwise To Do). Cancelled tasks are
@@ -158,6 +157,11 @@ and are counted below the calendar. Timeline reuses the project work-item timeli
 (Week/Month/Quarter, Today, full screen, task sidebar with durations): bars use the
 project state colour (personal tasks are blue), dragging or resizing a bar saves the
 task's start/due dates, and undated tasks can be given dates by clicking their row.
+Files collects the attachments and links of your assigned project tasks (newest
+first, up to 300) as Asana-style cards with image previews; cards open the file or
+link in a new tab, the task name opens the task, and All/Images/Documents/Links plus
+the page filters and search (by file, link or task name) narrow the list. Personal
+tasks have no attachments, so they contribute no files.
 Personal tasks are only editable by their owner. Existing assigned/created/subscribed/activity profile routes remain;
 the original self-profile Summary is available with `?view=summary`. Other users'
 profile pages retain their original layout.

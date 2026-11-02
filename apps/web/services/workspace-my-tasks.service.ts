@@ -51,9 +51,31 @@ export type TScheduledProjectTask = Pick<
   "id" | "name" | "project_id" | "project_identifier" | "sequence_id" | "target_date" | "completed_at" | "state_group"
 > & { start_date: string | null; project_name: string; assignee_ids: string[]; created_by: string | null };
 
+export type TMyTaskFile = {
+  id: string;
+  kind: "attachment" | "link";
+  name: string;
+  url: string;
+  mime_type: string;
+  size: number;
+  created_at: string;
+  created_by_name: string | null;
+  issue_id: string;
+  issue_name: string;
+  sequence_id: number;
+  project_id: string;
+  project_identifier: string;
+  state_group: TStateGroups;
+};
+
 export class MyTasksService extends APIService {
   constructor() {
     super(API_BASE_URL);
+  }
+
+  async files(workspaceSlug: string): Promise<TMyTaskFile[]> {
+    const response = await this.get(`/api/workspaces/${workspaceSlug}/my-tasks/`, { params: { view: "files" } });
+    return response.data.results;
   }
 
   async all(workspaceSlug: string): Promise<TMyTaskListItem[]> {
