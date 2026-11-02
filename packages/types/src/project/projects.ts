@@ -45,6 +45,8 @@ export interface IPartialProject {
 export interface IProject extends IPartialProject {
   health?: "" | "on_track" | "at_risk" | "off_track";
   overview_resources?: TProjectOverviewResource[];
+  start_date?: string | null;
+  target_date?: string | null;
   task_summary?: {
     total: number;
     completed: number;

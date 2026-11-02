@@ -116,6 +116,11 @@ class ProjectSerializer(BaseSerializer):
         return identifier
 
     def validate(self, data):
+        start_date = data.get("start_date", getattr(self.instance, "start_date", None))
+        target_date = data.get("target_date", getattr(self.instance, "target_date", None))
+        if start_date and target_date and start_date > target_date:
+            raise serializers.ValidationError({"target_date": "Due date cannot be before the start date."})
+
         # Validate description content for security
         if "description_html" in data and data["description_html"]:
             is_valid, error_msg, sanitized_html = validate_html_content(str(data["description_html"]))

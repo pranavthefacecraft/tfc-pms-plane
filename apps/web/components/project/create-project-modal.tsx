@@ -11,6 +11,7 @@ import { getAssetIdFromUrl, checkURLValidity } from "@plane/utils";
 // helpers
 // plane web components
 import { CreateProjectForm } from "@/components/projects/create/root";
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 // plane web types
 import type { TProject } from "@plane/types";
 // services
@@ -58,6 +59,10 @@ export function CreateProjectModal(props: Props) {
       });
     }
   };
+
+  // Plain "Create project" uses the simplified dialog; prefilled/template flows keep the full legacy form.
+  if (!data && !templateId)
+    return <CreateProjectDialog isOpen={isOpen} onClose={onClose} workspaceSlug={workspaceSlug} />;
 
   return (
     <Dialog

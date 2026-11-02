@@ -293,8 +293,23 @@ show a green **Joined** label and open their work items; other projects open the
 existing join dialog. Click **Last modified** to flip the sort. Once you are on
 the Projects page, the header collapses or expands the sidebar list as before. A
 **Create a project** link sits under the sidebar list. The previous card grid,
-including its header filters, is still available via **Card view**
-(`?view=cards`).
+including its header filters, is hidden from the page but still reachable at
+`/<workspace>/projects?view=cards`.
+
+### Create Project form
+
+**Create Project** (on the Projects page, in the sidebar, or via the shortcut)
+opens a simple form with these fields: **Project Name**, **Description
+(optional)**, **Collaborators**, **Start Date**, **Due Date**, and **Attach File
+(optional)**. The button stays disabled until the name and both dates are
+filled in and the due date is on or after the start date. The project
+identifier is generated from the name, with a numeric suffix if that one is
+already taken. Collaborators are added as members (capped at their workspace
+role). The attached file (images, PDFs, or Office documents, within the upload
+size limit) becomes a key resource on the project Overview. Start and due dates
+(`Project.start_date` / `target_date`, migration `0136`) show on the Overview's
+health card, and admins can edit them there. Creating from a template, or with
+prefilled data, still uses the original detailed form.
 
 ## Project overview
 

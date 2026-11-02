@@ -226,7 +226,57 @@ function OverviewHealth({ project, canEdit, saving, save }: SectionProps) {
         </select>
       )}
       <p className="mt-3 text-12 text-tertiary">Set by a project admin, independently of task completion.</p>
+      <OverviewDates project={project} canEdit={canEdit} saving={saving} save={save} />
     </section>
+  );
+}
+
+const formatProjectDate = (value: string) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "Not set";
+
+function OverviewDates({ project, canEdit, saving, save }: SectionProps) {
+  const start = project.start_date ?? "";
+  const due = project.target_date ?? "";
+  if (!canEdit)
+    return (
+      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-subtle pt-4 text-13">
+        <div>
+          <dt className="text-secondary">Start date</dt>
+          <dd>{formatProjectDate(start)}</dd>
+        </div>
+        <div>
+          <dt className="text-secondary">Due date</dt>
+          <dd>{formatProjectDate(due)}</dd>
+        </div>
+      </dl>
+    );
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3 border-t border-subtle pt-4 text-13">
+      <label className="flex flex-col gap-1 text-secondary">
+        Start date
+        <input
+          type="date"
+          className={selectClass}
+          disabled={saving}
+          value={start}
+          max={due || undefined}
+          onChange={(event) => void save({ start_date: event.target.value || null })}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-secondary">
+        Due date
+        <input
+          type="date"
+          className={selectClass}
+          disabled={saving}
+          value={due}
+          min={start || undefined}
+          onChange={(event) => void save({ target_date: event.target.value || null })}
+        />
+      </label>
+    </div>
   );
 }
 

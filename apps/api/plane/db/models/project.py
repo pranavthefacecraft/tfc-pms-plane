@@ -79,6 +79,8 @@ class Project(BaseModel):
         default="",
     )
     overview_resources = models.JSONField(default=list, blank=True)
+    start_date = models.DateField(null=True, blank=True)
+    target_date = models.DateField(null=True, blank=True)
     network = models.PositiveSmallIntegerField(default=2, choices=NETWORK_CHOICES)
     workspace = models.ForeignKey("db.WorkSpace", on_delete=models.CASCADE, related_name="workspace_project")
     identifier = models.CharField(max_length=12, verbose_name="Project Identifier", db_index=True)
