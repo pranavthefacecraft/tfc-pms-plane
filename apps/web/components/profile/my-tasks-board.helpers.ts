@@ -76,3 +76,30 @@ export function rowOnDate(row: TaskRow, day: string) {
   const end = row.due ?? start;
   return Boolean(start && end && start <= day && day <= end);
 }
+
+export type TTimelineDates = { start_date?: string; target_date?: string };
+
+/** Converts a task row into the block data shape the shared Gantt timeline store expects. */
+export function timelineBlock(row: TaskRow, index: number) {
+  return {
+    id: row.key,
+    name: row.name,
+    sort_order: index,
+    start_date: row.personal?.start_date ?? row.project?.start_date ?? null,
+    target_date: row.due,
+    project_id: row.project?.project_id ?? null,
+  };
+}
+
+export function timelineColor(row: TaskRow) {
+  if (row.personal) return "#135DDD";
+  return row.project.state_color || "#00845C";
+}
+
+/** Keeps only the dates the timeline changed, ignoring empty values. */
+export function timelineDates(update: { start_date?: string | null; target_date?: string | null }): TTimelineDates {
+  const dates: TTimelineDates = {};
+  if (update.start_date) dates.start_date = update.start_date;
+  if (update.target_date) dates.target_date = update.target_date;
+  return dates;
+}

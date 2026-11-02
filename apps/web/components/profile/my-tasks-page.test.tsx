@@ -52,6 +52,30 @@ vi.mock("@/services/project/project-section.service", () => ({
 vi.mock("@plane/blocks/toast", () => ({ setToast: state.toast }));
 vi.mock("@/components/issues/peek-overview", () => ({ IssuePeekOverview: () => null }));
 vi.mock("@/components/core/page-title", () => ({ PageHead: () => null }));
+vi.mock("./my-tasks-timeline", () => ({
+  MyTasksTimeline: ({
+    rows,
+    canEdit,
+    onReschedule,
+  }: {
+    rows: { key: string; name: string }[];
+    canEdit: (row: { key: string; name: string }) => boolean;
+    onReschedule: (row: { key: string; name: string }, dates: Record<string, string>) => Promise<void>;
+  }) => (
+    <section aria-label="Task timeline">
+      {rows.map((row) => (
+        <button
+          key={row.key}
+          type="button"
+          disabled={!canEdit(row)}
+          onClick={() => void onReschedule(row, { start_date: "2026-11-02", target_date: "2026-11-05" })}
+        >
+          Reschedule {row.name}
+        </button>
+      ))}
+    </section>
+  ),
+}));
 vi.mock("./create-task-button", () => ({
   ProfileCreateTaskButton: ({ ariaLabel }: { ariaLabel?: string }) => <button aria-label={ariaLabel}>Add task</button>,
 }));
@@ -350,4 +374,26 @@ it("navigates calendar periods and returns to today", async () => {
   expect(host.querySelectorAll('section[aria-label="Task calendar"] [aria-label$="2026"]')).toHaveLength(7);
   await click("Day");
   expect(day("Saturday, 31 October 2026")?.textContent).toContain("Website Builder");
+});
+
+it("shows filtered tasks on the timeline tab and saves rescheduled dates", async () => {
+  await render();
+  const tab = Array.from(host.querySelectorAll('[role="tab"]')).find((item) => item.textContent === "Timeline");
+  await act(() => (tab as HTMLButtonElement | undefined)?.click());
+  expect(host.querySelector('section[aria-label="Task timeline"]')).not.toBeNull();
+  expect(host.querySelector("table")).toBeNull();
+  await click("Reschedule Website Builder");
+  expect(state.patch).toHaveBeenCalledWith("team", "project", "assigned", {
+    start_date: "2026-11-02",
+    target_date: "2026-11-05",
+  });
+  await click("Reschedule Buy supplies");
+  expect(state.update).toHaveBeenCalledWith("team", "private", {
+    start_date: "2026-11-02",
+    target_date: "2026-11-05",
+  });
+  expect(state.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "success", title: "Task rescheduled" }));
+  await click("Filter");
+  await select("Account", "personal");
+  expect(host.querySelector('section[aria-label="Task timeline"]')?.textContent).not.toContain("Website Builder");
 });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR, { useSWRConfig } from "swr";
-import { CalendarDays, Check, Filter, KanbanSquare, List, Search } from "lucide-react";
+import { CalendarDays, Check, Filter, GanttChartSquare, KanbanSquare, List, Search } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Popover, PopoverContent, PopoverTrigger } from "@makeplane/propel/components/popover";
 import { setToast } from "@plane/blocks/toast";
@@ -22,8 +22,9 @@ import { ProfileCreateTaskButton } from "./create-task-button";
 import { PersonalTaskDialog } from "./personal-task-dialog";
 import { MyTasksBoard } from "./my-tasks-board";
 import { MyTasksCalendar } from "./my-tasks-calendar";
+import { MyTasksTimeline } from "./my-tasks-timeline";
 import { boardColumnLabel, projectMovePatch } from "./my-tasks-board.helpers";
-import type { TBoardColumn, TaskRow } from "./my-tasks-board.helpers";
+import type { TBoardColumn, TaskRow, TTimelineDates } from "./my-tasks-board.helpers";
 
 const taskService = new MyTasksService();
 const issueService = new IssueService();
@@ -250,6 +251,11 @@ function useMyTasks(workspaceSlug: string) {
     if (row.personal) setEditing(row.personal);
     else setPeekIssue({ workspaceSlug, projectId: row.project.project_id, issueId: row.project.id });
   };
+  const reschedule = (row: TaskRow, dates: TTimelineDates) =>
+    runUpdate(row, "Task rescheduled", async () => {
+      if (row.personal) await personalTaskService.update(workspaceSlug, row.personal.id, dates);
+      else await issueService.patchIssue(workspaceSlug, row.project.project_id, row.project.id, dates);
+    });
   return {
     user,
     canEditPersonal,
@@ -277,6 +283,7 @@ function useMyTasks(workspaceSlug: string) {
     toggle,
     move,
     open,
+    reschedule,
   };
 }
 
@@ -481,6 +488,7 @@ const VIEW_TABS = [
   { id: "list", label: "List", Icon: List },
   { id: "board", label: "Board", Icon: KanbanSquare },
   { id: "calendar", label: "Task Calendar", Icon: CalendarDays },
+  { id: "timeline", label: "Timeline", Icon: GanttChartSquare },
 ] as const;
 type TLayout = (typeof VIEW_TABS)[number]["id"];
 
@@ -576,8 +584,18 @@ function TaskViews({
   onOpen: (row: TaskRow) => void;
   onMove: (row: TaskRow, column: TBoardColumn) => Promise<void>;
   onToggle: (row: TaskRow) => Promise<void>;
+  onReschedule: (row: TaskRow, dates: TTimelineDates) => Promise<void>;
 }) {
   if (layout === "calendar") return <MyTasksCalendar rows={props.rows} today={props.today} onOpen={props.onOpen} />;
+  if (layout === "timeline")
+    return (
+      <MyTasksTimeline
+        rows={props.rows}
+        canEdit={(row) => !props.busy.has(row.key) && (Boolean(row.project) || canEditPersonal)}
+        onOpen={props.onOpen}
+        onReschedule={props.onReschedule}
+      />
+    );
   if (layout === "board") return <BoardView {...props} userId={canEditPersonal ? userId : undefined} />;
   return <ListView {...props} userId={userId} />;
 }
@@ -609,86 +627,92 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
     toggle,
     move,
     open,
+    reschedule,
   } = useMyTasks(workspaceSlug);
   const [layout, setLayout] = useState<TLayout>("list");
   return (
-    <main className="h-full overflow-y-auto bg-surface-1 px-5 py-6 md:px-8" aria-label="My Tasks">
-      <PageHead title="My Tasks" />
-      <div className="mx-auto max-w-[1400px]">
-        <header className="mb-5 flex items-center gap-3">
-          <span
-            className="grid size-8 place-items-center rounded-full bg-[#E8DFFD] text-12 text-[#7955BE]"
-            aria-hidden="true"
-          >
-            {(user?.display_name || user?.first_name || "My").slice(0, 2).toUpperCase()}
-          </span>
-          <h1 className="text-24 font-semibold">My Tasks</h1>
-        </header>
-        <ViewTabs layout={layout} onChange={setLayout} />
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          {user && canEditPersonal ? (
-            <ProfileCreateTaskButton
-              workspaceSlug={workspaceSlug}
-              userId={user.id}
-              label="Add task"
-              className="rounded-full! bg-[#135DDD]!"
+    <div className="relative h-full">
+      {/* The shared timeline's full-screen mode renders into this container. */}
+      <div id="full-screen-portal" className="absolute inset-0 w-full empty:hidden" />
+      <main className="h-full overflow-y-auto bg-surface-1 px-5 py-6 md:px-8" aria-label="My Tasks">
+        <PageHead title="My Tasks" />
+        <div className="mx-auto max-w-[1400px]">
+          <header className="mb-5 flex items-center gap-3">
+            <span
+              className="grid size-8 place-items-center rounded-full bg-[#E8DFFD] text-12 text-[#7955BE]"
+              aria-hidden="true"
+            >
+              {(user?.display_name || user?.first_name || "My").slice(0, 2).toUpperCase()}
+            </span>
+            <h1 className="text-24 font-semibold">My Tasks</h1>
+          </header>
+          <ViewTabs layout={layout} onChange={setLayout} />
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            {user && canEditPersonal ? (
+              <ProfileCreateTaskButton
+                workspaceSlug={workspaceSlug}
+                userId={user.id}
+                label="Add task"
+                className="rounded-full! bg-[#135DDD]!"
+              />
+            ) : (
+              <span />
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <TaskFilters
+                filtered={filtered}
+                account={account}
+                setAccount={setAccount}
+                projectId={projectId}
+                setProjectId={setProjectId}
+                projects={projects}
+                status={status}
+                setStatus={setStatus}
+                reset={reset}
+              />
+              <TaskSearch query={query} setQuery={setQuery} />
+            </div>
+          </div>
+          {layout === "list" && <h2 className="mb-3 text-16 font-semibold">Recently Assigned</h2>}
+          {failed || loading ? (
+            <TaskLoadState
+              failed={failed}
+              onRetry={() => {
+                void assigned.mutate();
+                void personal.mutate();
+              }}
             />
           ) : (
-            <span />
-          )}
-          <div className="flex flex-wrap items-center gap-2">
-            <TaskFilters
+            <TaskViews
+              layout={layout}
+              workspaceSlug={workspaceSlug}
+              userId={user?.id}
+              canEditPersonal={canEditPersonal}
+              rows={visible}
               filtered={filtered}
-              account={account}
-              setAccount={setAccount}
-              projectId={projectId}
-              setProjectId={setProjectId}
-              projects={projects}
-              status={status}
-              setStatus={setStatus}
               reset={reset}
+              today={today}
+              busy={busy}
+              onOpen={open}
+              onMove={move}
+              onToggle={toggle}
+              onReschedule={reschedule}
             />
-            <TaskSearch query={query} setQuery={setQuery} />
-          </div>
+          )}
         </div>
-        {layout === "list" && <h2 className="mb-3 text-16 font-semibold">Recently Assigned</h2>}
-        {failed || loading ? (
-          <TaskLoadState
-            failed={failed}
-            onRetry={() => {
-              void assigned.mutate();
-              void personal.mutate();
+        <IssuePeekOverview />
+        {editing && (
+          <PersonalTaskDialog
+            workspaceSlug={workspaceSlug}
+            task={editing}
+            onClose={() => setEditing(null)}
+            onSaved={async () => {
+              setEditing(null);
+              await refresh();
             }}
           />
-        ) : (
-          <TaskViews
-            layout={layout}
-            workspaceSlug={workspaceSlug}
-            userId={user?.id}
-            canEditPersonal={canEditPersonal}
-            rows={visible}
-            filtered={filtered}
-            reset={reset}
-            today={today}
-            busy={busy}
-            onOpen={open}
-            onMove={move}
-            onToggle={toggle}
-          />
         )}
-      </div>
-      <IssuePeekOverview />
-      {editing && (
-        <PersonalTaskDialog
-          workspaceSlug={workspaceSlug}
-          task={editing}
-          onClose={() => setEditing(null)}
-          onSaved={async () => {
-            setEditing(null);
-            await refresh();
-          }}
-        />
-      )}
-    </main>
+      </main>
+    </div>
   );
 });
