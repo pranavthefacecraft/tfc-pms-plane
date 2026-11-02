@@ -407,9 +407,8 @@ function BoardView({
                   workspaceSlug={workspaceSlug}
                   userId={userId}
                   label="Add task"
-                  variant="ghost"
+                  appearance="inline"
                   ariaLabel={`Add task to ${boardColumnLabel(column)}`}
-                  className="w-full! justify-start!"
                 />
               )
             : undefined

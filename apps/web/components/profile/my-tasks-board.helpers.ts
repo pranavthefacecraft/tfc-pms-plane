@@ -9,11 +9,11 @@ export type TaskRow = { key: string; name: string; due: string | null; completed
 export type TBoardColumn = "todo" | "progress" | "review" | "done";
 
 export const BOARD_COLUMNS = [
-  { id: "todo", label: "To Do", badge: "bg-[#EEF1F5] text-[#536175]", dot: "bg-[#94A3B8]" },
-  { id: "progress", label: "In Progress", badge: "bg-[#E7F0FF] text-[#135DDD]", dot: "bg-[#135DDD]" },
-  { id: "review", label: "Waiting For Review", badge: "bg-[#FFF1E5] text-[#D9730D]", dot: "bg-[#F59E0B]" },
-  { id: "done", label: "Done", badge: "bg-[#E6F6F1] text-[#009E79]", dot: "bg-[#009E79]" },
-] as const satisfies readonly { id: TBoardColumn; label: string; badge: string; dot: string }[];
+  { id: "todo", label: "To Do", badge: "bg-[#EEF1F5] text-[#536175]", title: "text-[#384252]" },
+  { id: "progress", label: "In Progress", badge: "bg-[#E7F0FF] text-[#135DDD]", title: "text-[#135DDD]" },
+  { id: "review", label: "Waiting For Review", badge: "bg-[#FFF1E5] text-[#D9730D]", title: "text-[#9A4A0B]" },
+  { id: "done", label: "Done", badge: "bg-[#E6F6F1] text-[#009E79]", title: "text-[#00875A]" },
+] as const satisfies readonly { id: TBoardColumn; label: string; badge: string; title: string }[];
 
 export function boardColumnLabel(column: TBoardColumn) {
   return BOARD_COLUMNS.find((item) => item.id === column)?.label ?? column;

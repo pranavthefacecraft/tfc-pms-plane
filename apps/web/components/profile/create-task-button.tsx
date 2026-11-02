@@ -13,14 +13,14 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
   userId,
   label,
   className,
-  variant = "primary",
+  appearance = "button",
   ariaLabel,
 }: {
   workspaceSlug: string;
   userId: string;
   label?: string;
   className?: string;
-  variant?: "primary" | "ghost";
+  appearance?: "button" | "inline";
   ariaLabel?: string;
 }) {
   const [personalTaskOpen, setPersonalTaskOpen] = useState(false);
@@ -38,16 +38,28 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
     );
   return (
     <>
-      <Button
-        variant={variant}
-        size="md"
-        stretch="auto"
-        label={label ?? t("add_work_item")}
-        aria-label={ariaLabel}
-        render={className ? <button className={className} /> : undefined}
-        icon={<AddOutline className="size-4" />}
-        onClick={() => setPersonalTaskOpen(true)}
-      />
+      {appearance === "inline" ? (
+        <button
+          type="button"
+          aria-label={ariaLabel}
+          onClick={() => setPersonalTaskOpen(true)}
+          className="flex w-full items-center justify-center gap-1.5 rounded bg-white py-1.5 text-12 text-[#135DDD] hover:bg-[#EEF4FF] focus-visible:ring-2 focus-visible:ring-[#135DDD]/40 focus-visible:outline-none"
+        >
+          <AddOutline className="size-3.5" />
+          {label ?? t("add_work_item")}
+        </button>
+      ) : (
+        <Button
+          variant="primary"
+          size="md"
+          stretch="auto"
+          label={label ?? t("add_work_item")}
+          aria-label={ariaLabel}
+          render={className ? <button className={className} /> : undefined}
+          icon={<AddOutline className="size-4" />}
+          onClick={() => setPersonalTaskOpen(true)}
+        />
+      )}
       {personalTaskOpen && (
         <NewTaskPanel
           workspaceSlug={workspaceSlug}

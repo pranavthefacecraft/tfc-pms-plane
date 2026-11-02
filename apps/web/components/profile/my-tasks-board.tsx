@@ -93,12 +93,13 @@ export function MyTasksBoard({
               setOver(null);
               if (row && boardColumn(row) !== column.id) void onMove(row, column.id);
             }}
-            className={`flex max-h-[calc(100vh-260px)] w-[280px] shrink-0 flex-col rounded-xl bg-layer-1 p-3 ${over === column.id ? "ring-2 ring-[#135DDD]/40" : ""}`}
+            className={`flex max-h-[calc(100vh-260px)] w-[280px] shrink-0 flex-col rounded-lg bg-[#F4F6FA] p-3 ${over === column.id ? "ring-2 ring-[#135DDD]/40" : ""}`}
           >
-            <header className="mb-3 flex items-center gap-2">
-              <span className={`size-2 rounded-full ${column.dot}`} />
-              <h3 className="text-13 font-semibold">{column.label}</h3>
-              <span className={`rounded-full px-2 py-0.5 text-11 font-medium ${column.badge}`}>{items.length}</span>
+            <header className="mb-3 flex items-center justify-between gap-2 px-1">
+              <h3 className={`text-13 font-semibold ${column.title}`}>{column.label}</h3>
+              <span className={`min-w-6 rounded-full px-2 py-0.5 text-center text-11 font-medium ${column.badge}`}>
+                {items.length}
+              </span>
             </header>
             <div className="flex min-h-16 flex-col gap-2 overflow-y-auto">
               {items.map((row) => (

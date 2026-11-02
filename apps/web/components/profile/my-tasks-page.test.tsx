@@ -258,6 +258,7 @@ it("shows a Figma board grouped by project sections with counts and add buttons"
   expect(column("Waiting For Review")?.textContent).toContain("Due today");
   expect(column("Waiting For Review")?.textContent).toContain("Website Redesign");
   expect(column("In Progress")?.querySelector("header")?.textContent).toContain("0");
+  expect(column("To Do")?.querySelector("header")?.lastElementChild?.textContent).toBe("1");
   expect(host.querySelector('[aria-label="Add task to Done"]')).not.toBeNull();
   await click("Website Builder");
   expect(state.peek).toHaveBeenCalledWith({ workspaceSlug: "team", projectId: "project", issueId: "assigned" });
