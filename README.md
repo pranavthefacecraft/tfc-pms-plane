@@ -307,14 +307,29 @@ identifier is generated from the name, with a numeric suffix if that one is
 already taken. Collaborators are added as members (capped at their workspace
 role). The attached file (images, PDFs, or Office documents, within the upload
 size limit) becomes a key resource on the project Overview. Start and due dates
-(`Project.start_date` / `target_date`, migration `0136`) show on the Overview's
-health card, and admins can edit them there. Creating from a template, or with
+(`Project.start_date` / `target_date`, migration `0136`) show on the classic
+Overview's health card (`?view=classic`), and admins can edit them there. Creating from a template, or with
 prefilled data, still uses the original detailed form.
 
 ## Project overview
 
 Click a project name in the sidebar or project directory to open **Overview**.
-The page shows the project's description, owner, members, key resource links,
+It follows the Figma design: a letter tile and the project name, tabs for
+**Overview**, **List**, **Board**, **Project Calendar**, **Timeline**, and **Files**,
+then three cards. **Project Description** has an **Edit description** link for admins.
+**Project Teammates** lists the owner (the project lead, or the creator when no
+lead is set) followed by other members, with **+ Add Teammate** linking to member
+settings. **Key Resources** shows linked briefs, Notepad pages, whiteboards, and files
+attached in the Create Project form; each opens via ↗, and admins can add (**+ Resource**)
+or remove them. The List/Board/Project Calendar/Timeline tabs open Work items in that
+layout. The **Files** tab (`/<workspace>/projects/<id>/files`, API
+`GET /api/workspaces/<slug>/projects/<id>/files/`) gathers every attachment and link
+on the project's tasks plus files attached to the project. It has All/Images/Documents/Links
+filters and search; restricted guests only see files on tasks they created.
+Health, task progress, start/due dates, and the owner picker are hidden from this
+layout but still available at `/<workspace>/projects/<id>/overview?view=classic`.
+
+The classic layout shows the project's description, owner, members, key resource links,
 health, and task progress. Project/workspace admins can edit the description,
 assign an active project member as owner, set health to **On track**, **At risk**,
 or **Off track**, and add/remove resource links. Members and guests have read-only

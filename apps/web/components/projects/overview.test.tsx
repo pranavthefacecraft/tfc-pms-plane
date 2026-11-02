@@ -22,6 +22,9 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("@/components/core/page-title", () => ({ PageHead: () => null }));
+vi.mock("./project-page-header", () => ({
+  ProjectPageHeader: ({ name, active }: { name: string; active: string }) => <h1 data-active-tab={active}>{name}</h1>,
+}));
 vi.mock("@plane/blocks/toast", () => ({ setToast: mocks.toast }));
 vi.mock("@/hooks/store/use-project", () => ({
   useProject: () => ({ fetchProjectDetails: mocks.fetch, updateProject: mocks.update }),
@@ -85,10 +88,10 @@ describe("project overview", () => {
     host.remove();
     vi.restoreAllMocks();
   });
-  async function render() {
+  async function render(url = "/") {
     await act(async () => {
       root.render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[url]}>
           <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0, shouldRetryOnError: false }}>
             <ProjectOverview workspaceSlug="workspace" projectId="project" />
           </SWRConfig>
@@ -97,7 +100,9 @@ describe("project overview", () => {
     });
   }
   function button(label: string) {
-    const result = [...host.querySelectorAll("button")].find((node) => node.textContent?.trim() === label);
+    const result = [...host.querySelectorAll("button")].find(
+      (node) => node.textContent?.trim() === label || node.getAttribute("aria-label") === label
+    );
     if (!result) throw new Error(`Missing button ${label}`);
     return result;
   }
@@ -112,8 +117,45 @@ describe("project overview", () => {
     await act(() => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
   }
 
-  it("shows project-specific data and exact progress, separating cancelled tasks", async () => {
+  it("renders the Figma overview: header tabs, description, teammates and key resources", async () => {
+    mocks.project.overview_resources = [
+      { title: "Project brief", url: "https://example.com/brief", kind: "link" },
+      {
+        title: "brief.pdf",
+        url: "https://pms.example.com/api/assets/v2/workspaces/workspace/projects/project/download/asset/",
+        kind: "link",
+      },
+    ];
     await render();
+    expect(host.querySelector("h1")?.textContent).toBe("Launch");
+    expect(host.querySelector("h1")?.getAttribute("data-active-tab")).toBe("overview");
+    expect(host.textContent).toContain("Project Description");
+    expect(host.textContent).toContain("Launch goals");
+    expect(host.textContent).toContain("Project Teammates");
+    const people = [...host.querySelectorAll("section[aria-labelledby=overview-teammates] li")];
+    expect(people.map((node) => node.textContent)).toEqual(["POProject OwnerProject owner", "TMTeam MemberTeammate"]);
+    expect(host.querySelector('a[href^="/workspace/settings/projects/project/members"]')?.textContent).toContain(
+      "Add Teammate"
+    );
+    expect(host.textContent).toContain("Key Resources");
+    expect(host.textContent).toContain("Attached file");
+    expect(host.querySelector('a[aria-label="Open Project brief"]')?.getAttribute("href")).toBe(
+      "https://example.com/brief"
+    );
+    // Health, progress, dates and the owner picker are hidden in this layout.
+    expect(host.querySelector("progress")).toBeNull();
+    expect(host.querySelector("select")).toBeNull();
+    expect(host.textContent).not.toContain("Project health");
+  });
+  it("lists the project creator as owner when no lead is set", async () => {
+    mocks.project.project_lead = null;
+    mocks.project.created_by = "member";
+    await render();
+    const people = [...host.querySelectorAll("section[aria-labelledby=overview-teammates] li")];
+    expect(people.map((node) => node.textContent)).toEqual(["TMTeam MemberProject owner", "POProject OwnerTeammate"]);
+  });
+  it("keeps the previous layout with exact progress at ?view=classic", async () => {
+    await render("/?view=classic");
     expect(host.textContent).toContain("Launch goals");
     expect(host.textContent).toContain("Project Owner");
     expect(host.textContent).toContain("Team Member");
@@ -146,7 +188,7 @@ describe("project overview", () => {
     expect(errorLog).toHaveBeenCalled();
   });
   it("updates health and owner through the same project API", async () => {
-    await render();
+    await render("/?view=classic");
     await change(host.querySelector('select[aria-label="Project health"]')!, "at_risk");
     expect(mocks.update).toHaveBeenLastCalledWith("workspace", "project", { health: "at_risk" });
     await change(host.querySelector('select[aria-label="Project owner"]')!, "member");
@@ -167,7 +209,7 @@ describe("project overview", () => {
     expect(host.querySelector('a[href="https://example.com/tool/whiteboards/board"]')?.getAttribute("rel")).toBe(
       "noopener noreferrer"
     );
-    await act(() => button("Remove").click());
+    await act(() => button("Remove Planning board").click());
     expect(mocks.update).toHaveBeenLastCalledWith("workspace", "project", { overview_resources: [] });
   });
   it.each(["guest/member", "archived"])("keeps %s projects read-only", async (mode) => {
@@ -193,7 +235,7 @@ describe("project overview", () => {
   });
   it("shows truthful empty-project progress without assuming a healthy status", async () => {
     mocks.project.task_summary = { total: 0, completed: 0, started: 0, cancelled: 0, overdue: 0 };
-    await render();
+    await render("/?view=classic");
     expect(host.textContent).toContain("0%");
     expect(host.textContent).toContain("Not set");
     expect(host.querySelector("progress")?.value).toBe(0);

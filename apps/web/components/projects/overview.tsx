@@ -7,7 +7,9 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
+import { Plus } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel, PROJECT_DETAILS } from "@plane/constants";
 import { Button } from "@makeplane/propel/components/button";
 import { Avatar } from "@makeplane/propel/components/avatar";
@@ -21,6 +23,8 @@ import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { ProjectOverviewResources } from "./overview-resources";
+import { ProjectPageHeader } from "./project-page-header";
+import { initials } from "./projects-browse.helpers";
 
 const HEALTH_OPTIONS = [
   { value: "", label: "Not set", color: "#9ca3af" },
@@ -29,6 +33,8 @@ const HEALTH_OPTIONS = [
   { value: "off_track", label: "Off track", color: "#ef4444" },
 ] as const;
 const cardClass = "rounded-xl border border-subtle bg-surface-1 p-6";
+const figmaCardClass = "rounded-lg border border-subtle bg-surface-1 p-5";
+const AVATAR_TINTS = ["bg-[#EAF1FD] text-[#135DDD]", "bg-[#E8F0FE] text-[#1D4ED8]", "bg-[#FDECF3] text-[#C0266D]"];
 const selectClass = "w-full rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13";
 
 type SectionProps = {
@@ -42,25 +48,10 @@ function OverviewDescription({ project, canEdit, saving, save }: SectionProps) {
   const [editing, setEditing] = useState(false);
   const [description, setDescription] = useState("");
   return (
-    <section className={cardClass} aria-labelledby="overview-description">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 id="overview-description" className="text-16 font-semibold">
-          Project description
-        </h2>
-        {canEdit && !editing && (
-          <Button
-            label="Edit description"
-            stretch="auto"
-            variant="secondary"
-            size="sm"
-            disabled={saving}
-            onClick={() => {
-              setDescription(project.description ?? "");
-              setEditing(true);
-            }}
-          />
-        )}
-      </div>
+    <section className={figmaCardClass} aria-labelledby="overview-description">
+      <h2 id="overview-description" className="mb-3 text-15 font-semibold text-primary">
+        Project Description
+      </h2>
       {editing && canEdit ? (
         <form
           onSubmit={async (event) => {
@@ -101,9 +92,24 @@ function OverviewDescription({ project, canEdit, saving, save }: SectionProps) {
           </div>
         </form>
       ) : (
-        <p className="text-14 leading-7 break-words whitespace-pre-wrap text-secondary">
-          {project.description || "Describe the goals, scope, and expectations for this project."}
-        </p>
+        <>
+          <p className="text-13 leading-6 break-words whitespace-pre-wrap text-secondary">
+            {project.description || "Describe the goals, scope, and expectations for this project."}
+          </p>
+          {canEdit && (
+            <button
+              type="button"
+              disabled={saving}
+              className="mt-3 text-12 font-medium text-[#135DDD] hover:underline disabled:opacity-60"
+              onClick={() => {
+                setDescription(project.description ?? "");
+                setEditing(true);
+              }}
+            >
+              Edit description
+            </button>
+          )}
+        </>
       )}
     </section>
   );
@@ -190,6 +196,83 @@ const OverviewPeople = observer(function OverviewPeople({
         >
           Manage members
         </Link>
+      )}
+    </section>
+  );
+});
+
+const OverviewTeammates = observer(function OverviewTeammates({
+  project,
+  workspaceSlug,
+  canEdit,
+}: {
+  project: IProject;
+  workspaceSlug: string;
+  canEdit: boolean;
+}) {
+  const { getUserDetails, project: projectMembers } = useMember();
+  const { error, mutate } = useSWR(["overview-members", workspaceSlug, project.id], () =>
+    projectMembers.fetchProjectMembers(workspaceSlug, project.id)
+  );
+  const leadId = typeof project.project_lead === "string" ? project.project_lead : project.project_lead?.id;
+  const ownerId = leadId ?? project.created_by;
+  const teammates = (projectMembers.getProjectMemberIds(project.id, true) ?? []).flatMap((id) => {
+    const member = getUserDetails(id);
+    return member && !member.is_bot ? [member] : [];
+  });
+  const members = [
+    ...teammates.filter((member) => member.id === ownerId),
+    ...teammates.filter((member) => member.id !== ownerId),
+  ];
+  return (
+    <section className={figmaCardClass} aria-labelledby="overview-teammates">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 id="overview-teammates" className="text-15 font-semibold text-primary">
+          Project Teammates
+        </h2>
+        {canEdit && (
+          <Link
+            href={`/${workspaceSlug}/settings/projects/${project.id}/members`}
+            className="inline-flex items-center gap-1 text-12 font-medium text-[#135DDD] hover:underline"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            Add Teammate
+          </Link>
+        )}
+      </div>
+      {error ? (
+        <p role="alert" className="text-13">
+          Could not load project teammates.{" "}
+          <button type="button" className="text-[#135DDD] underline" onClick={() => void mutate()}>
+            Retry
+          </button>
+        </p>
+      ) : members.length ? (
+        <ul className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+          {members.map((member, index) => {
+            const avatar = getFileURL(member.avatar_url);
+            return (
+              <li key={member.id} className="flex min-w-0 items-center gap-3">
+                {avatar ? (
+                  <img src={avatar} alt="" className="size-8 shrink-0 rounded-full object-cover" />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className={`grid size-8 shrink-0 place-items-center rounded-full text-11 font-semibold ${AVATAR_TINTS[index % AVATAR_TINTS.length]}`}
+                  >
+                    {initials(member.display_name ?? "")}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-13 font-medium text-primary">{member.display_name}</p>
+                  <p className="text-12 text-tertiary">{member.id === ownerId ? "Project owner" : "Teammate"}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-13 text-tertiary">No teammates yet.</p>
       )}
     </section>
   );
@@ -359,6 +442,7 @@ export const ProjectOverview = observer(function ProjectOverview({
     refreshInterval: 30_000,
   });
   const [saving, setSaving] = useState(false);
+  const classic = useSearchParams().get("view") === "classic";
   const canEdit =
     !project?.archived_at &&
     (allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId) ||
@@ -404,6 +488,40 @@ export const ProjectOverview = observer(function ProjectOverview({
     );
 
   const sectionProps = { project, canEdit, saving, save };
+  const resources = (
+    <ProjectOverviewResources
+      resources={project.overview_resources ?? []}
+      canEdit={canEdit}
+      saving={saving}
+      save={save}
+    />
+  );
+  const refreshError = error && (
+    <div role="alert" className={figmaCardClass}>
+      Could not refresh the overview. The last loaded data is shown.{" "}
+      <Button label="Retry" variant="secondary" size="sm" stretch="auto" onClick={() => void retry()} />
+    </div>
+  );
+  const archivedNote = project.archived_at && (
+    <p className="text-13 text-secondary">This project is archived and read-only.</p>
+  );
+  if (!classic)
+    return (
+      <div className="min-h-full bg-surface-1">
+        <PageHead title={`${project.name} - Overview`} />
+        <ProjectPageHeader workspaceSlug={workspaceSlug} projectId={projectId} name={project.name} active="overview" />
+        <main className="px-6 py-6 md:px-8">
+          <div className="max-w-[720px] space-y-4">
+            {refreshError}
+            {archivedNote}
+            <OverviewDescription {...sectionProps} />
+            <OverviewTeammates project={project} workspaceSlug={workspaceSlug} canEdit={canEdit} />
+            {resources}
+          </div>
+        </main>
+      </div>
+    );
+  // The previous layout (health, task progress, dates and owner picker) stays reachable at ?view=classic.
   return (
     <div className="min-h-full bg-surface-2">
       <PageHead title={`${project.name} - Overview`} />
@@ -417,21 +535,11 @@ export const ProjectOverview = observer(function ProjectOverview({
       </header>
       <main className="mx-auto grid max-w-6xl gap-6 p-6 md:p-10 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-6">
-          {error && (
-            <div role="alert" className={cardClass}>
-              Could not refresh the overview. The last loaded data is shown.{" "}
-              <Button label="Retry" variant="secondary" size="sm" stretch="auto" onClick={() => void retry()} />
-            </div>
-          )}
-          {project.archived_at && <p className="text-13 text-secondary">This project is archived and read-only.</p>}
+          {refreshError}
+          {archivedNote}
           <OverviewDescription {...sectionProps} />
           <OverviewPeople {...sectionProps} workspaceSlug={workspaceSlug} />
-          <ProjectOverviewResources
-            resources={project.overview_resources ?? []}
-            canEdit={canEdit}
-            saving={saving}
-            save={save}
-          />
+          {resources}
         </div>
         <aside className="space-y-6">
           <OverviewHealth {...sectionProps} />

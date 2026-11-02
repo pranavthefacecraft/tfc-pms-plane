@@ -27,6 +27,54 @@ MAX_LIMIT = 100
 FILES_LIMIT = 300
 
 
+def collect_task_files(slug, issues):
+    """Attachments and links on the given work items, newest first."""
+    issue_fields = {
+        "issue_name": F("issue__name"),
+        "sequence_id": F("issue__sequence_id"),
+        "project_identifier": F("project__identifier"),
+        "state_group": F("issue__state__group"),
+        "created_by_name": F("created_by__display_name"),
+    }
+    attachments = (
+        FileAsset.objects.filter(
+            issue_id__in=issues.values("id"),
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            is_uploaded=True,
+            is_deleted=False,
+        )
+        .order_by("-created_at")
+        .values("id", "attributes", "size", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
+    )
+    links = (
+        IssueLink.objects.filter(issue_id__in=issues.values("id"))
+        .order_by("-created_at")
+        .values("id", "title", "url", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
+    )
+    files = [
+        {
+            **{key: value for key, value in item.items() if key != "attributes"},
+            "kind": "attachment",
+            "name": (item["attributes"] or {}).get("name") or "Attachment",
+            "mime_type": (item["attributes"] or {}).get("type") or "",
+            "url": f"/api/assets/v2/workspaces/{slug}/projects/{item['project_id']}/issues/"
+            f"{item['issue_id']}/attachments/{item['id']}/",
+        }
+        for item in attachments
+    ] + [
+        {
+            **{key: value for key, value in item.items() if key != "title"},
+            "kind": "link",
+            "name": item["title"] or item["url"],
+            "mime_type": "",
+            "size": 0,
+        }
+        for item in links
+    ]
+    files.sort(key=lambda item: item["created_at"], reverse=True)
+    return files[:FILES_LIMIT]
+
+
 class WorkspaceMyTasksEndpoint(BaseAPIView):
     """Work items assigned to the current user, split into Asana-style tabs."""
 
@@ -46,51 +94,7 @@ class WorkspaceMyTasksEndpoint(BaseAPIView):
         return max(1, min(limit, MAX_LIMIT))
 
     def _files(self, slug, issues):
-        """Attachments and links on the user's assigned work items, newest first."""
-        issue_fields = {
-            "issue_name": F("issue__name"),
-            "sequence_id": F("issue__sequence_id"),
-            "project_identifier": F("project__identifier"),
-            "state_group": F("issue__state__group"),
-            "created_by_name": F("created_by__display_name"),
-        }
-        attachments = (
-            FileAsset.objects.filter(
-                issue_id__in=issues.values("id"),
-                entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
-                is_uploaded=True,
-                is_deleted=False,
-            )
-            .order_by("-created_at")
-            .values("id", "attributes", "size", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
-        )
-        links = (
-            IssueLink.objects.filter(issue_id__in=issues.values("id"))
-            .order_by("-created_at")
-            .values("id", "title", "url", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
-        )
-        files = [
-            {
-                **{key: value for key, value in item.items() if key != "attributes"},
-                "kind": "attachment",
-                "name": (item["attributes"] or {}).get("name") or "Attachment",
-                "mime_type": (item["attributes"] or {}).get("type") or "",
-                "url": f"/api/assets/v2/workspaces/{slug}/projects/{item['project_id']}/issues/"
-                f"{item['issue_id']}/attachments/{item['id']}/",
-            }
-            for item in attachments
-        ] + [
-            {
-                **{key: value for key, value in item.items() if key != "title"},
-                "kind": "link",
-                "name": item["title"] or item["url"],
-                "mime_type": "",
-                "size": 0,
-            }
-            for item in links
-        ]
-        files.sort(key=lambda item: item["created_at"], reverse=True)
-        return files[:FILES_LIMIT]
+        return collect_task_files(slug, issues)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):

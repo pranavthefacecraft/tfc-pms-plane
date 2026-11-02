@@ -10,7 +10,7 @@ from unittest import mock
 import pytest
 from rest_framework import status
 
-from plane.db.models import FileAsset, Project, ProjectMember
+from plane.db.models import FileAsset, Issue, IssueLink, Project, ProjectMember, State, User
 
 S3_STORAGE_PATH = "plane.app.views.asset.v2.S3Storage"
 
@@ -119,3 +119,72 @@ class TestProjectAttachmentUpload:
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def _asset(workspace, project, name, entity_type, **extra):
+    return FileAsset.objects.create(
+        asset=f"{workspace.id}/{name}",
+        attributes={"name": name, "type": "application/pdf", "size": 10},
+        size=10,
+        workspace=workspace,
+        project=project,
+        entity_type=entity_type,
+        is_uploaded=True,
+        **extra,
+    )
+
+
+@pytest.mark.contract
+class TestProjectFiles:
+    def url(self, workspace, project):
+        return f"/api/workspaces/{workspace.slug}/projects/{project.id}/files/"
+
+    @pytest.mark.django_db
+    def test_lists_task_files_and_project_attachments(self, session_client, workspace, project):
+        state = State.objects.create(name="Todo", project=project, workspace=workspace, group="unstarted", default=True)
+        issue = Issue.objects.create(name="Homepage", project=project, workspace=workspace, state=state)
+        task_file = _asset(workspace, project, "spec.pdf", FileAsset.EntityTypeContext.ISSUE_ATTACHMENT, issue=issue)
+        link = IssueLink.objects.create(url="https://example.com", issue=issue, project=project, workspace=workspace)
+        brief = _asset(workspace, project, "brief.pdf", FileAsset.EntityTypeContext.PROJECT_ATTACHMENT)
+        _asset(workspace, project, "cover.png", FileAsset.EntityTypeContext.PROJECT_COVER)
+        other = Project.objects.create(name="Other", identifier="OTH", workspace=workspace)
+        _asset(workspace, other, "elsewhere.pdf", FileAsset.EntityTypeContext.PROJECT_ATTACHMENT)
+
+        response = session_client.get(self.url(workspace, project))
+
+        assert response.status_code == status.HTTP_200_OK
+        files = {item["id"]: item for item in response.json()}
+        assert set(files) == {str(task_file.id), str(link.id), str(brief.id)}
+        assert files[str(task_file.id)]["issue_name"] == "Homepage"
+        assert files[str(link.id)]["kind"] == "link"
+        assert files[str(brief.id)]["issue_id"] is None
+        assert files[str(brief.id)]["url"] == (
+            f"/api/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/download/{brief.id}/"
+        )
+
+    @pytest.mark.django_db
+    def test_restricted_guest_only_sees_own_work_items(self, session_client, workspace, project, create_user):
+        ProjectMember.objects.filter(project=project, member=create_user).update(role=5)
+        project.guest_view_all_features = False
+        project.save(update_fields=["guest_view_all_features"])
+        state = State.objects.create(name="Todo", project=project, workspace=workspace, group="unstarted", default=True)
+        someone = User.objects.create(email="someone@example.com", username="someone")
+        theirs = Issue.objects.create(name="Theirs", project=project, workspace=workspace, state=state)
+        mine = Issue.objects.create(name="Mine", project=project, workspace=workspace, state=state)
+        Issue.objects.filter(id=theirs.id).update(created_by=someone)
+        Issue.objects.filter(id=mine.id).update(created_by=create_user)
+        IssueLink.objects.create(url="https://a.example.com", issue=theirs, project=project, workspace=workspace)
+        own_link = IssueLink.objects.create(
+            url="https://b.example.com", issue=mine, project=project, workspace=workspace
+        )
+
+        response = session_client.get(self.url(workspace, project))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [item["id"] for item in response.json()] == [str(own_link.id)]
+
+    @pytest.mark.django_db
+    def test_non_members_are_forbidden(self, session_client, workspace):
+        other = Project.objects.create(name="Private", identifier="PRV", workspace=workspace)
+        response = session_client.get(self.url(workspace, other))
+        assert response.status_code == status.HTTP_403_FORBIDDEN

@@ -8,12 +8,14 @@ import { getFileURL } from "@plane/utils";
 import type { TMyTaskFile } from "@/services/workspace-my-tasks.service";
 
 export type TFileKind = "image" | "archive" | "document" | "link";
+/** The fields the helpers need; shared by My Tasks files and project files. */
+export type TFileLike = Pick<TMyTaskFile, "kind" | "name" | "url" | "mime_type"> & { issue_name?: string | null };
 export type TFileFilter = "all" | "image" | "file" | "link";
 
 const IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
 const ARCHIVE_EXTENSION = /\.(zip|rar|7z|tar|gz)$/i;
 
-export function fileKind(file: TMyTaskFile): TFileKind {
+export function fileKind(file: TFileLike): TFileKind {
   if (file.kind === "link") return "link";
   if (file.mime_type.startsWith("image/") || IMAGE_EXTENSION.test(file.name)) return "image";
   if (ARCHIVE_EXTENSION.test(file.name)) return "archive";
@@ -21,17 +23,19 @@ export function fileKind(file: TMyTaskFile): TFileKind {
 }
 
 /** Only http(s) links are opened as-is so stored values like `javascript:` can never run. */
-export function fileHref(file: TMyTaskFile): string {
+export function fileHref(file: TFileLike): string {
   if (file.kind === "attachment") return getFileURL(file.url) ?? "#";
   const url = file.url.trim();
   return /^https?:\/\//i.test(url) ? url : `https://${url.replace(/^[a-z][a-z0-9+.-]*:\/*/i, "")}`;
 }
 
-export function matchesFileFilter(file: TMyTaskFile, filter: TFileFilter, query: string): boolean {
+export function matchesFileFilter(file: TFileLike, filter: TFileFilter, query: string): boolean {
   const kind = fileKind(file);
   if (filter === "image" && kind !== "image") return false;
   if (filter === "link" && kind !== "link") return false;
   if (filter === "file" && (kind === "image" || kind === "link")) return false;
   const term = query.trim().toLocaleLowerCase();
-  return !term || [file.name, file.url, file.issue_name].some((value) => value.toLocaleLowerCase().includes(term));
+  return (
+    !term || [file.name, file.url, file.issue_name ?? ""].some((value) => value.toLocaleLowerCase().includes(term))
+  );
 }
