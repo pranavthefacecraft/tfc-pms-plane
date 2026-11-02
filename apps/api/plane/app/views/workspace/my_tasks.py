@@ -197,7 +197,7 @@ class WorkspaceMyTasksEndpoint(BaseAPIView):
                     filter=Q(issue_assignee__deleted_at__isnull=True),
                 ),
             )
-            fields += ["project_name", "assignee_ids", "section_id", "section_name"]
+            fields += ["project_name", "assignee_ids", "section_id", "section_name", "start_date"]
         results = list(results_queryset.values(*fields)[offset : offset + limit])
         if list_view:
             return Response({"count": selected_queryset.count(), "results": results}, status=status.HTTP_200_OK)

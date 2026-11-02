@@ -88,6 +88,7 @@ const project: TMyTaskListItem = {
   default_state_id: "todo",
   section_id: "review",
   section_name: "Waiting for review",
+  start_date: "2026-10-30",
 };
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -296,4 +297,47 @@ it("applies filters to the board", async () => {
   await select("Account", "company");
   expect(column("To Do")?.textContent).not.toContain("Buy supplies");
   expect(column("Waiting For Review")?.textContent).toContain("Website Builder");
+});
+
+async function openCalendar() {
+  await render();
+  const tab = Array.from(host.querySelectorAll('[role="tab"]')).find((item) => item.textContent === "Task Calendar");
+  await act(() => (tab as HTMLButtonElement | undefined)?.click());
+}
+function day(label: string) {
+  return host.querySelector<HTMLElement>(`[aria-label="${label}"]`);
+}
+
+it("shows dated tasks on a Monday-first month calendar and opens them", async () => {
+  await openCalendar();
+  const calendar = host.querySelector('section[aria-label="Task calendar"]');
+  expect(calendar?.textContent).toContain("October 2026");
+  expect(Array.from(calendar?.querySelectorAll(".uppercase") ?? []).map((item) => item.textContent)).toEqual([
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+    "Sun",
+  ]);
+  expect(day("Friday, 30 October 2026")?.textContent).toContain("Website Builder");
+  expect(day("Saturday, 31 October 2026")?.textContent).toContain("Website Builder");
+  expect(day("Thursday, 29 October 2026")?.textContent).not.toContain("Website Builder");
+  expect(calendar?.textContent).toContain("1 task without dates");
+  const chip = day("Saturday, 31 October 2026")?.querySelector<HTMLButtonElement>('button[title="Website Builder"]');
+  await act(() => chip?.click());
+  expect(state.peek).toHaveBeenCalledWith({ workspaceSlug: "team", projectId: "project", issueId: "assigned" });
+});
+
+it("navigates calendar periods and returns to today", async () => {
+  await openCalendar();
+  await click("Next period");
+  expect(host.textContent).toContain("November 2026");
+  await click("Today");
+  expect(host.textContent).toContain("October 2026");
+  await click("Week");
+  expect(host.querySelectorAll('section[aria-label="Task calendar"] [aria-label$="2026"]')).toHaveLength(7);
+  await click("Day");
+  expect(day("Saturday, 31 October 2026")?.textContent).toContain("Website Builder");
 });

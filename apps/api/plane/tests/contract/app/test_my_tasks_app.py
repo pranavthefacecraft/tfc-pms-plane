@@ -80,6 +80,7 @@ class TestMyTasks:
         }
         assert results["Reviewed"]["section_id"] == str(review.id)
         assert results["Reviewed"]["section_name"] == "Waiting for review"
+        assert results["Reviewed"]["start_date"] is None
         assert results["Retired task"]["section_name"] is None
 
     @pytest.mark.django_db

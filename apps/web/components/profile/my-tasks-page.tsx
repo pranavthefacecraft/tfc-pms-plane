@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR, { useSWRConfig } from "swr";
-import { Check, Filter, KanbanSquare, List, Search } from "lucide-react";
+import { CalendarDays, Check, Filter, KanbanSquare, List, Search } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Popover, PopoverContent, PopoverTrigger } from "@makeplane/propel/components/popover";
 import { setToast } from "@plane/blocks/toast";
@@ -21,6 +21,7 @@ import type { TPersonalTask } from "@/services/personal-task.service";
 import { ProfileCreateTaskButton } from "./create-task-button";
 import { PersonalTaskDialog } from "./personal-task-dialog";
 import { MyTasksBoard } from "./my-tasks-board";
+import { MyTasksCalendar } from "./my-tasks-calendar";
 import { boardColumnLabel, projectMovePatch } from "./my-tasks-board.helpers";
 import type { TBoardColumn, TaskRow } from "./my-tasks-board.helpers";
 
@@ -479,9 +480,11 @@ function ListView({
 const VIEW_TABS = [
   { id: "list", label: "List", Icon: List },
   { id: "board", label: "Board", Icon: KanbanSquare },
+  { id: "calendar", label: "Task Calendar", Icon: CalendarDays },
 ] as const;
+type TLayout = (typeof VIEW_TABS)[number]["id"];
 
-function ViewTabs({ layout, onChange }: { layout: "list" | "board"; onChange: (layout: "list" | "board") => void }) {
+function ViewTabs({ layout, onChange }: { layout: TLayout; onChange: (layout: TLayout) => void }) {
   return (
     <div className="mb-5 flex border-b border-subtle" role="tablist" aria-label="My Tasks views">
       {VIEW_TABS.map(({ id, label, Icon }) => (
@@ -515,6 +518,30 @@ function TaskLoadState({ failed, onRetry }: { failed: boolean; onRetry: () => vo
     </p>
   );
 }
+
+function TaskViews({
+  layout,
+  canEditPersonal,
+  userId,
+  ...props
+}: {
+  layout: TLayout;
+  workspaceSlug: string;
+  userId?: string;
+  canEditPersonal: boolean;
+  rows: TaskRow[];
+  filtered: boolean;
+  reset: () => void;
+  today: string;
+  busy: Set<string>;
+  onOpen: (row: TaskRow) => void;
+  onMove: (row: TaskRow, column: TBoardColumn) => Promise<void>;
+  onToggle: (row: TaskRow) => Promise<void>;
+}) {
+  if (layout === "calendar") return <MyTasksCalendar rows={props.rows} today={props.today} onOpen={props.onOpen} />;
+  if (layout === "board") return <BoardView {...props} userId={canEditPersonal ? userId : undefined} />;
+  return <ListView {...props} userId={userId} />;
+}
 export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { workspaceSlug: string }) {
   const {
     user,
@@ -544,7 +571,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
     move,
     open,
   } = useMyTasks(workspaceSlug);
-  const [layout, setLayout] = useState<"list" | "board">("list");
+  const [layout, setLayout] = useState<TLayout>("list");
   return (
     <main className="h-full overflow-y-auto bg-surface-1 px-5 py-6 md:px-8" aria-label="My Tasks">
       <PageHead title="My Tasks" />
@@ -603,10 +630,12 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
               void personal.mutate();
             }}
           />
-        ) : layout === "board" ? (
-          <BoardView
+        ) : (
+          <TaskViews
+            layout={layout}
             workspaceSlug={workspaceSlug}
-            userId={user && canEditPersonal ? user.id : undefined}
+            userId={user?.id}
+            canEditPersonal={canEditPersonal}
             rows={visible}
             filtered={filtered}
             reset={reset}
@@ -614,17 +643,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
             busy={busy}
             onOpen={open}
             onMove={move}
-          />
-        ) : (
-          <ListView
-            rows={visible}
-            filtered={filtered}
-            reset={reset}
-            today={today}
-            userId={user?.id}
-            busy={busy}
             onToggle={toggle}
-            onOpen={open}
           />
         )}
       </div>

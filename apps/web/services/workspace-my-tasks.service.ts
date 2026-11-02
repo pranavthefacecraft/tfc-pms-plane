@@ -37,6 +37,7 @@ export type TMyTaskListItem = TMyTask & {
   assignee_ids: string[];
   section_id: string | null;
   section_name: string | null;
+  start_date: string | null;
 };
 
 export type TMyTasksParams = {
