@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR, { useSWRConfig } from "swr";
-import { CalendarDays, Check, Filter, GanttChartSquare, KanbanSquare, List, Paperclip, Search } from "lucide-react";
+import { CalendarDays, Check, GanttChartSquare, KanbanSquare, List, Paperclip, Search } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { Popover, PopoverContent, PopoverTrigger } from "@makeplane/propel/components/popover";
 import { setToast } from "@plane/blocks/toast";
 import { renderFormattedDate } from "@plane/utils";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
@@ -24,6 +23,8 @@ import { MyTasksBoard } from "./my-tasks-board";
 import { MyTasksCalendar } from "./my-tasks-calendar";
 import { MyTasksTimeline } from "./my-tasks-timeline";
 import { MyTasksFiles } from "./my-tasks-files";
+import { TaskFilters } from "./my-tasks-filters";
+import { EMPTY_FILTERS, filterCount, matchesTaskFilters } from "./my-tasks-filters.helpers";
 import { boardColumnLabel, projectMovePatch } from "./my-tasks-board.helpers";
 import type { TBoardColumn, TaskRow, TTimelineDates } from "./my-tasks-board.helpers";
 
@@ -147,9 +148,7 @@ function useMyTasks(workspaceSlug: string) {
     taskService.all(workspaceSlug)
   );
   const [query, setQuery] = useState("");
-  const [account, setAccount] = useState("all");
-  const [projectId, setProjectId] = useState("");
-  const [status, setStatus] = useState("all");
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [editing, setEditing] = useState<TPersonalTask | null>(null);
   const [busy, setBusy] = useState<Set<string>>(new Set());
   const { mutate: refreshAssigned } = assigned;
@@ -180,22 +179,15 @@ function useMyTasks(workspaceSlug: string) {
   const projects = Array.from(
     new Map((assigned.data ?? []).map((task) => [task.project_id, task.project_name])).entries()
   );
-  const scoped = rows.filter(
-    (row) =>
-      (account === "all" || (account === "personal" ? Boolean(row.personal) : Boolean(row.project))) &&
-      (!projectId || row.project?.project_id === projectId) &&
-      (status === "all" || (status === "completed" ? row.completed : !row.completed))
-  );
+  const today = zonedDateKey(currentTime, user?.user_timezone);
+  const scoped = rows.filter((row) => matchesTaskFilters(row, filters, today));
   const visible = scoped.filter((row) => row.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const failed = Boolean(personal.error || assigned.error);
   const loading = !user || assigned.isLoading || (canEditPersonal && personal.isLoading);
-  const today = zonedDateKey(currentTime, user?.user_timezone);
-  const filtered = Boolean(query || account !== "all" || projectId || status !== "all");
+  const filtered = Boolean(query || filterCount(filters));
   const reset = () => {
     setQuery("");
-    setAccount("all");
-    setProjectId("");
-    setStatus("all");
+    setFilters(EMPTY_FILTERS);
   };
   const refresh = async () => {
     await globalMutate((key) =>
@@ -264,12 +256,8 @@ function useMyTasks(workspaceSlug: string) {
     assigned,
     query,
     setQuery,
-    account,
-    setAccount,
-    projectId,
-    setProjectId,
-    status,
-    setStatus,
+    filters,
+    setFilters,
     editing,
     setEditing,
     busy,
@@ -287,90 +275,6 @@ function useMyTasks(workspaceSlug: string) {
     open,
     reschedule,
   };
-}
-
-function TaskFilters({
-  filtered,
-  account,
-  setAccount,
-  projectId,
-  setProjectId,
-  projects,
-  status,
-  setStatus,
-  reset,
-}: {
-  filtered: boolean;
-  account: string;
-  setAccount: (value: string) => void;
-  projectId: string;
-  setProjectId: (value: string) => void;
-  projects: [string, string][];
-  status: string;
-  setStatus: (value: string) => void;
-  reset: () => void;
-}) {
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <button type="button" className="flex items-center gap-2 rounded border border-subtle px-3 py-1.5 text-12" />
-        }
-      >
-        <Filter className="size-3.5" />
-        {filtered ? "Filter (active)" : "Filter"}
-      </PopoverTrigger>
-      <PopoverContent variant="text" align="end" sideOffset={8} aria-label="Filter My Tasks">
-        <div className="flex flex-col gap-3 text-13">
-          <label>
-            Account
-            <select
-              aria-label="Account"
-              className="mt-1 w-full rounded border border-subtle bg-surface-1 p-2"
-              value={account}
-              onChange={(event) => setAccount(event.target.value)}
-            >
-              <option value="all">All accounts</option>
-              <option value="personal">Personal</option>
-              <option value="company">Company</option>
-            </select>
-          </label>
-          <label>
-            Project
-            <select
-              aria-label="Project"
-              className="mt-1 w-full rounded border border-subtle bg-surface-1 p-2"
-              value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
-            >
-              <option value="">All projects</option>
-              {projects.map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Status
-            <select
-              aria-label="Status"
-              className="mt-1 w-full rounded border border-subtle bg-surface-1 p-2"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              <option value="all">All statuses</option>
-              <option value="open">Not completed</option>
-              <option value="completed">Completed</option>
-            </select>
-          </label>
-          <button type="button" className="text-[#135DDD] underline" onClick={reset}>
-            Reset filters
-          </button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
 }
 
 function BoardView({
@@ -622,12 +526,8 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
     assigned,
     query,
     setQuery,
-    account,
-    setAccount,
-    projectId,
-    setProjectId,
-    status,
-    setStatus,
+    filters,
+    setFilters,
     editing,
     setEditing,
     busy,
@@ -675,17 +575,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
               <span />
             )}
             <div className="flex flex-wrap items-center gap-2">
-              <TaskFilters
-                filtered={filtered}
-                account={account}
-                setAccount={setAccount}
-                projectId={projectId}
-                setProjectId={setProjectId}
-                projects={projects}
-                status={status}
-                setStatus={setStatus}
-                reset={reset}
-              />
+              <TaskFilters filters={filters} onApply={setFilters} projects={projects} />
               <TaskSearch query={query} setQuery={setQuery} />
             </div>
           </div>

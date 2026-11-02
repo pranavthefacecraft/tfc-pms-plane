@@ -212,29 +212,101 @@ it("surfaces failed completion without claiming success", async () => {
   expect(state.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "error", message: "Permission denied" }));
 });
 
-async function select(label: string, value: string) {
-  const element = document.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`);
-  expect(element).not.toBeNull();
+async function openFilters() {
+  const trigger = host.querySelector<HTMLButtonElement>('button[aria-label^="Filter"]');
+  expect(trigger).not.toBeNull();
+  await act(() => trigger?.click());
+}
+function checkbox(label: string) {
+  return Array.from(document.querySelectorAll<HTMLLabelElement>('[aria-label="Filter My Tasks"] label'))
+    .find((item) => item.textContent === label)
+    ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+}
+async function setDate(label: string, value: string) {
+  const input = document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`);
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
   await act(() => {
-    if (element) {
-      element.value = value;
-      element.dispatchEvent(new Event("change", { bubbles: true }));
-    }
+    setter?.call(input, value);
+    input?.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
+async function applyFilters(...labels: string[]) {
+  await openFilters();
+  for (const label of labels) {
+    const input = checkbox(label);
+    expect(input, label).toBeDefined();
+    // oxlint-disable-next-line no-await-in-loop -- Each toggle updates the draft before the next one.
+    await act(() => input?.click());
+  }
+  const apply = Array.from(document.querySelectorAll("button")).find((item) => item.textContent === "Apply");
+  await act(() => apply?.click());
+}
+function rowNames() {
+  return Array.from(host.querySelectorAll("tbody tr")).map((row) => row.textContent ?? "");
+}
 
-it("filters by account, project and completion with reset recovery", async () => {
+it("filters with checkboxes by account, project and completion and resets", async () => {
   await render();
-  await click("Filter");
-  await select("Account", "personal");
-  expect(host.querySelectorAll("tbody tr")).toHaveLength(1);
-  expect(host.querySelector("tbody")?.textContent).toContain("Buy supplies");
-  await select("Project", "project");
-  expect(host.textContent).toContain("No matching tasks");
-  const reset = Array.from(document.querySelectorAll("button")).find((item) => item.textContent === "Reset filters");
-  await act(() => reset?.click());
+  await openFilters();
+  expect(checkbox("Overdue")).toBeDefined();
+  expect(checkbox("Website Redesign")).toBeDefined();
+  await act(() => checkbox("Personal")?.click());
   expect(host.querySelectorAll("tbody tr")).toHaveLength(2);
-  await select("Status", "completed");
+  const apply = Array.from(document.querySelectorAll("button")).find((item) => item.textContent === "Apply");
+  await act(() => apply?.click());
+  expect(host.querySelector('button[aria-label^="Filter"]')?.getAttribute("aria-expanded")).toBe("false");
+  expect(rowNames()).toEqual([expect.stringContaining("Buy supplies")]);
+  expect(host.querySelector('button[aria-label="Filter (1 active)"]')).not.toBeNull();
+});
+
+it("keeps applied checkboxes, resets them and clears filters from the empty state", async () => {
+  await render();
+  await applyFilters("Personal", "Website Redesign");
+  expect(host.textContent).toContain("No matching tasks");
+  await openFilters();
+  expect(checkbox("Personal")?.checked).toBe(true);
+  const reset = Array.from(document.querySelectorAll("button")).find((item) => item.textContent === "Reset");
+  await act(() => reset?.click());
+  expect(checkbox("Personal")?.checked).toBe(false);
+  await act(() =>
+    Array.from(document.querySelectorAll("button"))
+      .find((item) => item.textContent === "Apply")
+      ?.click()
+  );
+  expect(host.querySelectorAll("tbody tr")).toHaveLength(2);
+  expect(host.querySelector('button[aria-label="Filter"]')).not.toBeNull();
+
+  await applyFilters("Completed");
+  expect(host.textContent).toContain("No matching tasks");
+  await click("Clear filters");
+  expect(host.querySelectorAll("tbody tr")).toHaveLength(2);
+});
+
+it("filters by due date checkboxes including a custom range", async () => {
+  await render();
+  await applyFilters("Today");
+  expect(rowNames()).toEqual([expect.stringContaining("Website Builder")]);
+  await applyFilters("Today", "No due date");
+  expect(rowNames()).toEqual([expect.stringContaining("Buy supplies")]);
+  await applyFilters("No due date");
+  await openFilters();
+  expect(document.querySelector('input[aria-label="Custom date from"]')).toBeNull();
+  await act(() => checkbox("Custom date")?.click());
+  await setDate("Custom date from", "2026-10-01");
+  await setDate("Custom date to", "2026-10-31");
+  await act(() =>
+    Array.from(document.querySelectorAll("button"))
+      .find((item) => item.textContent === "Apply")
+      ?.click()
+  );
+  expect(rowNames()).toEqual([expect.stringContaining("Website Builder")]);
+  await openFilters();
+  await setDate("Custom date to", "2026-10-30");
+  await act(() =>
+    Array.from(document.querySelectorAll("button"))
+      .find((item) => item.textContent === "Apply")
+      ?.click()
+  );
   expect(host.textContent).toContain("No matching tasks");
 });
 
@@ -330,8 +402,7 @@ it("rejects moves that have no matching section without changing the task", asyn
 
 it("applies filters to the board", async () => {
   await openBoard();
-  await click("Filter");
-  await select("Account", "company");
+  await applyFilters("Company");
   expect(column("To Do")?.textContent).not.toContain("Buy supplies");
   expect(column("Waiting For Review")?.textContent).toContain("Website Builder");
 });
@@ -396,8 +467,7 @@ it("shows filtered tasks on the timeline tab and saves rescheduled dates", async
     target_date: "2026-11-05",
   });
   expect(state.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "success", title: "Task rescheduled" }));
-  await click("Filter");
-  await select("Account", "personal");
+  await applyFilters("Personal");
   expect(host.querySelector('section[aria-label="Task timeline"]')?.textContent).not.toContain("Website Builder");
 });
 
@@ -466,8 +536,7 @@ it("shows task attachments and links on the files tab with type filters and sear
       ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
   );
   expect(section()?.querySelectorAll("article")).toHaveLength(4);
-  await click("Filter");
-  await select("Account", "personal");
+  await applyFilters("Personal");
   expect(section()?.textContent).toContain("No files match your filters.");
 });
 

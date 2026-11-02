@@ -138,7 +138,9 @@ The My tasks widget below the calendar is also visually hidden but remains mount
 this does not disable the sidebar My tasks page.
 The sidebar My tasks destination now opens the current user's Figma-style List:
 private personal tasks and assigned project tasks, including undated and completed
-tasks. It includes search, account/project/completion filters, collaborators,
+tasks. It includes search, a checkbox Filter panel (Due date: Overdue, Today, Next 7
+days, No due date, Custom date range; Account; Project; Status) applied with Apply
+and cleared with Reset, collaborators,
 real project states, completion/reopen actions and the existing task editors.
 Assigned tasks are loaded in paginated requests without a 100-task display cap.
 List, Board, Task Calendar, Timeline and Files tabs are implemented. Board columns (To Do, In Progress, Waiting For Review, Done) follow each
