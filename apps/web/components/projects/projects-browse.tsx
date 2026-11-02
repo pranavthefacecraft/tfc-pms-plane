@@ -181,25 +181,17 @@ export const ProjectsBrowse = observer(function ProjectsBrowse({ workspaceSlug }
           ) : (
             <span />
           )}
-          <div className="flex w-full items-center gap-3 sm:w-auto">
-            <Link
-              href={`/${workspaceSlug}/projects?view=cards`}
-              className="shrink-0 text-13 text-secondary hover:text-primary"
-            >
-              Card view
-            </Link>
-            <label className="flex h-9 w-full items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 sm:w-64">
-              <Search className="size-4 shrink-0 text-tertiary" aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search projects"
-                aria-label="Search projects"
-                className="w-full bg-transparent text-13 outline-none placeholder:text-placeholder"
-              />
-            </label>
-          </div>
+          <label className="flex h-9 w-full items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 sm:w-64">
+            <Search className="size-4 shrink-0 text-tertiary" aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search projects"
+              aria-label="Search projects"
+              className="w-full bg-transparent text-13 outline-none placeholder:text-placeholder"
+            />
+          </label>
         </div>
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-13">
