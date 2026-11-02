@@ -5,6 +5,9 @@
  */
 
 import useSWR from "swr";
+import { useSearchParams } from "next/navigation";
+import { useUser } from "@/hooks/store/user";
+import { MyTasksPage } from "@/components/profile/my-tasks-page";
 // plane imports
 import { GROUP_CHOICES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -24,7 +27,17 @@ import { UserService } from "@/services/user.service";
 import type { Route } from "./+types/page";
 const userService = new UserService();
 
-export default function ProfileOverviewPage({ params }: Route.ComponentProps) {
+export default function ProfileOverviewPage(props: Route.ComponentProps) {
+  const { data: user } = useUser();
+  const searchParams = useSearchParams();
+  return user?.id === props.params.userId && searchParams.get("view") !== "summary" ? (
+    <MyTasksPage workspaceSlug={props.params.workspaceSlug} />
+  ) : (
+    <ProfileSummary {...props} />
+  );
+}
+
+function ProfileSummary({ params }: Route.ComponentProps) {
   const { workspaceSlug, userId } = params;
 
   const { t } = useTranslation();

@@ -135,7 +135,24 @@ The legacy greeting/date and quickstart guide below the calendar are hidden.
 Quicklinks and Recents are visually hidden; their components, stored data,
 and widget functionality are retained.
 The My tasks widget below the calendar is also visually hidden but remains mounted;
-the sidebar My tasks page is unchanged.
+this does not disable the sidebar My tasks page.
+The sidebar My tasks destination now opens the current user's Figma-style List:
+private personal tasks and assigned project tasks, including undated and completed
+tasks. It includes search, account/project/completion filters, collaborators,
+real project states, completion/reopen actions and the existing task editors.
+Assigned tasks are loaded in paginated requests without a 100-task display cap.
+List and Board tabs are implemented; no placeholder Calendar/Timeline/Files tabs
+are shown. Board columns (To Do, In Progress, Waiting For Review, Done) follow each
+project's Sections: a task's section name (for example "Waiting for review") picks
+its column, completed tasks are always in Done, and tasks in other sections fall
+back to their state (Started → In Progress, otherwise To Do). Cancelled tasks are
+not shown on the board. Dragging a card moves a project task into the project's
+matching section (Done also completes it; leaving Done reopens it); if the project
+has no matching section the move is rejected with a message. Personal tasks can
+only move between To Do and Done. Filters and search apply to both tabs, and each
+column's Add task opens the New Task panel. Existing assigned/created/subscribed/activity profile routes remain;
+the original self-profile Summary is available with `?view=summary`. Other users'
+profile pages retain their original layout.
 Today's Activity includes tasks scheduled today and tasks completed today in the
 user's timezone. Its task table shows the task and project name, blue assignee
 initials, PMS source badge, scheduled date, and an actions menu. Task names,

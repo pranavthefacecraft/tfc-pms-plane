@@ -13,11 +13,15 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
   userId,
   label,
   className,
+  variant = "primary",
+  ariaLabel,
 }: {
   workspaceSlug: string;
   userId: string;
   label?: string;
   className?: string;
+  variant?: "primary" | "ghost";
+  ariaLabel?: string;
 }) {
   const [personalTaskOpen, setPersonalTaskOpen] = useState(false);
   const { mutate } = useSWRConfig();
@@ -25,7 +29,9 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
   const refreshTasks = () =>
     void mutate(
       (key) =>
-        (Array.isArray(key) && key[0] === "activity-schedule" && key[1] === workspaceSlug) ||
+        (Array.isArray(key) &&
+          ["activity-schedule", "my-tasks-list"].includes(String(key[0])) &&
+          key[1] === workspaceSlug) ||
         (typeof key === "string" &&
           (key.startsWith(`HOME_MY_TASKS_${workspaceSlug}_`) ||
             key.startsWith(`CURRENT_WORKSPACE_PROFILE_ISSUES_${workspaceSlug}_`)))
@@ -33,10 +39,11 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
   return (
     <>
       <Button
-        variant="primary"
+        variant={variant}
         size="md"
         stretch="auto"
         label={label ?? t("add_work_item")}
+        aria-label={ariaLabel}
         render={className ? <button className={className} /> : undefined}
         icon={<AddOutline className="size-4" />}
         onClick={() => setPersonalTaskOpen(true)}

@@ -7,7 +7,7 @@ from datetime import date, timedelta
 
 # Django imports
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import F, OuterRef, Q, Subquery
+from django.db.models import Case, CharField, F, OuterRef, Q, Subquery, Value, When
 from django.utils import timezone
 
 # Third party imports
@@ -71,6 +71,15 @@ class WorkspaceMyTasksEndpoint(BaseAPIView):
             project__project_projectmember__deleted_at__isnull=True,
         ).values("id")
         base_queryset = Issue.issue_objects.filter(id__in=assigned_issue_ids)
+        list_view = request.GET.get("view") == "list"
+        offset = 0
+        if list_view:
+            try:
+                offset = int(request.GET.get("offset", 0))
+                if offset < 0:
+                    raise ValueError
+            except ValueError:
+                return Response({"error": "Invalid offset"}, status=status.HTTP_400_BAD_REQUEST)
 
         if request.GET.get("view") == "schedule":
             start = self._parse_today(request.GET.get("start"))
@@ -133,45 +142,64 @@ class WorkspaceMyTasksEndpoint(BaseAPIView):
         }
         counts = {key: queryset.count() for key, queryset in tab_querysets.items()}
 
-        ordering = {
-            "upcoming": (F("target_date").asc(nulls_last=True), "-created_at"),
-            "overdue": (F("target_date").asc(), "-created_at"),
-            "completed": (F("completed_at").desc(nulls_last=True), "-updated_at"),
-        }[tab]
+        ordering = (
+            ("-created_at", "id")
+            if list_view
+            else {
+                "upcoming": (F("target_date").asc(nulls_last=True), "-created_at"),
+                "overdue": (F("target_date").asc(), "-created_at"),
+                "completed": (F("completed_at").desc(nulls_last=True), "-updated_at"),
+            }[tab]
+        )
 
-        results = list(
-            tab_querysets[tab]
-            .annotate(
-                project_identifier=F("project__identifier"),
-                state_group=F("state__group"),
-                state_name=F("state__name"),
-                state_color=F("state__color"),
-                completed_state_id=Subquery(
-                    State.objects.filter(project_id=OuterRef("project_id"), group="completed")
-                    .order_by("sequence")
-                    .values("id")[:1]
+        selected_queryset = base_queryset if list_view else tab_querysets[tab]
+        results_queryset = selected_queryset.annotate(
+            project_identifier=F("project__identifier"),
+            state_group=F("state__group"),
+            state_name=F("state__name"),
+            state_color=F("state__color"),
+            completed_state_id=Subquery(
+                State.objects.filter(project_id=OuterRef("project_id"), group="completed")
+                .order_by("sequence")
+                .values("id")[:1]
+            ),
+            default_state_id=Subquery(
+                State.objects.filter(project_id=OuterRef("project_id"), default=True).values("id")[:1]
+            ),
+        ).order_by(*ordering)
+        fields = [
+            "id",
+            "name",
+            "sequence_id",
+            "project_id",
+            "project_identifier",
+            "priority",
+            "target_date",
+            "completed_at",
+            "state_id",
+            "state_group",
+            "state_name",
+            "state_color",
+            "completed_state_id",
+            "default_state_id",
+        ]
+        if list_view:
+            results_queryset = results_queryset.annotate(
+                project_name=F("project__name"),
+                section_name=Case(
+                    When(section__deleted_at__isnull=True, then=F("section__name")),
+                    default=Value(None),
+                    output_field=CharField(),
                 ),
-                default_state_id=Subquery(
-                    State.objects.filter(project_id=OuterRef("project_id"), default=True).values("id")[:1]
+                assignee_ids=ArrayAgg(
+                    "issue_assignee__assignee_id",
+                    distinct=True,
+                    filter=Q(issue_assignee__deleted_at__isnull=True),
                 ),
             )
-            .order_by(*ordering)
-            .values(
-                "id",
-                "name",
-                "sequence_id",
-                "project_id",
-                "project_identifier",
-                "priority",
-                "target_date",
-                "completed_at",
-                "state_id",
-                "state_group",
-                "state_name",
-                "state_color",
-                "completed_state_id",
-                "default_state_id",
-            )[:limit]
-        )
+            fields += ["project_name", "assignee_ids", "section_id", "section_name"]
+        results = list(results_queryset.values(*fields)[offset : offset + limit])
+        if list_view:
+            return Response({"count": selected_queryset.count(), "results": results}, status=status.HTTP_200_OK)
 
         return Response({"tab": tab, "counts": counts, "results": results}, status=status.HTTP_200_OK)

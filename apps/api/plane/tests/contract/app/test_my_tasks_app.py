@@ -10,7 +10,7 @@ import pytest
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import Issue, IssueAssignee, Project, ProjectMember, State, User
+from plane.db.models import Issue, IssueAssignee, Project, ProjectMember, Section, State, User
 
 TODAY = date(2026, 10, 14)
 
@@ -44,6 +44,50 @@ def _task(project, state, user, name, target_date=None, assign=True):
 
 @pytest.mark.contract
 class TestMyTasks:
+    @pytest.mark.django_db
+    def test_list_includes_all_states_and_undated_tasks_with_pagination(
+        self, session_client, workspace, create_user, project_states
+    ):
+        project, states = project_states
+        expected = [
+            _task(project, states[group], create_user, group) for group in ("started", "completed", "cancelled")
+        ]
+        _task(project, states["started"], create_user, "Not assigned", assign=False)
+        first = session_client.get(_url(workspace.slug, view="list", limit=2)).json()
+        second = session_client.get(_url(workspace.slug, view="list", limit=2, offset=2)).json()
+        assert first["count"] == second["count"] == 3
+        assert len(first["results"]) == 2
+        assert {item["id"] for item in first["results"] + second["results"]} == {str(task.id) for task in expected}
+        assert first["results"][0]["project_name"] == project.name
+        assert first["results"][0]["assignee_ids"] == [str(create_user.id)]
+        ProjectMember.objects.filter(project=project, member=create_user).update(is_active=False)
+        assert session_client.get(_url(workspace.slug, view="list")).json() == {"count": 0, "results": []}
+
+    @pytest.mark.django_db
+    def test_list_includes_active_section_for_board_columns(
+        self, session_client, workspace, create_user, project_states
+    ):
+        project, states = project_states
+        review = Section.objects.create(project=project, name="Waiting for review")
+        retired = Section.objects.create(project=project, name="Retired")
+        reviewed = _task(project, states["started"], create_user, "Reviewed")
+        retired_task = _task(project, states["started"], create_user, "Retired task")
+        Issue.objects.filter(id=reviewed.id).update(section=review)
+        Issue.objects.filter(id=retired_task.id).update(section=retired)
+        Section.objects.filter(id=retired.id).update(deleted_at=timezone.now())
+        results = {
+            item["name"]: item for item in session_client.get(_url(workspace.slug, view="list")).json()["results"]
+        }
+        assert results["Reviewed"]["section_id"] == str(review.id)
+        assert results["Reviewed"]["section_name"] == "Waiting for review"
+        assert results["Retired task"]["section_name"] is None
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("offset", ["bad", "-1"])
+    def test_list_rejects_invalid_offset(self, session_client, workspace, offset):
+        response = session_client.get(_url(workspace.slug, view="list", offset=offset))
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     @pytest.mark.django_db
     def test_schedule_includes_project_name_and_all_current_assignees(
         self, session_client, workspace, create_user, project_states

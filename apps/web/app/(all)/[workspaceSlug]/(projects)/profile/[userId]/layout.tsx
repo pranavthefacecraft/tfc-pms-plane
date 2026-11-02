@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Outlet } from "react-router";
 import useSWR from "swr";
 // components
@@ -17,7 +17,7 @@ import { ProfileSidebar } from "@/components/profile/sidebar";
 // constants
 import { USER_PROFILE_PROJECT_SEGREGATION } from "@plane/constants";
 // hooks
-import { useUserPermissions } from "@/hooks/store/user";
+import { useUser, useUserPermissions } from "@/hooks/store/user";
 import useSize from "@/hooks/use-window-size";
 // local components
 import { UserService } from "@/services/user.service";
@@ -28,6 +28,22 @@ import { ProfileNavbar } from "./navbar";
 
 const userService = new UserService();
 
+export default observer(function ProfileLayout(props: Route.ComponentProps) {
+  const { data: user } = useUser();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const root = `/${props.params.workspaceSlug}/profile/${props.params.userId}`;
+  if (
+    user?.id === props.params.userId &&
+    pathname.replace(/\/$/, "") === root &&
+    searchParams.get("view") !== "summary"
+  ) {
+    return <Outlet />;
+  }
+  return <LegacyProfileLayout {...props} />;
+});
+
+const LegacyProfileLayout = observer(UseProfileLayout);
 function UseProfileLayout({ params }: Route.ComponentProps) {
   // router
   const { workspaceSlug, userId } = params;
@@ -94,5 +110,3 @@ function UseProfileLayout({ params }: Route.ComponentProps) {
     </>
   );
 }
-
-export default observer(UseProfileLayout);
