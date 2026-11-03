@@ -17,7 +17,7 @@ import { useTranslation } from "@plane/i18n";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/components/menu";
 // components
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+import { CreateTaskEntry } from "@/components/issues/create-task-entry";
 // constants
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { CreateUpdateEpicModal } from "@/components/epic-modal";
@@ -92,12 +92,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
       {isEpic ? (
         <CreateUpdateEpicModal isOpen={isOpen} onClose={() => setIsOpen(false)} data={issuePayload} />
       ) : (
-        <CreateUpdateIssueModal
-          isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
-          data={issuePayload}
-          storeType={storeType}
-        />
+        <CreateTaskEntry isOpen={isOpen} onClose={() => setIsOpen(false)} data={issuePayload} storeType={storeType} />
       )}
 
       {renderExistingIssueModal && (

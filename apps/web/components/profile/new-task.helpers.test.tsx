@@ -42,6 +42,7 @@ it("saves project properties, custom choices, dependencies, files and parent-lin
   const data = draft();
   await saveProjectTask("team", data, { completed: new Set() });
   expect(state.create).toHaveBeenNthCalledWith(1, "team", "project", {
+    project_id: "project",
     name: "Ship it",
     priority: "medium",
     start_date: "2026-10-30",
@@ -83,6 +84,18 @@ it("does not checkpoint a failed parent creation", async () => {
   await expect(saveProjectTask("team", draft(), progress)).rejects.toThrow("permission denied");
   expect(progress.issue).toBeUndefined();
   expect(state.field).not.toHaveBeenCalled();
+});
+
+it("creates through a layout store action and keeps the chosen section", async () => {
+  const create = vi.fn().mockResolvedValue({ id: "parent", name: "Ship it" });
+  await saveProjectTask(
+    "team",
+    { ...draft(), sectionId: null, dependencies: [], files: [], subtasks: [], fieldValues: {} },
+    { completed: new Set() },
+    create
+  );
+  expect(create).toHaveBeenCalledWith("project", expect.objectContaining({ project_id: "project", section_id: null }));
+  expect(state.create).not.toHaveBeenCalled();
 });
 
 it("escapes description HTML rather than interpreting user input", () => {

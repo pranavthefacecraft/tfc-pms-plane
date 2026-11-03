@@ -56,8 +56,8 @@ vi.mock("@/hooks/store/use-issue-detail", () => ({
   useIssueDetail: () => ({ peekIssue: undefined, setPeekIssue: mocks.setPeekIssue }),
 }));
 vi.mock("@/components/issues/peek-overview", () => ({ IssuePeekOverview: () => null }));
-vi.mock("@/components/issues/issue-modal/modal", () => ({
-  CreateUpdateIssueModal: ({ isOpen, data }: { isOpen: boolean; data: Record<string, unknown> }) =>
+vi.mock("@/components/issues/create-task-entry", () => ({
+  CreateTaskEntry: ({ isOpen, data }: { isOpen: boolean; data: Record<string, unknown> }) =>
     isOpen ? <div data-testid="create-modal">{JSON.stringify(data)}</div> : null,
 }));
 vi.mock("./project-list-filters", () => ({ ProjectListFilters: () => <button type="button">Filter</button> }));

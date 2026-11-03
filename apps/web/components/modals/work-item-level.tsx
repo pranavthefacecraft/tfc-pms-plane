@@ -12,7 +12,7 @@ import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
 // components
 import { BulkDeleteIssuesModal } from "@/components/core/modals/bulk-delete-issues-modal";
 import { DeleteIssueModal } from "@/components/issues/delete-issue-modal";
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+import { CreateTaskEntry } from "@/components/issues/create-task-entry";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -83,7 +83,7 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
 
   return (
     <>
-      <CreateUpdateIssueModal
+      <CreateTaskEntry
         isOpen={isCreateIssueModalOpen}
         onClose={() => toggleCreateIssueModal(false)}
         data={getCreateIssueModalData()}

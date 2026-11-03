@@ -7,7 +7,7 @@
 import { Plus } from "lucide-react";
 import { EIssuesStoreType } from "@plane/types";
 import { TaskSearch } from "@/components/common/task-search";
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+import { CreateTaskEntry } from "@/components/issues/create-task-entry";
 import { ProjectListFilters } from "./project-list-filters";
 import type { TProjectTaskListState } from "./use-project-task-list";
 
@@ -72,7 +72,7 @@ export function NoMatchingTasks({ filtered, onReset }: { filtered: boolean; onRe
   );
 }
 
-/** The standard create work item form, with the project fixed and the chosen section preselected. */
+/** The New Task side form, with the project fixed and the chosen section preselected. */
 export function ProjectTaskCreateModal({
   projectId,
   target,
@@ -88,7 +88,7 @@ export function ProjectTaskCreateModal({
     await onCreated();
   };
   return (
-    <CreateUpdateIssueModal
+    <CreateTaskEntry
       isOpen={target !== null}
       onClose={onClose}
       data={{

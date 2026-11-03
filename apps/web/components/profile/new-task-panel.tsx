@@ -3,6 +3,7 @@ import { observer } from "mobx-react";
 import { X } from "lucide-react";
 import { Dialog, DialogTitle } from "@makeplane/propel/components/dialog";
 import type { DialogImperativeActions } from "@makeplane/propel/components/dialog";
+import type { TIssue } from "@plane/types";
 import { Button } from "@makeplane/propel/components/button";
 import { setToast } from "@plane/blocks/toast";
 import { TaskFormContent } from "@/components/common/task-form-content";
@@ -10,13 +11,28 @@ import { useProject } from "@/hooks/store/use-project";
 import type { TPersonalTask } from "@/services/personal-task.service";
 import { personalTaskService } from "@/services/personal-task.service";
 import { NewTaskProjectFields, PrivateProjectFields, TaskProperty } from "./new-task-project-fields";
-import { newTaskError, saveProjectTask, taskFileKey, taskValueClass } from "./new-task.helpers";
-import type { TNewTaskDraft, TTaskSaveProgress } from "./new-task.helpers";
+import {
+  newTaskError,
+  newTaskHints,
+  newTaskValidationError,
+  saveProjectTask,
+  taskFileKey,
+  taskValueClass,
+} from "./new-task.helpers";
+import type { TCreateTaskIssue, TNewTaskDraft, TTaskSaveProgress } from "./new-task.helpers";
 
 type Props = {
   workspaceSlug: string;
   onClose: () => void;
-  onSaved: (task?: TPersonalTask) => void;
+  /** `task` is set for personal tasks, `issue` for tasks saved to a project. */
+  onSaved: (task?: TPersonalTask, issue?: TIssue) => void;
+  /** Values preselected from where the form was opened, such as a project, section or board column. */
+  defaults?: Partial<TNewTaskDraft>;
+  /** Keeps the task in `defaults.projectId`. */
+  projectLocked?: boolean;
+  /** Limits the projects offered; personal tasks are not offered when set. */
+  allowedProjectIds?: string[];
+  createIssue?: TCreateTaskIssue;
 };
 
 const priorities = [
@@ -27,9 +43,17 @@ const priorities = [
   { value: "none", label: "None" },
 ] as const;
 
-function useNewTaskForm({ workspaceSlug, onClose, onSaved }: Props) {
+function useNewTaskForm({
+  workspaceSlug,
+  onClose,
+  onSaved,
+  defaults,
+  projectLocked,
+  allowedProjectIds,
+  createIssue,
+}: Props) {
   const { joinedProjectIds, getProjectById } = useProject();
-  const [draft, setDraft] = useState<TNewTaskDraft>({
+  const [draft, setDraft] = useState<TNewTaskDraft>(() => ({
     name: "",
     description: "",
     priority: "medium",
@@ -42,7 +66,8 @@ function useNewTaskForm({ workspaceSlug, onClose, onSaved }: Props) {
     dependencies: [],
     files: [],
     subtasks: [],
-  });
+    ...defaults,
+  }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [projectReady, setProjectReady] = useState(false);
@@ -55,16 +80,12 @@ function useNewTaskForm({ workspaceSlug, onClose, onSaved }: Props) {
   const close = () => {
     if (!pending.current) actions.current?.close();
   };
-  const projects = joinedProjectIds
+  const lockedIds = projectLocked && defaults?.projectId ? [defaults.projectId] : undefined;
+  const projects = (lockedIds ?? allowedProjectIds ?? joinedProjectIds)
     .map((id) => getProjectById(id))
     .filter((project) => project && !project.archived_at);
-  const validationError = !draft.name.trim()
-    ? "Enter a task name."
-    : draft.subtasks.some((task) => !task.name.trim())
-      ? "Enter a name for every subtask."
-      : draft.projectId && !projectReady
-        ? "Project fields are not ready. Wait for them to load or use Retry."
-        : "";
+  const personalAllowed = !projectLocked && !allowedProjectIds;
+  const validationError = newTaskValidationError(draft, personalAllowed, projectReady);
   const save = async () => {
     if (pending.current) return;
     if (validationError) {
@@ -76,8 +97,8 @@ function useNewTaskForm({ workspaceSlug, onClose, onSaved }: Props) {
     setError("");
     try {
       if (draft.projectId) {
-        const issue = await saveProjectTask(workspaceSlug, draft, progress.current);
-        onSaved();
+        const issue = await saveProjectTask(workspaceSlug, draft, progress.current, createIssue);
+        onSaved(undefined, issue);
         setToast({
           type: "success",
           title: "Task saved",
@@ -122,6 +143,8 @@ function useNewTaskForm({ workspaceSlug, onClose, onSaved }: Props) {
     change,
     close,
     projects,
+    personalAllowed,
+    projectLocked: Boolean(projectLocked),
     save,
     setProjectReady,
     validationError,
@@ -141,10 +164,13 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
     change,
     close,
     projects,
+    personalAllowed,
+    projectLocked,
     save,
     setProjectReady,
     validationError,
   } = useNewTaskForm(props);
+  const hints = newTaskHints(Boolean(draft.projectId), personalAllowed);
   const scheduleFields = (
     <>
       <TaskProperty label="Due date">
@@ -158,39 +184,26 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
           onChange={(event) => change({ target_date: event.target.value || null })}
         />
       </TaskProperty>
-      <TaskProperty label="Link to Project">
-        <select
-          aria-label="Link to Project"
-          className={taskValueClass}
-          value={draft.projectId}
-          disabled={disabled}
-          onChange={(event) => {
-            setProjectReady(false);
-            change({
-              projectId: event.target.value,
-              assignees: [],
-              stateId: "",
-              fieldValues: {},
-              dependencies: [],
-              files: [],
-              subtasks: [],
-            });
-          }}
-        >
-          <option value="">No project (Private to you)</option>
-          {projects.map(
-            (project) =>
-              project && (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              )
-          )}
-        </select>
-        {draft.projectId && (
-          <p className="text-11 text-secondary">Changing projects clears project-specific selections.</p>
-        )}
-      </TaskProperty>
+      <TaskProjectPicker
+        draft={draft}
+        projects={projects}
+        disabled={disabled}
+        locked={projectLocked}
+        personalAllowed={personalAllowed}
+        onChange={(projectId) => {
+          setProjectReady(false);
+          change({
+            projectId,
+            sectionId: undefined,
+            assignees: [],
+            stateId: "",
+            fieldValues: {},
+            dependencies: [],
+            files: [],
+            subtasks: [],
+          });
+        }}
+      />
     </>
   );
   const priorityField = (
@@ -287,11 +300,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
             </>
           )}
           <TaskAttachments draft={draft} disabled={disabled} onChange={change} />
-          {!draft.projectId && (
-            <p className="mb-3 text-12 text-secondary">
-              Private to you. Choose a project to enable teammates, dependencies, stage, status, files, and subtasks.
-            </p>
-          )}
+          {!draft.projectId && <p className="mb-3 text-12 text-secondary">{hints.choose}</p>}
           <TaskProperty label="Start date">
             <input
               aria-label="Start date"
@@ -322,11 +331,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
               {error}
             </p>
           )}
-          <p className="my-3 text-12 text-secondary">
-            {draft.projectId
-              ? "Saved to the selected project. Project members can see this task."
-              : "Saved in My tasks under Personal tasks. If both dates are empty, the due date defaults to today."}
-          </p>
+          <p className="my-3 text-12 text-secondary">{hints.saved}</p>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" size="md" stretch="auto" label="Cancel" disabled={busy} onClick={close} />
             <Button
@@ -441,5 +446,47 @@ function TaskSubtasks({
         + Add subtask
       </button>
     </section>
+  );
+}
+
+function TaskProjectPicker({
+  draft,
+  projects,
+  disabled,
+  locked,
+  personalAllowed,
+  onChange,
+}: {
+  draft: TNewTaskDraft;
+  projects: ReturnType<typeof useNewTaskForm>["projects"];
+  disabled: boolean;
+  locked: boolean;
+  personalAllowed: boolean;
+  onChange: (projectId: string) => void;
+}) {
+  const emptyLabel = personalAllowed ? "No project (Private to you)" : draft.projectId ? "" : "Choose a project";
+  return (
+    <TaskProperty label="Link to Project">
+      <select
+        aria-label="Link to Project"
+        className={taskValueClass}
+        value={draft.projectId}
+        disabled={disabled || locked}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {emptyLabel && <option value="">{emptyLabel}</option>}
+        {projects.map(
+          (project) =>
+            project && (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            )
+        )}
+      </select>
+      {draft.projectId && !locked && (
+        <p className="text-11 text-secondary">Changing projects clears project-specific selections.</p>
+      )}
+    </TaskProperty>
   );
 }

@@ -19,7 +19,7 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/comp
 import { cn } from "@plane/utils";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { MultipleSelectGroupAction } from "@/components/core/multiple-select";
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+import { CreateTaskEntry } from "@/components/issues/create-task-entry";
 import { CreateUpdateEpicModal } from "@/components/epic-modal";
 // constants
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
@@ -168,12 +168,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
         {isEpic ? (
           <CreateUpdateEpicModal isOpen={isOpen} onClose={() => setIsOpen(false)} data={issuePayload} />
         ) : (
-          <CreateUpdateIssueModal
-            isOpen={isOpen}
-            onClose={() => setIsOpen(false)}
-            data={issuePayload}
-            storeType={storeType}
-          />
+          <CreateTaskEntry isOpen={isOpen} onClose={() => setIsOpen(false)} data={issuePayload} storeType={storeType} />
         )}
 
         {renderExistingIssueModal && (

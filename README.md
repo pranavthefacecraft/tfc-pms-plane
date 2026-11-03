@@ -415,6 +415,19 @@ column creates a task in that stage, and **+ Add Stage** creates a new project s
 Guests can view the board but cannot move cards or add tasks and stages. The Work items
 Board layout is unchanged.
 
+### New Task side form
+
+Every **Add task** / **New work item** control opens the same right-side **New Task**
+form used on My Tasks, instead of the centered Create work item popup: project List and
+Board, the sidebar New work item button and create menu, the command palette, empty
+states, and the group **+** buttons in Work items list and board layouts. The form starts
+with the current project and the clicked section, state, priority or assignee
+preselected; List and Board lock the project. From the sidebar outside a project it can
+also save a private personal task. Creating inside a cycle, module or epic, adding a
+sub-work item, restoring a draft, editing a work item, and group **+** buttons that
+prefill fields the side form lacks (such as labels) still use the full popup, so those
+links are kept.
+
 ## Task likes
 
 Task detail headers (side panel and full page) include a thumbs-up button to like
