@@ -26,6 +26,11 @@ vi.mock("@/components/project/create-project-modal", () => ({
 vi.mock("@/components/project/join-project-modal", () => ({
   JoinProjectModal: ({ project }: { project: TProject }) => <div role="dialog">Join {project.name}</div>,
 }));
+vi.mock("./invite-collaborators-dialog", () => ({
+  InviteCollaboratorsDialog: ({ project }: { project: TProject }) => (
+    <div role="dialog">Invite Collaborators to {project.name}</div>
+  ),
+}));
 vi.mock("@/hooks/use-app-router", () => ({ useAppRouter: () => ({ push: mocks.push }) }));
 vi.mock("@/hooks/use-current-time", () => ({
   useCurrentTime: () => ({ currentTime: new Date(2025, 9, 28, 12) }),
@@ -125,9 +130,17 @@ describe("ProjectsBrowse", () => {
     expect(website.textContent).toContain("Joined");
     expect(website.textContent).toContain("Today");
     expect(website.textContent).toContain("+2");
-    expect(website.querySelector('a[href^="/acme/settings/projects/web/members"]')).not.toBeNull();
     expect(operations.textContent).toContain("Join project");
     expect(operations.textContent).toContain("Oct 26");
+    expect(operations.querySelector('button[aria-label^="Add collaborators"]')).toBeNull();
+  });
+
+  it("opens the Invite Collaborators popup from the + button without opening the project", () => {
+    render();
+    const add = host.querySelector<HTMLButtonElement>('button[aria-label="Add collaborators to Website"]')!;
+    act(() => add.click());
+    expect(host.querySelector('[role="dialog"]')?.textContent).toBe("Invite Collaborators to Website");
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it("toggles the last modified sort and filters by search", () => {

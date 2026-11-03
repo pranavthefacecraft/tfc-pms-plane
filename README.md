@@ -296,6 +296,16 @@ the Projects page, the header collapses or expands the sidebar list as before. A
 including its header filters, is hidden from the page but still reachable at
 `/<workspace>/projects?view=cards`.
 
+The dashed **+** beside a joined project's collaborators opens **Invite
+Collaborators**. Type a teammate's name or email: picking a workspace member adds
+them to the project straight away (as Editor, or Admin for workspace admins), and an
+unknown email gets a workspace invitation and joins the project once accepted. Added
+people are ordinary project members, so they also appear in **Settings > Members**,
+which still works as before. **People with access** lists the members (the creator as
+Owner), the note shows whether only invited teammates or the whole workspace can open
+the project, and **Copy project link** copies the project's Overview URL. Only
+project admins see the invite box; other members can view the list.
+
 ### Create Project form
 
 **Create Project** (on the Projects page, in the sidebar, or via the shortcut)

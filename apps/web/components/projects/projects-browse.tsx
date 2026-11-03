@@ -6,7 +6,6 @@
 
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
-import Link from "next/link";
 import { ArrowDown, ArrowUp, Plus, Search } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Logo } from "@plane/blocks/emoji-icon-picker";
@@ -19,6 +18,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { useCurrentTime } from "@/hooks/use-current-time";
+import { InviteCollaboratorsDialog } from "./invite-collaborators-dialog";
 import { browseProjects, initials, lastModifiedLabel } from "./projects-browse.helpers";
 import type { TSortDirection } from "./projects-browse.helpers";
 
@@ -39,11 +39,11 @@ function ProjectIcon({ project }: { project: TProject }) {
 
 const ProjectCollaborators = observer(function ProjectCollaborators({
   ids,
-  manageHref,
+  onInvite,
   projectName,
 }: {
   ids: string[];
-  manageHref?: string;
+  onInvite?: () => void;
   projectName: string;
 }) {
   const { getUserDetails } = useMember();
@@ -73,16 +73,20 @@ const ProjectCollaborators = observer(function ProjectCollaborators({
           +{hidden}
         </span>
       )}
-      {manageHref && (
-        <Link
-          href={manageHref}
-          onClick={(event) => event.stopPropagation()}
+      {onInvite && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onInvite();
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
           aria-label={`Add collaborators to ${projectName}`}
           title="Add collaborators"
           className="!ml-1 grid size-7 place-items-center rounded-full border border-dashed border-[#A8B5C9] text-secondary hover:border-[#135DDD] hover:text-[#135DDD]"
         >
           <Plus className="size-3.5" />
-        </Link>
+        </button>
       )}
     </div>
   );
@@ -90,16 +94,16 @@ const ProjectCollaborators = observer(function ProjectCollaborators({
 
 function ProjectRow({
   project,
-  workspaceSlug,
   now,
   canManage,
   onOpen,
+  onInvite,
 }: {
   project: TProject;
-  workspaceSlug: string;
   now: Date;
   canManage: boolean;
   onOpen: (project: TProject) => void;
+  onInvite: (project: TProject) => void;
 }) {
   const joined = !!project.member_role;
   return (
@@ -129,7 +133,7 @@ function ProjectRow({
         <ProjectCollaborators
           ids={project.members ?? NO_MEMBERS}
           projectName={project.name}
-          manageHref={joined && canManage ? `/${workspaceSlug}/settings/projects/${project.id}/members` : undefined}
+          onInvite={joined && canManage ? () => onInvite(project) : undefined}
         />
       </td>
       <td className="px-3 py-3 text-secondary">{lastModifiedLabel(project.updated_at, now)}</td>
@@ -146,6 +150,7 @@ export const ProjectsBrowse = observer(function ProjectsBrowse({ workspaceSlug }
   const [direction, setDirection] = useState<TSortDirection>("desc");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [joining, setJoining] = useState<TProject | null>(null);
+  const [inviting, setInviting] = useState<TProject | null>(null);
 
   const canCreate = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
@@ -216,10 +221,10 @@ export const ProjectsBrowse = observer(function ProjectsBrowse({ workspaceSlug }
                 <ProjectRow
                   key={project.id}
                   project={project}
-                  workspaceSlug={workspaceSlug}
                   now={currentTime}
                   canManage={canCreate}
                   onOpen={openProject}
+                  onInvite={setInviting}
                 />
               ))}
             </tbody>
@@ -237,6 +242,9 @@ export const ProjectsBrowse = observer(function ProjectsBrowse({ workspaceSlug }
         setToFavorite={false}
         workspaceSlug={workspaceSlug}
       />
+      {inviting && (
+        <InviteCollaboratorsDialog workspaceSlug={workspaceSlug} project={inviting} onClose={() => setInviting(null)} />
+      )}
       {joining && (
         <JoinProjectModal isOpen workspaceSlug={workspaceSlug} project={joining} handleClose={() => setJoining(null)} />
       )}
