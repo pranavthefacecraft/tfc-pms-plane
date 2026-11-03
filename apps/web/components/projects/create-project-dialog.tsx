@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { observer } from "mobx-react";
-import { CalendarDays, ChevronDown, X } from "lucide-react";
+import { CalendarDays, ChevronDown, Lock, Mail, X } from "lucide-react";
 import { API_BASE_URL, RANDOM_EMOJI_CODES } from "@plane/constants";
 import { Dialog, DialogContent, DialogTitle } from "@makeplane/propel/components/dialog";
 import { setToast } from "@plane/blocks/toast";
@@ -17,16 +17,25 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { FileService } from "@/services/file.service";
+import { ProjectCollaboratorsService } from "@/services/project-collaborators.service";
 import {
+  EDITOR_ROLE,
   EMPTY_PROJECT_DRAFT,
+  ROLE_LABELS,
+  VIEWER_ROLE,
   collaboratorRole,
   identifierCandidates,
   projectAttachmentUrl,
   projectDraftError,
+  teammateRoleOptions,
+  teammateSuggestions,
+  personName,
+  withTeammate,
 } from "./create-project-dialog.helpers";
-import type { TCreateProjectDraft } from "./create-project-dialog.helpers";
+import type { TCreateProjectDraft, TTeammate } from "./create-project-dialog.helpers";
 
 const fileService = new FileService();
+const collaboratorsService = new ProjectCollaboratorsService();
 
 const fieldClass =
   "w-full rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-[#135DDD] focus:ring-1 focus:ring-[#135DDD]";
@@ -39,12 +48,14 @@ function apiErrorCodes(error: unknown): string[] {
   );
 }
 
+const keyOf = (teammate: TTeammate) => teammate.memberId ?? teammate.email;
+
 const CollaboratorPicker = observer(function CollaboratorPicker({
-  selected,
-  onToggle,
+  teammates,
+  onChange,
 }: {
-  selected: string[];
-  onToggle: (id: string) => void;
+  teammates: TTeammate[];
+  onChange: (update: (previous: TTeammate[]) => TTeammate[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -53,18 +64,29 @@ const CollaboratorPicker = observer(function CollaboratorPicker({
     getUserDetails,
     workspace: { workspaceMemberIds, getWorkspaceMemberDetails },
   } = useMember();
-  const nameOf = (id: string) => {
-    const user = getUserDetails(id);
-    return user?.display_name || `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() || "Team member";
+  const nameOf = (id: string) => personName(getUserDetails(id), "Team member");
+  const emailOf = (id: string) => getUserDetails(id)?.email ?? "";
+  const people = (workspaceMemberIds ?? []).map((id) => ({
+    id,
+    name: nameOf(id),
+    email: emailOf(id),
+    isActive: getWorkspaceMemberDetails(id)?.is_active !== false,
+  }));
+  const { term, suggestions, canInviteEmail } = teammateSuggestions(query, people, teammates, currentUser);
+
+  const addTeammate = (teammate: TTeammate) => {
+    onChange((previous) => withTeammate(previous, teammate));
+    setQuery("");
   };
-  const term = query.trim().toLocaleLowerCase();
-  const options = (workspaceMemberIds ?? []).filter(
-    (id) =>
-      id !== currentUser?.id &&
-      getWorkspaceMemberDetails(id)?.is_active !== false &&
-      (!term || nameOf(id).toLocaleLowerCase().includes(term))
-  );
-  const chosen = new Set(selected);
+  const addMember = (id: string) =>
+    addTeammate({
+      memberId: id,
+      email: emailOf(id),
+      role: teammateRoleOptions(getWorkspaceMemberDetails(id)?.role)[0],
+    });
+  const addEmail = () => addTeammate({ email: term, role: EDITOR_ROLE });
+  const ownerName = personName(currentUser, "You");
+
   return (
     <div>
       <button
@@ -74,13 +96,9 @@ const CollaboratorPicker = observer(function CollaboratorPicker({
         onClick={() => setOpen((value) => !value)}
         className={`${fieldClass} flex min-h-10 items-center justify-between gap-2 text-left`}
       >
-        {selected.length ? (
-          <span className="flex flex-wrap gap-1">
-            {selected.map((id) => (
-              <span key={id} className="rounded-full bg-layer-1 px-2 py-0.5 text-12">
-                {nameOf(id)}
-              </span>
-            ))}
+        {teammates.length ? (
+          <span>
+            {teammates.length} {teammates.length === 1 ? "teammate" : "teammates"} selected
           </span>
         ) : (
           <span className="text-placeholder">Add collaborators</span>
@@ -88,31 +106,180 @@ const CollaboratorPicker = observer(function CollaboratorPicker({
         <ChevronDown className={`size-4 shrink-0 text-secondary transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div id="create-project-collaborators" className="mt-1 rounded-lg border border-subtle bg-surface-1 p-2">
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search people"
-            aria-label="Search collaborators"
-            className="mb-1 w-full rounded-md border border-subtle px-2 py-1 text-12 outline-none"
-          />
-          <ul className="max-h-36 overflow-y-auto">
-            {options.map((id) => (
-              <li key={id}>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-13 hover:bg-layer-1">
-                  <input type="checkbox" checked={chosen.has(id)} onChange={() => onToggle(id)} />
-                  {nameOf(id)}
-                </label>
+        <div
+          id="create-project-collaborators"
+          className="shadow-sm mt-2 flex flex-col gap-3 rounded-xl border border-subtle bg-surface-1 p-4"
+        >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="create-project-invite" className="text-13 font-medium">
+              Invite teammates
+            </label>
+            <input
+              id="create-project-invite"
+              value={query}
+              autoComplete="off"
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                // Enter adds the teammate instead of submitting the whole form.
+                event.preventDefault();
+                if (suggestions[0]) addMember(suggestions[0].id);
+                else if (canInviteEmail) addEmail();
+              }}
+              placeholder="Enter email or teammate name"
+              className={fieldClass}
+            />
+            {term && (
+              <SuggestionList
+                term={term}
+                suggestions={suggestions}
+                canInviteEmail={canInviteEmail}
+                onAddMember={addMember}
+                onAddEmail={addEmail}
+              />
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-13 font-medium">People with access</span>
+            <ul className="flex max-h-48 flex-col gap-2 overflow-y-auto">
+              <li className="flex items-center gap-3">
+                <Avatar label={ownerName} />
+                <span className="min-w-0 flex-1 truncate text-13">{ownerName}</span>
+                <span className="text-12 text-secondary">Owner</span>
               </li>
-            ))}
-            {options.length === 0 && <li className="px-2 py-1.5 text-12 text-secondary">No people found.</li>}
-          </ul>
+              {teammates.map((teammate) => (
+                <TeammateRow
+                  key={keyOf(teammate)}
+                  teammate={teammate}
+                  name={teammate.memberId ? nameOf(teammate.memberId) : teammate.email}
+                  roles={
+                    teammate.memberId
+                      ? teammateRoleOptions(getWorkspaceMemberDetails(teammate.memberId)?.role)
+                      : [EDITOR_ROLE, VIEWER_ROLE]
+                  }
+                  onChange={onChange}
+                />
+              ))}
+            </ul>
+          </div>
+          {teammates.length === 0 && (
+            <p className="flex items-center gap-1.5 border-t border-subtle pt-3 text-12 text-secondary">
+              <Lock className="size-3.5" aria-hidden="true" />
+              Only me
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 });
+
+function SuggestionList({
+  term,
+  suggestions,
+  canInviteEmail,
+  onAddMember,
+  onAddEmail,
+}: {
+  term: string;
+  suggestions: { id: string; name: string; email: string }[];
+  canInviteEmail: boolean;
+  onAddMember: (id: string) => void;
+  onAddEmail: () => void;
+}) {
+  return (
+    <ul aria-label="Suggestions" className="rounded-lg border border-subtle bg-surface-1 py-1">
+      {suggestions.map((person) => (
+        <li key={person.id}>
+          <button
+            type="button"
+            onClick={() => onAddMember(person.id)}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-13 hover:bg-layer-1"
+          >
+            <span className="font-medium">{person.name}</span>
+            {person.email && <span className="truncate text-12 text-secondary">{person.email}</span>}
+          </button>
+        </li>
+      ))}
+      {canInviteEmail && (
+        <li>
+          <button
+            type="button"
+            onClick={onAddEmail}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-13 hover:bg-layer-1"
+          >
+            <Mail className="size-3.5 text-secondary" aria-hidden="true" />
+            Invite {term}
+          </button>
+        </li>
+      )}
+      {!suggestions.length && !canInviteEmail && (
+        <li className="px-3 py-1.5 text-12 text-secondary">No teammates found. Type an email to invite.</li>
+      )}
+    </ul>
+  );
+}
+
+function TeammateRow({
+  teammate,
+  name,
+  roles,
+  onChange,
+}: {
+  teammate: TTeammate;
+  name: string;
+  roles: number[];
+  onChange: (update: (previous: TTeammate[]) => TTeammate[]) => void;
+}) {
+  const key = keyOf(teammate);
+  return (
+    <li className="flex items-center gap-3">
+      <Avatar label={name} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-13">{name}</span>
+        {!teammate.memberId && <span className="text-11 text-secondary">Invitation will be emailed</span>}
+      </span>
+      {roles.length > 1 ? (
+        <select
+          aria-label={`Role for ${name}`}
+          value={teammate.role}
+          onChange={(event) => {
+            const role = Number(event.target.value);
+            onChange((previous) => previous.map((entry) => (keyOf(entry) === key ? { ...entry, role } : entry)));
+          }}
+          className="rounded-md border border-subtle bg-surface-1 px-2 py-1 text-12 outline-none"
+        >
+          {roles.map((role) => (
+            <option key={role} value={role}>
+              {ROLE_LABELS[role]}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <span className="text-12 text-secondary">{ROLE_LABELS[roles[0]]}</span>
+      )}
+      <button
+        type="button"
+        aria-label={`Remove ${name}`}
+        onClick={() => onChange((previous) => previous.filter((entry) => keyOf(entry) !== key))}
+        className="rounded p-1 text-secondary hover:bg-layer-1 hover:text-primary"
+      >
+        <X className="size-3.5" />
+      </button>
+    </li>
+  );
+}
+
+function Avatar({ label }: { label: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#135DDD]/10 text-12 font-semibold text-[#135DDD] uppercase"
+    >
+      {label.trim().charAt(0) || "?"}
+    </span>
+  );
+}
 
 function DateField({
   id,
@@ -172,6 +339,11 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
   const [touched, setTouched] = useState(false);
   const error = projectDraftError(draft);
   const update = (patch: Partial<TCreateProjectDraft>) => setDraft((previous) => ({ ...previous, ...patch }));
+  const changeTeammates = useCallback(
+    (change: (previous: TTeammate[]) => TTeammate[]) =>
+      setDraft((previous) => ({ ...previous, teammates: change(previous.teammates) })),
+    []
+  );
 
   const close = () => {
     if (busy) return;
@@ -217,16 +389,32 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
 
   const finish = async (project: TProject) => {
     const problems: string[] = [];
-    if (draft.collaborators.length) {
+    const members = draft.teammates.flatMap((teammate) =>
+      teammate.memberId
+        ? [
+            {
+              member_id: teammate.memberId,
+              role: collaboratorRole(getWorkspaceMemberDetails(teammate.memberId)?.role, teammate.role),
+            },
+          ]
+        : []
+    );
+    const invites = draft.teammates
+      .filter((teammate) => !teammate.memberId)
+      .map(({ email, role }) => ({ email, role }));
+    let invitedCount = 0;
+    if (members.length) {
       try {
-        await bulkAddMembersToProject(workspaceSlug, project.id, {
-          members: draft.collaborators.map((memberId) => ({
-            member_id: memberId,
-            role: collaboratorRole(getWorkspaceMemberDetails(memberId)?.role),
-          })),
-        });
+        await bulkAddMembersToProject(workspaceSlug, project.id, { members });
       } catch {
         problems.push("collaborators");
+      }
+    }
+    if (invites.length) {
+      try {
+        invitedCount = (await collaboratorsService.invite(workspaceSlug, project.id, invites)).invited.length;
+      } catch {
+        problems.push("invited teammates");
       }
     }
     if (draft.file) {
@@ -258,7 +446,13 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
             title: "Project created",
             message: `Couldn't add ${problems.join(" or ")}. You can add them from the project overview.`,
           }
-        : { type: "success", title: "Success", message: "Project created successfully." }
+        : {
+            type: "success",
+            title: "Success",
+            message: invitedCount
+              ? `Project created. Invitations sent to ${invitedCount} ${invitedCount === 1 ? "person" : "people"}.`
+              : "Project created successfully.",
+          }
     );
   };
 
@@ -336,17 +530,7 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-13 font-medium">Collaborators</span>
-              <CollaboratorPicker
-                selected={draft.collaborators}
-                onToggle={(memberId) =>
-                  setDraft((previous) => ({
-                    ...previous,
-                    collaborators: previous.collaborators.includes(memberId)
-                      ? previous.collaborators.filter((value) => value !== memberId)
-                      : [...previous.collaborators, memberId],
-                  }))
-                }
-              />
+              <CollaboratorPicker teammates={draft.teammates} onChange={changeTeammates} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <DateField

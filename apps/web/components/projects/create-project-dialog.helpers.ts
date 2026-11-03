@@ -4,10 +4,17 @@
  * See the LICENSE file for details.
  */
 
+/** A workspace member (`memberId`) or an email that gets a workspace invitation. */
+export type TTeammate = {
+  memberId?: string;
+  email: string;
+  role: number;
+};
+
 export type TCreateProjectDraft = {
   name: string;
   description: string;
-  collaborators: string[];
+  teammates: TTeammate[];
   startDate: string;
   dueDate: string;
   file: File | null;
@@ -16,7 +23,7 @@ export type TCreateProjectDraft = {
 export const EMPTY_PROJECT_DRAFT: TCreateProjectDraft = {
   name: "",
   description: "",
-  collaborators: [],
+  teammates: [],
   startDate: "",
   dueDate: "",
   file: null,
@@ -54,11 +61,78 @@ export function identifierCandidates(name: string, taken: Iterable<string>, coun
   return result;
 }
 
-/** A project role can't exceed the member's workspace role; collaborators join as members (15) at most. */
-export function collaboratorRole(workspaceRole: number | undefined): number {
-  return Math.min(workspaceRole ?? 15, 15);
+export const EDITOR_ROLE = 15;
+export const VIEWER_ROLE = 5;
+export const ROLE_LABELS: Record<number, string> = { 20: "Admin", 15: "Editor", 5: "Viewer" };
+
+/** Roles a teammate can get: workspace admins are always project admins, guests can only view. */
+export function teammateRoleOptions(workspaceRole: number | undefined): number[] {
+  if (workspaceRole === 20) return [20];
+  if (workspaceRole === 5) return [VIEWER_ROLE];
+  return [EDITOR_ROLE, VIEWER_ROLE];
+}
+
+/** The project role the API accepts for a member: admins must be admins, others can't exceed their workspace role. */
+export function collaboratorRole(workspaceRole: number | undefined, requested = EDITOR_ROLE): number {
+  if (workspaceRole === 20) return 20;
+  return Math.min(requested, workspaceRole ?? EDITOR_ROLE);
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isEmail(value: string): boolean {
+  return EMAIL_PATTERN.test(value.trim());
 }
 
 export function projectAttachmentUrl(origin: string, workspaceSlug: string, projectId: string, assetId: string) {
   return `${origin.replace(/\/$/, "")}/api/assets/v2/workspaces/${workspaceSlug}/projects/${projectId}/download/${assetId}/`;
+}
+
+type TPerson = { id: string; name: string; email: string; isActive: boolean };
+
+/** Members matching the invite box by name or email, and whether the text can be invited as a new email. */
+export function teammateSuggestions(
+  query: string,
+  people: TPerson[],
+  teammates: TTeammate[],
+  currentUser: { id?: string; email?: string } | undefined,
+  limit = 6
+): { term: string; suggestions: TPerson[]; canInviteEmail: boolean } {
+  const term = query.trim().toLocaleLowerCase();
+  if (!term) return { term, suggestions: [], canInviteEmail: false };
+  const chosenIds = new Set(teammates.map((teammate) => teammate.memberId));
+  const chosenEmails = new Set(teammates.map((teammate) => teammate.email.toLocaleLowerCase()));
+  const suggestions = people
+    .filter(
+      (person) =>
+        person.id !== currentUser?.id &&
+        person.isActive &&
+        !chosenIds.has(person.id) &&
+        (person.name.toLocaleLowerCase().includes(term) || person.email.toLocaleLowerCase().includes(term))
+    )
+    .slice(0, limit);
+  const canInviteEmail =
+    isEmail(term) &&
+    !chosenEmails.has(term) &&
+    term !== currentUser?.email?.toLocaleLowerCase() &&
+    !people.some((person) => person.email.toLocaleLowerCase() === term);
+  return { term, suggestions, canInviteEmail };
+}
+
+/** Adds a teammate unless the same member (or the same invited email) is already in the list. */
+export function withTeammate(previous: TTeammate[], teammate: TTeammate): TTeammate[] {
+  const email = teammate.email.toLocaleLowerCase();
+  const exists = previous.some((entry) =>
+    teammate.memberId
+      ? entry.memberId === teammate.memberId
+      : !entry.memberId && entry.email.toLocaleLowerCase() === email
+  );
+  return exists ? previous : [...previous, teammate];
+}
+
+export function personName(
+  user: { display_name?: string; first_name?: string; last_name?: string } | undefined,
+  fallback: string
+): string {
+  return user?.display_name || `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() || fallback;
 }

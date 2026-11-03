@@ -26,6 +26,7 @@ from plane.app.serializers import (
     WorkSpaceMemberSerializer,
 )
 from plane.app.views.base import BaseAPIView
+from plane.app.views.project.collaborator_invite import apply_pending_project_invites
 from plane.bgtasks.workspace_invitation_task import workspace_invitation
 from plane.db.models import User, Workspace, WorkspaceMember, WorkspaceMemberInvite
 from plane.utils.cache import invalidate_cache, invalidate_cache_directly
@@ -205,6 +206,8 @@ class WorkspaceJoinEndpoint(BaseAPIView):
                     user.last_workspace_id = workspace_invite.workspace.id
                     user.save()
 
+                    apply_pending_project_invites(user, [workspace_invite.workspace_id])
+
                     # Delete the invitation
                     workspace_invite.delete()
 
@@ -277,7 +280,9 @@ class UserWorkspaceInvitationsViewSet(BaseViewSet):
             ignore_conflicts=True,
         )
 
+        joined_workspace_ids = [invitation.workspace_id for invitation in workspace_invitations]
         # Delete joined workspace invites
         workspace_invitations.delete()
+        apply_pending_project_invites(request.user, joined_workspace_ids)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

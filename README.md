@@ -304,12 +304,32 @@ opens a simple form with these fields: **Project Name**, **Description
 (optional)**. The button stays disabled until the name and both dates are
 filled in and the due date is on or after the start date. The project
 identifier is generated from the name, with a numeric suffix if that one is
-already taken. Collaborators are added as members (capped at their workspace
-role). The attached file (images, PDFs, or Office documents, within the upload
+already taken. The attached file (images, PDFs, or Office documents, within the upload
 size limit) becomes a key resource on the project Overview. Start and due dates
 (`Project.start_date` / `target_date`, migration `0136`) show on the classic
 Overview's health card (`?view=classic`), and admins can edit them there. Creating from a template, or with
 prefilled data, still uses the original detailed form.
+
+**Collaborators** opens a teammates panel (the field reads "N teammates
+selected"):
+
+- **Invite teammates**: type a name or email. Matching workspace members appear
+  as suggestions; press Enter or click one to add them. A valid email that
+  doesn't belong to a workspace member shows as **Invite `<email>`**.
+- **People with access**: you're listed as **Owner**, followed by each teammate
+  with an **Editor** / **Viewer** dropdown and a remove button. Workspace admins
+  are always project **Admin**, and workspace guests are always **Viewer**,
+  because the API won't accept other roles for them.
+- **🔒 Only me** is shown while no teammates have been added.
+
+Members are added with the existing bulk project-member API. Emails are sent to
+`POST /api/workspaces/<slug>/projects/<project_id>/collaborator-invites/`
+(project admins only, up to 20 per request). Existing workspace members are
+added right away. Anyone else gets the standard workspace invitation email, and
+a pending project invite that adds them to the project with the chosen role as
+soon as they join the workspace, whether through the invite link, the
+invitations page, or sign-up. Only workspace members and admins can invite new
+emails, and an invitee's workspace role is never higher than the inviter's.
 
 ## Project overview
 

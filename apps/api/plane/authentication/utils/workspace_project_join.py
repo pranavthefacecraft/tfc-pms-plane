@@ -69,6 +69,13 @@ def process_workspace_project_invitations(user):
         ignore_conflicts=True,
     )
 
+    joined_workspace_ids = [invite.workspace_id for invite in workspace_member_invites]
+
     # Delete all the invites
     workspace_member_invites.delete()
     project_member_invites.delete()
+
+    # Imported here to avoid a circular import between the auth utils and app views.
+    from plane.app.views.project.collaborator_invite import apply_pending_project_invites
+
+    apply_pending_project_invites(user, joined_workspace_ids)

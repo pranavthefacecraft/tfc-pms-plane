@@ -14,8 +14,12 @@ import {
   EMPTY_PROJECT_DRAFT,
   collaboratorRole,
   identifierCandidates,
+  isEmail,
   projectAttachmentUrl,
   projectDraftError,
+  teammateRoleOptions,
+  teammateSuggestions,
+  withTeammate,
 } from "./create-project-dialog.helpers";
 
 const mocks = vi.hoisted(() => ({
@@ -23,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   updateProject: vi.fn(),
   bulkAdd: vi.fn(),
   upload: vi.fn(),
+  invite: vi.fn(),
   push: vi.fn(),
   toast: vi.fn(),
   projectMap: {} as Record<string, { identifier: string }>,
@@ -35,7 +40,9 @@ vi.mock("@makeplane/propel/components/dialog", () => ({
 }));
 vi.mock("@plane/blocks/toast", () => ({ setToast: mocks.toast }));
 vi.mock("@/hooks/use-app-router", () => ({ useAppRouter: () => ({ push: mocks.push }) }));
-vi.mock("@/hooks/store/user", () => ({ useUser: () => ({ data: { id: "me" } }) }));
+vi.mock("@/hooks/store/user", () => ({
+  useUser: () => ({ data: { id: "me", display_name: "Pat Owner", email: "pat@acme.test" } }),
+}));
 vi.mock("@/hooks/store/use-project", () => ({
   useProject: () => ({
     createProject: mocks.createProject,
@@ -43,15 +50,26 @@ vi.mock("@/hooks/store/use-project", () => ({
     projectMap: mocks.projectMap,
   }),
 }));
+const people: Record<string, { name: string; role: number }> = {
+  me: { name: "Pat Owner", role: 20 },
+  ann: { name: "Ann Lee", role: 20 },
+  eve: { name: "Eve Stone", role: 15 },
+  gus: { name: "Guest Gus", role: 5 },
+};
 vi.mock("@/hooks/store/use-member", () => ({
   useMember: () => ({
-    getUserDetails: (id: string) => ({ id, display_name: id === "ann" ? "Ann Lee" : "Guest Gus" }),
+    getUserDetails: (id: string) => ({ id, display_name: people[id].name, email: `${id}@acme.test` }),
     project: { bulkAddMembersToProject: mocks.bulkAdd },
     workspace: {
-      workspaceMemberIds: ["me", "ann", "gus"],
-      getWorkspaceMemberDetails: (id: string) => ({ id, role: id === "gus" ? 5 : 20, is_active: true }),
+      workspaceMemberIds: Object.keys(people),
+      getWorkspaceMemberDetails: (id: string) => ({ id, role: people[id].role, is_active: true }),
     },
   }),
+}));
+vi.mock("@/services/project-collaborators.service", () => ({
+  ProjectCollaboratorsService: class {
+    invite = mocks.invite;
+  },
 }));
 vi.mock("@/services/file.service", () => ({
   FileService: class {
@@ -76,12 +94,51 @@ describe("create project helpers", () => {
     expect(identifierCandidates("!!", [], 1)).toEqual(["PRJ"]);
   });
 
-  it("caps collaborator roles and builds attachment links", () => {
-    expect(collaboratorRole(20)).toBe(15);
-    expect(collaboratorRole(5)).toBe(5);
+  it("maps teammate roles to what the API accepts and builds attachment links", () => {
+    expect(collaboratorRole(20, 5)).toBe(20);
+    expect(collaboratorRole(15)).toBe(15);
+    expect(collaboratorRole(15, 5)).toBe(5);
+    expect(collaboratorRole(5, 15)).toBe(5);
+    expect(teammateRoleOptions(20)).toEqual([20]);
+    expect(teammateRoleOptions(15)).toEqual([15, 5]);
+    expect(teammateRoleOptions(5)).toEqual([5]);
+    expect(isEmail(" new@acme.test ")).toBe(true);
+    expect(isEmail("ann")).toBe(false);
     expect(projectAttachmentUrl("https://pms.test/", "acme", "p1", "a1")).toBe(
       "https://pms.test/api/assets/v2/workspaces/acme/projects/p1/download/a1/"
     );
+  });
+});
+
+describe("teammate helpers", () => {
+  const people = [
+    { id: "me", name: "Pat", email: "pat@acme.test", isActive: true },
+    { id: "ann", name: "Ann Lee", email: "ann@acme.test", isActive: true },
+    { id: "old", name: "Ann Old", email: "old@acme.test", isActive: false },
+  ];
+  const me = { id: "me", email: "pat@acme.test" };
+
+  it("suggests active members by name or email and offers unknown emails as invites", () => {
+    expect(teammateSuggestions("  ", people, [], me)).toEqual({ term: "", suggestions: [], canInviteEmail: false });
+    expect(teammateSuggestions("ANN", people, [], me).suggestions.map((person) => person.id)).toEqual(["ann"]);
+    expect(teammateSuggestions("ann", people, [{ memberId: "ann", email: "", role: 15 }], me).suggestions).toEqual([]);
+    expect(teammateSuggestions("ann@acme.test", people, [], me).canInviteEmail).toBe(false);
+    expect(teammateSuggestions("pat@acme.test", people, [], me).canInviteEmail).toBe(false);
+    expect(teammateSuggestions("New@Acme.test", people, [], me)).toMatchObject({
+      term: "new@acme.test",
+      canInviteEmail: true,
+    });
+    expect(teammateSuggestions("new@acme.test", people, [{ email: "new@acme.test", role: 5 }], me).canInviteEmail).toBe(
+      false
+    );
+  });
+
+  it("does not add the same teammate twice", () => {
+    const list = [{ memberId: "ann", email: "ann@acme.test", role: 15 }];
+    expect(withTeammate(list, { memberId: "ann", email: "", role: 5 })).toBe(list);
+    expect(withTeammate(list, { email: "ANN@acme.test", role: 5 })).toHaveLength(2);
+    const invited = [{ email: "x@acme.test", role: 15 }];
+    expect(withTeammate(invited, { email: "X@acme.test", role: 5 })).toBe(invited);
   });
 });
 
@@ -99,6 +156,7 @@ describe("CreateProjectDialog", () => {
     mocks.updateProject.mockResolvedValue({});
     mocks.bulkAdd.mockResolvedValue(undefined);
     mocks.upload.mockResolvedValue({ asset_id: "asset" });
+    mocks.invite.mockResolvedValue({ added: [], invited: ["new@acme.test"] });
     host = document.createElement("div");
     document.body.append(host);
     root = createRoot(host);
@@ -119,6 +177,10 @@ describe("CreateProjectDialog", () => {
   };
   const input = (selector: string) => host.querySelector<HTMLInputElement>(selector)!;
   const button = (text: string) => [...host.querySelectorAll("button")].find((node) => node.textContent === text)!;
+  const inviteInput = () => input('input[placeholder="Enter email or teammate name"]');
+  const pressEnter = () =>
+    act(() => inviteInput().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  const openPicker = () => act(() => host.querySelector<HTMLButtonElement>("button[aria-controls]")!.click());
   const fillRequired = () => {
     type(input('input[placeholder="e.g. Website Redesign"]'), "Website Redesign");
     const [start, due] = host.querySelectorAll<HTMLInputElement>('input[type="date"]');
@@ -136,10 +198,32 @@ describe("CreateProjectDialog", () => {
   it("creates the project with dates, collaborators and an attached file", async () => {
     fillRequired();
     type(host.querySelector("textarea")!, "Refresh the marketing site");
-    act(() => host.querySelector<HTMLButtonElement>('button[aria-expanded="false"]')!.click());
-    const options = [...host.querySelectorAll("li label")];
-    expect(options.map((node) => node.textContent)).toEqual(["Ann Lee", "Guest Gus"]);
-    act(() => options.forEach((node) => node.querySelector("input")!.click()));
+    openPicker();
+    expect(host.textContent).toContain("Only me");
+    expect(host.textContent).toContain("Pat Owner");
+
+    type(inviteInput(), "ann");
+    act(() => button("Ann Leeann@acme.test").click());
+    type(inviteInput(), "eve");
+    pressEnter();
+    type(inviteInput(), "gus");
+    pressEnter();
+    type(inviteInput(), "pat");
+    expect(host.textContent).toContain("No teammates found");
+    type(inviteInput(), "new@acme.test");
+    act(() => button("Invite new@acme.test").click());
+
+    expect(host.textContent).toContain("4 teammates selected");
+    expect(host.textContent).not.toContain("Only me");
+    expect(host.querySelector('[aria-label="Role for Ann Lee"]')).toBeNull();
+    expect(host.querySelector('[aria-label="Role for Guest Gus"]')).toBeNull();
+    const eveRole = host.querySelector<HTMLSelectElement>('select[aria-label="Role for Eve Stone"]')!;
+    act(() => {
+      eveRole.value = "5";
+      eveRole.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    type(inviteInput(), "ann");
+    expect(host.textContent).toContain("No teammates found");
 
     const file = new File(["brief"], "brief.pdf", { type: "application/pdf" });
     const fileInput = input('input[type="file"]');
@@ -161,10 +245,12 @@ describe("CreateProjectDialog", () => {
     );
     expect(mocks.bulkAdd).toHaveBeenCalledWith("acme", "new", {
       members: [
-        { member_id: "ann", role: 15 },
+        { member_id: "ann", role: 20 },
+        { member_id: "eve", role: 5 },
         { member_id: "gus", role: 5 },
       ],
     });
+    expect(mocks.invite).toHaveBeenCalledWith("acme", "new", [{ email: "new@acme.test", role: 15 }]);
     expect(mocks.upload).toHaveBeenCalledWith(
       "acme",
       "new",
@@ -182,7 +268,9 @@ describe("CreateProjectDialog", () => {
         },
       ],
     });
-    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "success" }));
+    expect(mocks.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "success", message: "Project created. Invitations sent to 1 person." })
+    );
     expect(onClose).toHaveBeenCalled();
     expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/overview");
   });
@@ -211,10 +299,26 @@ describe("CreateProjectDialog", () => {
   it("warns when the follow-up steps fail but keeps the project", async () => {
     mocks.bulkAdd.mockRejectedValueOnce(new Error("nope"));
     fillRequired();
-    act(() => host.querySelector<HTMLButtonElement>('button[aria-expanded="false"]')!.click());
-    act(() => host.querySelector<HTMLInputElement>("li input")!.click());
+    openPicker();
+    type(inviteInput(), "eve");
+    pressEnter();
+    type(inviteInput(), "x@acme.test");
+    pressEnter();
     await act(async () => button("Create Project").click());
+    expect(mocks.bulkAdd).toHaveBeenCalledWith("acme", "new", { members: [{ member_id: "eve", role: 15 }] });
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "warning", title: "Project created" }));
     expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/overview");
+  });
+
+  it("removes teammates and keeps Enter from submitting the form", () => {
+    fillRequired();
+    openPicker();
+    type(inviteInput(), "eve");
+    pressEnter();
+    expect(mocks.createProject).not.toHaveBeenCalled();
+    expect(host.textContent).toContain("1 teammate selected");
+    act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Remove Eve Stone"]')!.click());
+    expect(host.textContent).toContain("Only me");
+    expect(host.textContent).toContain("Add collaborators");
   });
 });

@@ -8,6 +8,7 @@ from plane.app.views.project.custom_fields import (
     ProjectCustomFieldEndpoint,
     IssueCustomFieldValuesEndpoint,
 )
+from plane.app.views.project.collaborator_invite import ProjectCollaboratorInvitesEndpoint
 from plane.app.views.project.files import ProjectFilesEndpoint
 from plane.app.views.project.section import ProjectSectionEndpoint, ProjectSectionsEndpoint
 
@@ -165,5 +166,10 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/files/",
         ProjectFilesEndpoint.as_view(),
         name="project-files",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/collaborator-invites/",
+        ProjectCollaboratorInvitesEndpoint.as_view(),
+        name="project-collaborator-invites",
     ),
 ]
