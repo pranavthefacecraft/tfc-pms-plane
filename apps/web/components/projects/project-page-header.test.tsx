@@ -48,7 +48,7 @@ describe("ProjectPageHeader", () => {
     host.remove();
   });
 
-  async function render(active: "overview" | "list" | "files" = "overview") {
+  async function render(active: "overview" | "list" | "board" | "files" = "overview") {
     await act(async () => {
       root.render(
         <MemoryRouter initialEntries={["/acme/projects/p1/overview"]}>
@@ -83,6 +83,13 @@ describe("ProjectPageHeader", () => {
     expect(tab("Overview").getAttribute("aria-current")).toBe("page");
     expect(tab("Files").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/files/);
     expect(tab("List").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/list/);
+    expect(tab("Board").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/board/);
+  });
+
+  it("marks Board as the current tab on the Board page", async () => {
+    await render("board");
+    expect(tab("Board").getAttribute("aria-current")).toBe("page");
+    expect(tab("List").getAttribute("aria-current")).toBeNull();
   });
 
   it("marks List as the current tab on the List page without touching work item filters", async () => {
@@ -99,7 +106,6 @@ describe("ProjectPageHeader", () => {
   });
 
   it.each([
-    ["Board", EIssueLayoutTypes.KANBAN],
     ["Project Calendar", EIssueLayoutTypes.CALENDAR],
     ["Timeline", EIssueLayoutTypes.GANTT],
   ])("opens work items in the %s layout", async (label, layout) => {
@@ -115,7 +121,7 @@ describe("ProjectPageHeader", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mocks.updateFilters.mockRejectedValueOnce(new Error("Offline"));
     await render();
-    await act(async () => tab("Board").click());
+    await act(async () => tab("Timeline").click());
     expect(mocks.fetchFilters).not.toHaveBeenCalled();
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "error" }));
     expect(host.textContent).not.toContain("Work items page");

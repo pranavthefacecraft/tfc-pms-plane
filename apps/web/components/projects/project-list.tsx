@@ -4,42 +4,22 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react";
-import useSWR from "swr";
 import { Check, ChevronDown, MessageSquare, Plus } from "lucide-react";
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { setToast } from "@plane/blocks/toast";
-import { EIssuesStoreType } from "@plane/types";
 import { CollaboratorAvatars } from "@/components/common/collaborator-avatars";
-import { TaskSearch } from "@/components/common/task-search";
-import { zonedDateKey } from "@/components/home/activity-overview.helpers";
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
-import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useProjectSection } from "@/hooks/store/use-project-section";
-import { useUser, useUserPermissions } from "@/hooks/store/user";
-import { useCurrentTime } from "@/hooks/use-current-time";
-import { IssueService } from "@/services/issue/issue.service";
-import { ProjectTaskListService, projectTaskListKey } from "@/services/project/project-task-list.service";
 import type { TProjectListTask } from "@/services/project/project-task-list.service";
-import { ProjectListFilters } from "./project-list-filters";
-import {
-  EMPTY_LIST_FILTERS,
-  PRIORITY_LABELS,
-  dueDateDetails,
-  groupTasksBySection,
-  isCompleted,
-  listFilterCount,
-  matchesListFilters,
-} from "./project-list.helpers";
+import { PRIORITY_LABELS, dueDateDetails, isCompleted } from "./project-list.helpers";
 import type { TProjectListGroup } from "./project-list.helpers";
-
-const taskListService = new ProjectTaskListService();
-const issueService = new IssueService();
-
-/** `sectionId` is undefined for the top "Add task" button, so the project's default section is used. */
-type TCreateTarget = { sectionId?: string | null };
+import {
+  NoMatchingTasks,
+  ProjectTaskCreateModal,
+  ProjectTasksLoadState,
+  ProjectTasksToolbar,
+} from "./project-tasks-toolbar";
+import type { TCreateTarget } from "./project-tasks-toolbar";
+import { useProjectTaskList } from "./use-project-task-list";
 
 type TRowActions = {
   today: string;
@@ -48,99 +28,6 @@ type TRowActions = {
   onToggle: (task: TProjectListTask) => Promise<void>;
   onOpen: (task: TProjectListTask) => void;
 };
-
-function useProjectTaskList(workspaceSlug: string, projectId: string) {
-  const { data: user } = useUser();
-  const { allowPermissions } = useUserPermissions();
-  const { currentTime } = useCurrentTime();
-  const { peekIssue, setPeekIssue } = useIssueDetail();
-  const sectionStore = useProjectSection();
-  const canEdit = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.PROJECT,
-    workspaceSlug,
-    projectId
-  );
-  const tasks = useSWR(projectTaskListKey(workspaceSlug, projectId), () =>
-    taskListService.list(workspaceSlug, projectId)
-  );
-  const sectionsRequest = useSWR(["project-sections", workspaceSlug, projectId], () =>
-    sectionStore.fetch(workspaceSlug, projectId)
-  );
-  const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState(EMPTY_LIST_FILTERS);
-  const [busy, setBusy] = useState<Set<string>>(new Set());
-  const { mutate: refresh } = tasks;
-  const wasPeekOpen = useRef(false);
-  useEffect(() => {
-    if (peekIssue) wasPeekOpen.current = true;
-    else if (wasPeekOpen.current) {
-      wasPeekOpen.current = false;
-      void refresh();
-    }
-  }, [peekIssue, refresh]);
-
-  const today = zonedDateKey(currentTime, user?.user_timezone);
-  const search = query.trim().toLocaleLowerCase();
-  const visible = (tasks.data?.results ?? []).filter(
-    (task) => matchesListFilters(task, filters, today, user?.id) && task.name.toLocaleLowerCase().includes(search)
-  );
-  const groups = groupTasksBySection(visible, sectionStore.getSections(workspaceSlug, projectId));
-  const filtered = Boolean(search || listFilterCount(filters));
-
-  const toggle = async (task: TProjectListTask) => {
-    const done = isCompleted(task);
-    const stateId = done ? tasks.data?.default_state_id : tasks.data?.completed_state_id;
-    setBusy((previous) => new Set(previous).add(task.id));
-    try {
-      if (!stateId) throw new Error(`This project has no ${done ? "default" : "completed"} state.`);
-      await issueService.patchIssue(workspaceSlug, projectId, task.id, { state_id: stateId });
-      await refresh();
-      setToast({ type: "success", title: done ? "Task reopened" : "Task completed" });
-    } catch (error) {
-      setToast({
-        type: "error",
-        title: "Could not update task",
-        message: error instanceof Error ? error.message : "Please try again.",
-      });
-    } finally {
-      setBusy((previous) => {
-        const next = new Set(previous);
-        next.delete(task.id);
-        return next;
-      });
-    }
-  };
-  const open = (task: TProjectListTask) => setPeekIssue({ workspaceSlug, projectId, issueId: task.id });
-  const reset = () => {
-    setQuery("");
-    setFilters(EMPTY_LIST_FILTERS);
-  };
-  const retry = () => {
-    void refresh();
-    void sectionsRequest.mutate();
-  };
-  return {
-    canEdit,
-    query,
-    setQuery,
-    filters,
-    setFilters,
-    groups,
-    empty: !visible.length,
-    filtered,
-    truncated: Boolean(tasks.data?.truncated),
-    failed: Boolean(tasks.error || sectionsRequest.error),
-    loading: tasks.isLoading || sectionsRequest.isLoading,
-    today,
-    busy,
-    toggle,
-    open,
-    reset,
-    retry,
-    refresh,
-  };
-}
 
 function ProjectListRow({ task, today, canEdit, busy, onToggle, onOpen }: TRowActions & { task: TProjectListTask }) {
   const completed = isCompleted(task);
@@ -233,34 +120,6 @@ function ProjectListGroup({
   );
 }
 
-function ListLoadState({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
-  return failed ? (
-    <div role="alert" className="py-8 text-13">
-      Could not load this project&apos;s tasks.{" "}
-      <button type="button" className="text-[#135DDD] underline" onClick={onRetry}>
-        Retry
-      </button>
-    </div>
-  ) : (
-    <p role="status" className="py-8 text-13 text-secondary">
-      Loading tasks...
-    </p>
-  );
-}
-
-function NoMatches({ filtered, onReset }: { filtered: boolean; onReset: () => void }) {
-  return (
-    <div className="py-6 text-center text-13 text-secondary">
-      {filtered ? "No matching tasks." : "No tasks yet."}
-      {filtered && (
-        <button type="button" className="ml-2 text-[#135DDD] underline" onClick={onReset}>
-          Clear filters
-        </button>
-      )}
-    </div>
-  );
-}
-
 /** Figma project List tab: tasks grouped by project section, with completion, filters, search and add task. */
 export const ProjectList = observer(function ProjectList({
   workspaceSlug,
@@ -279,9 +138,6 @@ export const ProjectList = observer(function ProjectList({
       else next.add(key);
       return next;
     });
-  const created = async () => {
-    await list.refresh();
-  };
   const actions: TRowActions = {
     today: list.today,
     canEdit: list.canEdit,
@@ -291,26 +147,9 @@ export const ProjectList = observer(function ProjectList({
   };
   return (
     <section aria-label="Project tasks">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        {list.canEdit ? (
-          <button
-            type="button"
-            onClick={() => setCreating({})}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#135DDD] px-4 text-13 font-medium text-white hover:bg-[#0F4FC0]"
-          >
-            <Plus className="size-4" />
-            Add task
-          </button>
-        ) : (
-          <span />
-        )}
-        <div className="flex items-center gap-2">
-          <ProjectListFilters filters={list.filters} onApply={list.setFilters} />
-          <TaskSearch query={list.query} setQuery={list.setQuery} />
-        </div>
-      </div>
+      <ProjectTasksToolbar list={list} onAdd={() => setCreating({})} />
       {list.failed || list.loading ? (
-        <ListLoadState failed={list.failed} onRetry={list.retry} />
+        <ProjectTasksLoadState failed={list.failed} onRetry={list.retry} />
       ) : (
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-13">
@@ -333,7 +172,7 @@ export const ProjectList = observer(function ProjectList({
               />
             ))}
           </table>
-          {list.empty && <NoMatches filtered={list.filtered} onReset={list.reset} />}
+          {list.empty && <NoMatchingTasks filtered={list.filtered} onReset={list.reset} />}
           {list.truncated && (
             <p className="py-3 text-12 text-secondary">
               Showing the first 1,000 tasks. Use Work items for the full list.
@@ -342,16 +181,11 @@ export const ProjectList = observer(function ProjectList({
         </div>
       )}
       <IssuePeekOverview />
-      <CreateUpdateIssueModal
-        isOpen={creating !== null}
+      <ProjectTaskCreateModal
+        projectId={projectId}
+        target={creating}
         onClose={() => setCreating(null)}
-        data={{
-          project_id: projectId,
-          ...(creating?.sectionId !== undefined && { section_id: creating.sectionId }),
-        }}
-        storeType={EIssuesStoreType.PROJECT}
-        isProjectSelectionDisabled
-        onSubmit={created}
+        onCreated={list.refresh}
       />
     </section>
   );

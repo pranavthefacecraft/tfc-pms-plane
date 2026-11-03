@@ -343,8 +343,8 @@ and on Work items. **Project Description** has an **Edit description** link for 
 lead is set) followed by other members, with **+ Add Teammate** linking to member
 settings. **Key Resources** shows linked briefs, Notepad pages, whiteboards, and files
 attached in the Create Project form; each opens via ↗, and admins can add (**+ Resource**)
-or remove them. The **List** tab opens the project List page (below); the Board/Project
-Calendar/Timeline tabs open Work items in that layout. The **Files** tab (`/<workspace>/projects/<id>/files`, API
+or remove them. The **List** and **Board** tabs open the project List and Board pages
+(below); the Project Calendar/Timeline tabs open Work items in that layout. The **Files** tab (`/<workspace>/projects/<id>/files`, API
 `GET /api/workspaces/<slug>/projects/<id>/files/`) gathers every attachment and link
 on the project's tasks plus files attached to the project. It has All/Images/Documents/Links
 filters and search; restricted guests only see files on tasks they created.
@@ -401,6 +401,19 @@ Status, Priority, Due date and Collaborators checkboxes, and the search icon fil
 name. Guests can view but not add or complete tasks, and restricted guests only see tasks
 they created. The list shows up to 1,000 tasks; the sidebar **Work items** page is
 unchanged and still offers the full list layout.
+
+### Project Board
+
+The project **Board** tab (`/<workspace>/projects/<id>/board`) follows the Figma board
+design and uses the same task data, Filter and search as List. Each project section is
+a stage column (To Do, In Progress, Review, Done and so on) with a task count, then
+**No section** when it has tasks. Cards show the task name, project and due date (due
+today or overdue in orange) and open the task's peek view. Drag a card to another stage
+to move it to that section; dropping it on a stage named Done/Complete/Completed also
+completes it, and moving a completed task out of one reopens it. **+ Add task** in a
+column creates a task in that stage, and **+ Add Stage** creates a new project section.
+Guests can view the board but cannot move cards or add tasks and stages. The Work items
+Board layout is unchanged.
 
 ## Task likes
 
