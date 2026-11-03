@@ -186,7 +186,11 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
             render={<div className="group/projects-section" />}
             open={isAllProjectsListOpen}
             onOpenChange={toggleListDisclosure}
-            trigger={<span className="text-13 font-semibold whitespace-nowrap text-placeholder">{t("projects")}</span>}
+            trigger={
+              <span className="dark:text-custom-primary-100 text-13 font-semibold whitespace-nowrap text-[#135DDD]">
+                {t("projects")}
+              </span>
+            }
             trailing={
               isAuthorizedUser ? (
                 <span className="hidden text-placeholder group-focus-within/projects-section:inline-flex group-hover/projects-section:inline-flex">
@@ -249,7 +253,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                   <button
                     type="button"
                     onClick={() => setIsProjectModalOpen(true)}
-                    className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
+                    className="dark:text-custom-primary-100 flex flex-grow items-center gap-1.5 text-13 font-medium text-[#135DDD]"
                   >
                     <AddOutline className="size-4 flex-shrink-0" />
                     <span>Create a project</span>
@@ -263,7 +267,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
         {isAuthorizedUser && joinedProjects?.length === 0 && (
           <button
             type="button"
-            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-13 leading-5 font-medium text-secondary hover:bg-surface-2"
+            className="dark:text-custom-primary-100 flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-13 leading-5 font-medium text-[#135DDD] hover:bg-surface-2"
             onClick={() => {
               toggleCreateProjectModal(true);
             }}

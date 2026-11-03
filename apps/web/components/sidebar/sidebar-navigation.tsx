@@ -27,7 +27,7 @@ export function SidebarNavItem(props: TSidebarNavItem) {
         {
           [SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME]: isActive,
           "text-primary": isActive,
-          "text-secondary": !isActive,
+          "text-[#344867] dark:text-secondary": !isActive,
         },
         className
       )}

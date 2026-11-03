@@ -327,7 +327,14 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   <div className="grid size-4 flex-shrink-0 place-items-center">
                     <Logo logo={project.logo_props} size={16} />
                   </div>
-                  <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
+                  <p
+                    className={cn("truncate text-13 font-medium", {
+                      "dark:text-custom-primary-100 text-[#135DDD]": shouldHighlightProject,
+                      "text-[#526A8B] dark:text-secondary": !shouldHighlightProject,
+                    })}
+                  >
+                    {project.name}
+                  </p>
                 </div>
               </ControlLink>
               <div className="flex items-center gap-1">
