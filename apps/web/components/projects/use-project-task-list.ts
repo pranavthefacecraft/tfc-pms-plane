@@ -99,6 +99,8 @@ export function useProjectTaskList(workspaceSlug: string, projectId: string) {
   };
   const move = (task: TProjectListTask, group: TProjectListGroup) =>
     runUpdate(task, `Moved to ${group.name}`, () => boardMovePatch(task, group, tasks.data));
+  const reschedule = (task: TProjectListTask, dates: { start_date?: string; target_date?: string }) =>
+    runUpdate(task, "Task rescheduled", () => dates);
   const open = (task: TProjectListTask) => setPeekIssue({ workspaceSlug, projectId, issueId: task.id });
   const reset = () => {
     setQuery("");
@@ -118,6 +120,7 @@ export function useProjectTaskList(workspaceSlug: string, projectId: string) {
     groups,
     empty: !visible.length,
     filtered,
+    identifier: tasks.data?.project_identifier ?? "",
     truncated: Boolean(tasks.data?.truncated),
     failed: Boolean(tasks.error || sectionsRequest.error),
     loading: tasks.isLoading || sectionsRequest.isLoading,
@@ -125,6 +128,7 @@ export function useProjectTaskList(workspaceSlug: string, projectId: string) {
     busy,
     toggle,
     move,
+    reschedule,
     open,
     reset,
     retry,

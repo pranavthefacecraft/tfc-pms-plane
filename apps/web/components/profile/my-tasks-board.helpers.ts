@@ -89,8 +89,19 @@ export function rowOnDate(row: TCalendarRow, day: string) {
 
 export type TTimelineDates = { start_date?: string; target_date?: string };
 
+/** The fields the task timeline needs; My Tasks rows and project tasks both fit it. */
+export type TTimelineRow = TCalendarRow & {
+  project?: {
+    start_date: string | null;
+    project_id?: string | null;
+    project_identifier?: string | null;
+    sequence_id?: number | null;
+    state_color?: string | null;
+  } | null;
+};
+
 /** Converts a task row into the block data shape the shared Gantt timeline store expects. */
-export function timelineBlock(row: TaskRow, index: number) {
+export function timelineBlock(row: TTimelineRow, index: number) {
   return {
     id: row.key,
     name: row.name,
@@ -101,9 +112,9 @@ export function timelineBlock(row: TaskRow, index: number) {
   };
 }
 
-export function timelineColor(row: TaskRow) {
+export function timelineColor(row: TTimelineRow) {
   if (row.personal) return "#135DDD";
-  return row.project.state_color || "#00845C";
+  return row.project?.state_color || "#00845C";
 }
 
 /** Keeps only the dates the timeline changed, ignoring empty values. */

@@ -443,8 +443,16 @@ Month calendar from My Tasks. Each task shows on every day from its start date t
 due date (or just its due date); completed tasks are struck through, and clicking one
 opens its peek view. Hover a day and click **+** to add a task due that day in the New
 Task side form. Tasks without dates are counted below the calendar. Guests can view but
-not add tasks. The Work items Calendar layout is unchanged; **Timeline** still opens the
-Work items timeline.
+not add tasks. The Work items Calendar layout is unchanged.
+
+### Project Timeline
+
+The **Timeline** tab (`/<workspace>/projects/<id>/timeline`) uses the same header, toolbar, filters and search as the Board and List pages.
+
+- Tasks are shown on the My Tasks Gantt chart; open tasks are green and completed tasks grey.
+- Editors can drag or resize bars to reschedule start and due dates; guests get a read-only view.
+- Clicking a task opens the peek view, and **Add task** opens the side form.
+- The Work items timeline layout is unchanged.
 
 ### New Task side form
 

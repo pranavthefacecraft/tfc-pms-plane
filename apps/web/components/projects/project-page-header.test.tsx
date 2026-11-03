@@ -8,38 +8,16 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { EIssueFilterType } from "@plane/constants";
-import { EIssueLayoutTypes } from "@plane/types";
 import { ProjectPageHeader } from "./project-page-header";
 import type { TProjectPageTab } from "./project-page-header";
 
-const mocks = vi.hoisted(() => ({
-  filters: undefined as unknown,
-  fetchFilters: vi.fn(),
-  updateFilters: vi.fn(),
-  toast: vi.fn(),
-}));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
-vi.mock("@plane/blocks/toast", () => ({ setToast: mocks.toast }));
-vi.mock("@/hooks/store/use-issues", () => ({
-  useIssues: () => ({
-    issuesFilter: {
-      getIssueFilters: () => mocks.filters,
-      fetchFilters: mocks.fetchFilters,
-      updateFilters: mocks.updateFilters,
-    },
-  }),
-}));
 
 describe("ProjectPageHeader", () => {
   let host: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.filters = undefined;
-    mocks.fetchFilters.mockResolvedValue(undefined);
-    mocks.updateFilters.mockResolvedValue(undefined);
     host = document.createElement("div");
     document.body.append(host);
     root = createRoot(host);
@@ -60,7 +38,6 @@ describe("ProjectPageHeader", () => {
                 <ProjectPageHeader workspaceSlug="acme" projectId="p1" name="website Redesign" active={active} />
               }
             />
-            <Route path="/acme/projects/p1/issues" element={<p>Work items page</p>} />
           </Routes>
         </MemoryRouter>
       );
@@ -86,6 +63,13 @@ describe("ProjectPageHeader", () => {
     expect(tab("List").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/list/);
     expect(tab("Board").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/board/);
     expect(tab("Project Calendar").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/calendar/);
+    expect(tab("Timeline").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/timeline/);
+  });
+
+  it("marks Timeline as the current tab on the Timeline page", async () => {
+    await render("timeline");
+    expect(tab("Timeline").getAttribute("aria-current")).toBe("page");
+    expect(tab("Project Calendar").getAttribute("aria-current")).toBeNull();
   });
 
   it("marks Project Calendar as the current tab on the Calendar page", async () => {
@@ -100,35 +84,15 @@ describe("ProjectPageHeader", () => {
     expect(tab("List").getAttribute("aria-current")).toBeNull();
   });
 
-  it("marks List as the current tab on the List page without touching work item filters", async () => {
+  it("marks List as the current tab on the List page", async () => {
     await render("list");
     expect(tab("List").getAttribute("aria-current")).toBe("page");
     expect(tab("Overview").getAttribute("aria-current")).toBeNull();
-    expect(mocks.updateFilters).not.toHaveBeenCalled();
   });
 
   it("marks Files as the current tab on the Files page", async () => {
     await render("files");
     expect(tab("Files").getAttribute("aria-current")).toBe("page");
     expect(tab("Overview").getAttribute("aria-current")).toBeNull();
-  });
-
-  it.each([["Timeline", EIssueLayoutTypes.GANTT]])("opens work items in the %s layout", async (label, layout) => {
-    await render();
-    await act(async () => tab(label).click());
-    expect(mocks.fetchFilters).toHaveBeenCalledWith("acme", "p1");
-    expect(mocks.updateFilters).toHaveBeenCalledWith("acme", "p1", EIssueFilterType.DISPLAY_FILTERS, { layout });
-    expect(host.textContent).toContain("Work items page");
-  });
-
-  it("skips loading filters that are already loaded and reports failures", async () => {
-    mocks.filters = {};
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    mocks.updateFilters.mockRejectedValueOnce(new Error("Offline"));
-    await render();
-    await act(async () => tab("Timeline").click());
-    expect(mocks.fetchFilters).not.toHaveBeenCalled();
-    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "error" }));
-    expect(host.textContent).not.toContain("Work items page");
   });
 });

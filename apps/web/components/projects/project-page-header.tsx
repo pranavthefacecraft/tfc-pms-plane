@@ -5,16 +5,18 @@
  */
 
 import { observer } from "mobx-react";
-import { useNavigate } from "react-router";
 import Link from "next/link";
-import { EIssueFilterType } from "@plane/constants";
-import { setToast } from "@plane/blocks/toast";
-import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
-import { useIssues } from "@/hooks/store/use-issues";
 
-export type TProjectPageTab = "overview" | "list" | "board" | "calendar" | "files";
+export type TProjectPageTab = "overview" | "list" | "board" | "calendar" | "timeline" | "files";
 
-const LAYOUT_TABS = [{ label: "Timeline", layout: EIssueLayoutTypes.GANTT }] as const;
+const TABS: { id: TProjectPageTab; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "list", label: "List" },
+  { id: "board", label: "Board" },
+  { id: "calendar", label: "Project Calendar" },
+  { id: "timeline", label: "Timeline" },
+  { id: "files", label: "Files" },
+];
 
 const tabClass = (active: boolean) =>
   `-mb-px border-b-2 px-2 pt-1 pb-2.5 text-13 whitespace-nowrap transition-colors ${
@@ -33,21 +35,7 @@ export const ProjectPageHeader = observer(function ProjectPageHeader({
   name: string;
   active: TProjectPageTab;
 }) {
-  const navigate = useNavigate();
-  const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
   const base = `/${workspaceSlug}/projects/${projectId}`;
-
-  async function openLayout(layout: EIssueLayoutTypes) {
-    try {
-      // Work item filters are not loaded yet when the project is opened on Overview or Files.
-      if (!issuesFilter.getIssueFilters(projectId)) await issuesFilter.fetchFilters(workspaceSlug, projectId);
-      await issuesFilter.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout });
-      navigate(`${base}/issues`);
-    } catch (error) {
-      console.error("Could not open the selected work item layout", error);
-      setToast({ type: "error", title: "Could not open work items", message: "Please try again." });
-    }
-  }
 
   return (
     <header className="px-6 pt-6 md:px-8">
@@ -61,51 +49,16 @@ export const ProjectPageHeader = observer(function ProjectPageHeader({
         <h1 className="truncate text-24 font-semibold text-primary">{name}</h1>
       </div>
       <nav aria-label="Project views" className="mt-6 flex gap-4 overflow-x-auto border-b border-subtle">
-        <Link
-          href={`${base}/overview`}
-          aria-current={active === "overview" ? "page" : undefined}
-          className={tabClass(active === "overview")}
-        >
-          Overview
-        </Link>
-        <Link
-          href={`${base}/list`}
-          aria-current={active === "list" ? "page" : undefined}
-          className={tabClass(active === "list")}
-        >
-          List
-        </Link>
-        <Link
-          href={`${base}/board`}
-          aria-current={active === "board" ? "page" : undefined}
-          className={tabClass(active === "board")}
-        >
-          Board
-        </Link>
-        <Link
-          href={`${base}/calendar`}
-          aria-current={active === "calendar" ? "page" : undefined}
-          className={tabClass(active === "calendar")}
-        >
-          Project Calendar
-        </Link>
-        {LAYOUT_TABS.map((tab) => (
-          <button
-            key={tab.layout}
-            type="button"
-            className={tabClass(false)}
-            onClick={() => void openLayout(tab.layout)}
+        {TABS.map((tab) => (
+          <Link
+            key={tab.id}
+            href={`${base}/${tab.id}`}
+            aria-current={active === tab.id ? "page" : undefined}
+            className={tabClass(active === tab.id)}
           >
             {tab.label}
-          </button>
+          </Link>
         ))}
-        <Link
-          href={`${base}/files`}
-          aria-current={active === "files" ? "page" : undefined}
-          className={tabClass(active === "files")}
-        >
-          Files
-        </Link>
       </nav>
     </header>
   );

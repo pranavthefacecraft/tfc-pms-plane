@@ -12,16 +12,16 @@ import { getBlockViewDetails } from "@/components/issues/issue-layouts/utils";
 import { useTimeLineChart, useTimeLineChartStore } from "@/hooks/use-timeline-chart";
 import type { BaseTimeLineStore } from "@/store/timeline/base-timeline.store";
 import { timelineBlock, timelineColor, timelineDates } from "./my-tasks-board.helpers";
-import type { TaskRow, TTimelineDates } from "./my-tasks-board.helpers";
+import type { TTimelineDates, TTimelineRow } from "./my-tasks-board.helpers";
 
-type TimelineProps = {
-  rows: TaskRow[];
-  canEdit: (row: TaskRow) => boolean;
-  onOpen: (row: TaskRow) => void;
-  onReschedule: (row: TaskRow, dates: TTimelineDates) => Promise<void>;
+type TimelineProps<T extends TTimelineRow = TTimelineRow> = {
+  rows: T[];
+  canEdit: (row: T) => boolean;
+  onOpen: (row: T) => void;
+  onReschedule: (row: T, dates: TTimelineDates) => Promise<void>;
 };
 
-function TimelineBar({ row, onOpen }: { row: TaskRow; onOpen: (row: TaskRow) => void }) {
+function TimelineBar({ row, onOpen }: { row: TTimelineRow; onOpen: (row: TTimelineRow) => void }) {
   const { blockStyle, message } = getBlockViewDetails(timelineBlock(row, 0), timelineColor(row));
   return (
     <button
@@ -48,8 +48,8 @@ const TimelineSidebarRow = observer(function TimelineSidebarRow({
   row,
   onOpen,
 }: {
-  row: TaskRow;
-  onOpen: (row: TaskRow) => void;
+  row: TTimelineRow;
+  onOpen: (row: TTimelineRow) => void;
 }) {
   const { getBlockById, updateActiveBlockId, isBlockActive, getNumberOfDaysFromPosition } = useTimeLineChartStore();
   const block = getBlockById(row.key);
@@ -74,7 +74,7 @@ const TimelineSidebarRow = observer(function TimelineSidebarRow({
           className="size-2 shrink-0 rounded-full"
           style={{ backgroundColor: timelineColor(row) }}
         />
-        {row.project && (
+        {row.project?.project_identifier && (
           <span className="shrink-0 text-11 text-tertiary">
             {row.project.project_identifier}-{row.project.sequence_id}
           </span>
@@ -90,12 +90,7 @@ const TimelineSidebarRow = observer(function TimelineSidebarRow({
   );
 });
 
-export const MyTasksTimeline = observer(function MyTasksTimeline({
-  rows,
-  canEdit,
-  onOpen,
-  onReschedule,
-}: TimelineProps) {
+const TaskTimeline = observer(function TaskTimeline({ rows, canEdit, onOpen, onReschedule }: TimelineProps) {
   const store = useTimeLineChart(GANTT_TIMELINE_TYPE.GROUPED) as BaseTimeLineStore;
   const byKey = new Map(rows.map((row) => [row.key, row]));
   const blockIds = rows.map((row) => row.key);
@@ -153,3 +148,9 @@ export const MyTasksTimeline = observer(function MyTasksTimeline({
     </TimeLineTypeContext.Provider>
   );
 });
+
+/** Gantt task timeline used by My Tasks and the project Timeline tab. */
+export function MyTasksTimeline<T extends TTimelineRow>(props: TimelineProps<T>) {
+  // Rows only flow back into the caller's own callbacks, so widening T here is safe.
+  return <TaskTimeline {...(props as unknown as TimelineProps)} />;
+}
