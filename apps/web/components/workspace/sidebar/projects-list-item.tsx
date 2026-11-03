@@ -53,6 +53,12 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
 import { ProjectNavigation } from "./project-navigation";
 
+/**
+ * The per-project sub-menu (Overview, Work items, Analytics, Modules, Views, Settings, Intake) and its chevron are
+ * hidden; the project tabs and the settings gear on the project pages replace it. Set to true to show it again.
+ */
+const SHOW_PROJECT_SUB_MENU = false;
+
 type Props = {
   projectId: string;
   handleCopyText: () => void;
@@ -255,10 +261,10 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
 
   if (!project) return null;
 
-  const isAccordionMode = projectPreferences.navigationMode === "ACCORDION";
+  const isAccordionMode = SHOW_PROJECT_SUB_MENU && projectPreferences.navigationMode === "ACCORDION";
 
   const handleItemClick = () => {
-    if (projectPreferences.navigationMode === "ACCORDION") {
+    if (isAccordionMode) {
       setIsProjectListOpen(true);
     }
     router.push(defaultTabUrl);
@@ -268,7 +274,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     }
   };
 
-  const shouldHighlightProject = URLProjectId === project?.id && projectPreferences.navigationMode !== "ACCORDION";
+  const shouldHighlightProject = URLProjectId === project?.id && !isAccordionMode;
 
   return (
     <>

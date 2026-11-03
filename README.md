@@ -106,6 +106,13 @@ retained for future use; Open keyboard shortcuts remains visible.
 Shared-whiteboard visitors use their own workspace's navigation and creation
 actions, never the board owner's workspace actions.
 
+The sidebar **Projects** list shows each project as a single row that opens its
+Overview and is highlighted while you are inside it. The per-project sub-menu
+(Overview, Work items, Analytics, Modules, Views, Settings, Intake) and its chevron
+are hidden with `SHOW_PROJECT_SUB_MENU` in
+`apps/web/components/workspace/sidebar/projects-list-item.tsx`; the project page tabs
+and the settings gear cover those links, and the pages themselves are unchanged.
+
 Scheduling date pickers (work items/drafts, Intake, cycles, modules, snooze
 and token expiry) disable dates before the user's local today. Custom date
 fields use the same lower bound. Existing past dates remain displayed and
