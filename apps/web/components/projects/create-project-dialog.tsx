@@ -307,7 +307,15 @@ function DateField({
           value={value}
           min={min}
           onChange={(event) => onChange(event.target.value)}
-          className={`${fieldClass} pr-9 ${value ? "" : "text-placeholder"}`}
+          onClick={(event) => {
+            // The browser's own picker icon is hidden, so clicking the field opens the picker instead.
+            try {
+              event.currentTarget.showPicker?.();
+            } catch {
+              // showPicker isn't allowed in some contexts (e.g. cross-origin iframes); typing still works.
+            }
+          }}
+          className={`${fieldClass} cursor-pointer pr-9 ${value ? "" : "text-placeholder"} [&::-webkit-calendar-picker-indicator]:hidden`}
         />
         <CalendarDays
           className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-secondary"

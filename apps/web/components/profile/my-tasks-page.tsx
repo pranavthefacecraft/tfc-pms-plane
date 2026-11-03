@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR, { useSWRConfig } from "swr";
-import { CalendarDays, Check, GanttChartSquare, KanbanSquare, List, Paperclip, Search } from "lucide-react";
+import { CalendarDays, Check, GanttChartSquare, KanbanSquare, List, Paperclip } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { setToast } from "@plane/blocks/toast";
 import { renderFormattedDate } from "@plane/utils";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
-import { useMember } from "@/hooks/store/use-member";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useCurrentTime } from "@/hooks/use-current-time";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import { PageHead } from "@/components/core/page-title";
+import { CollaboratorAvatars } from "@/components/common/collaborator-avatars";
+import { TaskSearch } from "@/components/common/task-search";
 import { zonedDateKey } from "@/components/home/activity-overview.helpers";
 import { IssueService } from "@/services/issue/issue.service";
 import { MyTasksService } from "@/services/workspace-my-tasks.service";
@@ -31,35 +32,6 @@ import type { TBoardColumn, TaskRow, TTimelineDates } from "./my-tasks-board.hel
 const taskService = new MyTasksService();
 const issueService = new IssueService();
 const sectionService = new ProjectSectionService();
-
-function Collaborators({ ids }: { ids: string[] }) {
-  const { getUserDetails } = useMember();
-  return (
-    <div className="flex items-center -space-x-1">
-      {ids.slice(0, 3).map((id) => {
-        const person = getUserDetails(id);
-        const name =
-          person?.display_name || `${person?.first_name ?? ""} ${person?.last_name ?? ""}`.trim() || "Team member";
-        return (
-          <span
-            key={id}
-            title={name}
-            aria-label={name}
-            className="grid size-6 place-items-center rounded-full border-2 border-white bg-[#1764E8] text-10 font-medium text-white"
-          >
-            {name
-              .split(/\s+/)
-              .slice(0, 2)
-              .map((part) => part[0])
-              .join("")
-              .toUpperCase()}
-          </span>
-        );
-      })}
-      {ids.length > 3 && <span className="pl-2 text-11 text-secondary">+{ids.length - 3}</span>}
-    </div>
-  );
-}
 
 function taskRowDetails(row: TaskRow, today: string, userId?: string) {
   return {
@@ -112,7 +84,7 @@ function MyTaskRow({
         {dueLabel}
       </td>
       <td className="px-2 py-3">
-        <Collaborators ids={collaborators} />
+        <CollaboratorAvatars ids={collaborators} />
       </td>
       <td className="px-2 py-3">
         <span className="inline-flex items-center gap-1.5 rounded bg-layer-1 px-2 py-1 text-11">
@@ -416,45 +388,6 @@ function ViewTabs({ layout, onChange }: { layout: TLayout; onChange: (layout: TL
         </button>
       ))}
     </div>
-  );
-}
-
-function TaskSearch({ query, setQuery }: { query: string; setQuery: (query: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
-  if (!open && !query)
-    return (
-      <button
-        type="button"
-        aria-label="Open search"
-        title="Search tasks"
-        className="grid size-8 place-items-center rounded border border-subtle hover:bg-layer-1-hover"
-        onClick={() => setOpen(true)}
-      >
-        <Search className="size-3.5" />
-      </button>
-    );
-  return (
-    <label className="flex h-8 items-center gap-2 rounded border border-[#135DDD] px-2">
-      <Search className="size-3.5" />
-      <input
-        ref={inputRef}
-        aria-label="Search tasks"
-        placeholder="Search tasks..."
-        className="w-48 bg-transparent text-12 outline-none"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        onBlur={() => setOpen(false)}
-        onKeyDown={(event) => {
-          if (event.key !== "Escape") return;
-          setQuery("");
-          setOpen(false);
-        }}
-      />
-    </label>
   );
 }
 

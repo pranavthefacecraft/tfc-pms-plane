@@ -19,7 +19,7 @@ import type { TTaskFilters } from "./my-tasks-filters.helpers";
 
 type TOption = { readonly id: string; readonly label: string };
 
-function CheckboxGroup({
+export function CheckboxGroup({
   title,
   options,
   selected,

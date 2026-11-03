@@ -336,13 +336,15 @@ emails, and an invitee's workspace role is never higher than the inviter's.
 Click a project name in the sidebar or project directory to open **Overview**.
 It follows the Figma design: a letter tile and the project name, tabs for
 **Overview**, **List**, **Board**, **Project Calendar**, **Timeline**, and **Files**,
-then three cards. **Project Description** has an **Edit description** link for admins.
+then three cards. The top bar (breadcrumb, layout switcher, filters, Display and
+Analytics) is hidden here and still shows on the classic layout (`?view=classic`)
+and on Work items. **Project Description** has an **Edit description** link for admins.
 **Project Teammates** lists the owner (the project lead, or the creator when no
 lead is set) followed by other members, with **+ Add Teammate** linking to member
 settings. **Key Resources** shows linked briefs, Notepad pages, whiteboards, and files
 attached in the Create Project form; each opens via ↗, and admins can add (**+ Resource**)
-or remove them. The List/Board/Project Calendar/Timeline tabs open Work items in that
-layout. The **Files** tab (`/<workspace>/projects/<id>/files`, API
+or remove them. The **List** tab opens the project List page (below); the Board/Project
+Calendar/Timeline tabs open Work items in that layout. The **Files** tab (`/<workspace>/projects/<id>/files`, API
 `GET /api/workspaces/<slug>/projects/<id>/files/`) gathers every attachment and link
 on the project's tasks plus files attached to the project. It has All/Images/Documents/Links
 filters and search; restricted guests only see files on tasks they created.
@@ -383,6 +385,22 @@ counts follow their task visibility. Data refreshes every 30 seconds. Health is
 manually assigned, not inferred from task progress. AI summaries and milestones
 are not included. Apply backend migration `0128_project_overview` before running
 the updated app.
+
+### Project List
+
+The project **List** tab (`/<workspace>/projects/<id>/list`, API
+`GET /api/workspaces/<slug>/projects/<id>/task-list/`) follows the Figma list design.
+Tasks are grouped by the project's sections in section order, then **No section**
+(shown when it has tasks or the project has no sections); click a group header to
+collapse it. Columns are Name (with the comment count), Collaborators (assignees),
+Priority and Due date (Today in green, overdue in red). The circle completes or reopens
+a task using the project's first completed state and its default state; clicking a name
+opens the task's peek view. **+ Add task** creates a task in the project's default
+section, and **+ Add task in <section>** creates one in that section. **Filter** has
+Status, Priority, Due date and Collaborators checkboxes, and the search icon filters by
+name. Guests can view but not add or complete tasks, and restricted guests only see tasks
+they created. The list shows up to 1,000 tasks; the sidebar **Work items** page is
+unchanged and still offers the full list layout.
 
 ## Task likes
 

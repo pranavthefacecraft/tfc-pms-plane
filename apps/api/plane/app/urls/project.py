@@ -11,6 +11,7 @@ from plane.app.views.project.custom_fields import (
 from plane.app.views.project.collaborator_invite import ProjectCollaboratorInvitesEndpoint
 from plane.app.views.project.files import ProjectFilesEndpoint
 from plane.app.views.project.section import ProjectSectionEndpoint, ProjectSectionsEndpoint
+from plane.app.views.project.task_list import ProjectTaskListEndpoint
 
 from plane.app.views import (
     ProjectViewSet,
@@ -171,5 +172,10 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/collaborator-invites/",
         ProjectCollaboratorInvitesEndpoint.as_view(),
         name="project-collaborator-invites",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/task-list/",
+        ProjectTaskListEndpoint.as_view(),
+        name="project-task-list",
     ),
 ]

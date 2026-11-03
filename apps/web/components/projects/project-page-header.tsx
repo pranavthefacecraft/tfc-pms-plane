@@ -12,10 +12,9 @@ import { setToast } from "@plane/blocks/toast";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 import { useIssues } from "@/hooks/store/use-issues";
 
-export type TProjectPageTab = "overview" | "files";
+export type TProjectPageTab = "overview" | "list" | "files";
 
 const LAYOUT_TABS = [
-  { label: "List", layout: EIssueLayoutTypes.LIST },
   { label: "Board", layout: EIssueLayoutTypes.KANBAN },
   { label: "Project Calendar", layout: EIssueLayoutTypes.CALENDAR },
   { label: "Timeline", layout: EIssueLayoutTypes.GANTT },
@@ -26,7 +25,7 @@ const tabClass = (active: boolean) =>
     active ? "border-[#135DDD] font-medium text-primary" : "border-transparent text-secondary hover:text-primary"
   }`;
 
-/** Figma project header: letter tile, project name and the Overview / layouts / Files tabs. */
+/** Figma project header: letter tile, project name and the Overview / List / layouts / Files tabs. */
 export const ProjectPageHeader = observer(function ProjectPageHeader({
   workspaceSlug,
   projectId,
@@ -72,6 +71,13 @@ export const ProjectPageHeader = observer(function ProjectPageHeader({
           className={tabClass(active === "overview")}
         >
           Overview
+        </Link>
+        <Link
+          href={`${base}/list`}
+          aria-current={active === "list" ? "page" : undefined}
+          className={tabClass(active === "list")}
+        >
+          List
         </Link>
         {LAYOUT_TABS.map((tab) => (
           <button

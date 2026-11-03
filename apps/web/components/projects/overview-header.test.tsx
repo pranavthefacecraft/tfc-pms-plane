@@ -14,6 +14,7 @@ import { EIssueLayoutTypes } from "@plane/types";
 import { HeaderFilters } from "@/components/issues/filters";
 import { IssuesHeader } from "@/components/issues/header";
 import { ProjectOverviewHeader } from "./overview-header";
+import { ProjectOverviewPageHeader } from "./overview-page-header";
 
 const mocks = vi.hoisted(() => ({
   canCreate: true,
@@ -151,10 +152,13 @@ describe("project overview header", () => {
     host.remove();
     vi.restoreAllMocks();
   });
-  async function render(node: ReactNode = <ProjectOverviewHeader workspaceSlug="workspace" projectId="project" />) {
+  async function render(
+    node: ReactNode = <ProjectOverviewHeader workspaceSlug="workspace" projectId="project" />,
+    url = "/workspace/projects/project/overview"
+  ) {
     await act(async () => {
       root.render(
-        <MemoryRouter initialEntries={["/workspace/projects/project/overview"]}>
+        <MemoryRouter key={url} initialEntries={[url]}>
           <Routes>
             <Route
               path="/:workspaceSlug/projects/:projectId/:view"
@@ -191,6 +195,14 @@ describe("project overview header", () => {
       />
     );
   }
+
+  it("hides the bar on the Figma overview and keeps it on the classic overview", async () => {
+    const page = <ProjectOverviewPageHeader workspaceSlug="workspace" projectId="project" />;
+    await render(page);
+    expect(host.textContent).not.toContain("Project project");
+    await render(page, "/workspace/projects/project/overview?view=classic");
+    expect(host.textContent).toContain("Project project");
+  });
 
   it("shows the project and Overview breadcrumb and actual total without a creation button", async () => {
     await render();
