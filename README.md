@@ -289,7 +289,7 @@ upgrade dialog remain intact for future use.
 Clicking the sidebar **Projects** header opens `/<workspace>/projects`, a
 Figma-style table with **+ Create Project**, a **Search projects** box (name or
 identifier), and Name / Collaborators / Last modified columns. Joined projects
-show a green **Joined** label and open their work items; other projects open the
+show a green **Joined** label and open their **Overview** page; other projects open the
 existing join dialog. Click **Last modified** to flip the sort. Once you are on
 the Projects page, the header collapses or expands the sidebar list as before. A
 **Create a project** link sits under the sidebar list. The previous card grid,
@@ -309,7 +309,16 @@ project admins see the invite box; other members can view the list.
 ### Create Project form
 
 **Create Project** (on the Projects page, in the sidebar, or via the shortcut)
-opens a simple form with these fields: **Project Name**, **Description
+first asks you to **Choose a Project**:
+
+- **Blank Project** starts with no stages. The project's automatic "Untitled
+  section" is removed, so List and Board start empty with **+ Add section** /
+  **+ Add Stage**.
+- **General Template** starts with the stages **To Do**, **In Progress**,
+  **Review** and **Done** (project sections). The automatic section is renamed
+  to To Do, so new tasks land there by default.
+
+Picking one opens a simple form with these fields: **Project Name**, **Description
 (optional)**, **Collaborators**, **Start Date**, **Due Date**, and **Attach File
 (optional)**. The button stays disabled until the name and both dates are
 filled in and the due date is on or after the start date. The project
@@ -410,7 +419,8 @@ section, and **+ Add task in <section>** creates one in that section. **Filter**
 Status, Priority, Due date and Collaborators checkboxes, and the search icon filters by
 name. Guests can view but not add or complete tasks, and restricted guests only see tasks
 they created. The list shows up to 1,000 tasks; the sidebar **Work items** page is
-unchanged and still offers the full list layout.
+unchanged and still offers the full list layout. **+ Add section** below the list creates a
+new project section; a blank project with no sections or tasks shows only this button.
 
 ### Project Board
 

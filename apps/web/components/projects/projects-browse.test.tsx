@@ -162,7 +162,7 @@ describe("ProjectsBrowse", () => {
     render();
     const [website, operations] = host.querySelectorAll<HTMLTableRowElement>("tbody tr");
     act(() => website.click());
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/web/issues");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/web/overview");
     act(() => operations.click());
     expect(host.textContent).toContain("Join Operations");
   });

@@ -11,7 +11,9 @@ import { getAssetIdFromUrl, checkURLValidity } from "@plane/utils";
 // helpers
 // plane web components
 import { CreateProjectForm } from "@/components/projects/create/root";
+import { ChooseProjectTemplateDialog } from "@/components/projects/choose-project-template-dialog";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
+import type { TProjectTemplate } from "@/components/projects/project-templates";
 // plane web types
 import type { TProject } from "@plane/types";
 // services
@@ -31,6 +33,19 @@ type Props = {
 enum EProjectCreationSteps {
   CREATE_PROJECT = "CREATE_PROJECT",
   FEATURE_SELECTION = "FEATURE_SELECTION",
+}
+
+function SimpleCreateProject({ isOpen, onClose, workspaceSlug }: Pick<Props, "isOpen" | "onClose" | "workspaceSlug">) {
+  const [template, setTemplate] = useState<TProjectTemplate | null>(null);
+  const close = () => {
+    setTemplate(null);
+    onClose();
+  };
+  return template ? (
+    <CreateProjectDialog isOpen={isOpen} onClose={close} workspaceSlug={workspaceSlug} template={template} />
+  ) : (
+    <ChooseProjectTemplateDialog isOpen={isOpen} onClose={close} onChoose={setTemplate} />
+  );
 }
 
 export function CreateProjectModal(props: Props) {
@@ -60,9 +75,10 @@ export function CreateProjectModal(props: Props) {
     }
   };
 
-  // Plain "Create project" uses the simplified dialog; prefilled/template flows keep the full legacy form.
+  // Plain "Create project" asks for Blank or General first, then uses the simplified dialog; prefilled/template
+  // flows keep the full legacy form.
   if (!data && !templateId)
-    return <CreateProjectDialog isOpen={isOpen} onClose={onClose} workspaceSlug={workspaceSlug} />;
+    return <SimpleCreateProject isOpen={isOpen} onClose={onClose} workspaceSlug={workspaceSlug} />;
 
   return (
     <Dialog

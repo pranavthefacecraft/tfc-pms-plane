@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   patchIssue: vi.fn(),
   fetchSections: vi.fn(),
+  createSection: vi.fn(),
   sections: [] as { id: string; name: string; sort_order: number }[],
   setPeekIssue: vi.fn(),
   canEdit: true,
@@ -41,7 +42,11 @@ vi.mock("@/services/issue/issue.service", () => ({
   },
 }));
 vi.mock("@/hooks/store/use-project-section", () => ({
-  useProjectSection: () => ({ fetch: mocks.fetchSections, getSections: () => mocks.sections }),
+  useProjectSection: () => ({
+    fetch: mocks.fetchSections,
+    getSections: () => mocks.sections,
+    create: mocks.createSection,
+  }),
 }));
 vi.mock("@/hooks/store/user", () => ({
   useUser: () => ({ data: { id: "me", user_timezone: "UTC" } }),
@@ -116,7 +121,7 @@ describe("project list helpers", () => {
       "To Do",
       "In Progress",
     ]);
-    expect(groupTasksBySection([], []).map((group) => group.name)).toEqual(["No section"]);
+    expect(groupTasksBySection([], [])).toEqual([]);
     expect(groupTasksBySection([task({ section_id: "gone" })], sections)[2].tasks).toHaveLength(1);
   });
 
@@ -235,11 +240,31 @@ describe("ProjectList", () => {
     expect(JSON.parse(host.querySelector('[data-testid="create-modal"]')!.textContent!)).toEqual({ project_id: "p1" });
   });
 
+  it("shows a blank project empty with an Add Section button", async () => {
+    mocks.sections = [];
+    mocks.list.mockResolvedValue({ ...RESPONSE, results: [] });
+    mocks.createSection.mockResolvedValue({ id: "s9", name: "Backlog", sort_order: 1 });
+    await render();
+    expect(host.querySelectorAll("tbody th")).toHaveLength(0);
+    expect(host.textContent).toContain("No tasks yet.");
+    await act(async () => button("Add Section").click());
+    const input = host.querySelector<HTMLInputElement>('[aria-label="Section name"]')!;
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    await act(async () => {
+      setValue.call(input, "Backlog");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => button("Add").click());
+    expect(mocks.createSection).toHaveBeenCalledWith("acme", "p1", "Backlog");
+    expect(mocks.toast).toHaveBeenCalledWith({ type: "success", title: "Section added" });
+  });
+
   it("is read-only for guests", async () => {
     mocks.canEdit = false;
     await render();
     expect(button("Add task")).toBeUndefined();
     expect(button("Add task in To Do")).toBeUndefined();
+    expect(button("Add Section")).toBeUndefined();
     expect(host.querySelector<HTMLButtonElement>('[aria-label="Complete Wireframes"]')!.disabled).toBe(true);
   });
 

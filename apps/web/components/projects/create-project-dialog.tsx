@@ -18,6 +18,7 @@ import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { FileService } from "@/services/file.service";
 import { ProjectCollaboratorsService } from "@/services/project-collaborators.service";
+import { ProjectSectionService } from "@/services/project/project-section.service";
 import { Avatar, SuggestionList } from "./collaborator-invite-parts";
 import {
   EDITOR_ROLE,
@@ -34,9 +35,12 @@ import {
   withTeammate,
 } from "./create-project-dialog.helpers";
 import type { TCreateProjectDraft, TTeammate } from "./create-project-dialog.helpers";
+import { applyProjectTemplate } from "./project-templates";
+import type { TProjectTemplate } from "./project-templates";
 
 const fileService = new FileService();
 const collaboratorsService = new ProjectCollaboratorsService();
+const sectionService = new ProjectSectionService();
 
 const fieldClass =
   "w-full rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-[#135DDD] focus:ring-1 focus:ring-[#135DDD]";
@@ -274,10 +278,12 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
   isOpen,
   onClose,
   workspaceSlug,
+  template,
 }: {
   isOpen: boolean;
   onClose: () => void;
   workspaceSlug: string;
+  template?: TProjectTemplate;
 }) {
   const id = useId();
   const router = useAppRouter();
@@ -355,6 +361,13 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
       .filter((teammate) => !teammate.memberId)
       .map(({ email, role }) => ({ email, role }));
     let invitedCount = 0;
+    if (template) {
+      try {
+        await applyProjectTemplate(sectionService, workspaceSlug, project.id, template);
+      } catch {
+        problems.push("the template stages");
+      }
+    }
     if (members.length) {
       try {
         await bulkAddMembersToProject(workspaceSlug, project.id, { members });

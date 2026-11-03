@@ -164,7 +164,7 @@ export const ProjectsBrowse = observer(function ProjectsBrowse({ workspaceSlug }
   const rows = browseProjects(projects, query, direction);
 
   const openProject = (project: TProject) => {
-    if (project.member_role) router.push(`/${workspaceSlug}/projects/${project.id}/issues`);
+    if (project.member_role) router.push(`/${workspaceSlug}/projects/${project.id}/overview`);
     else setJoining(project);
   };
 

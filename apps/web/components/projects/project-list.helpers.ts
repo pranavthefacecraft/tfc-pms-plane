@@ -82,8 +82,8 @@ export function matchesListFilters(
 }
 
 /**
- * Groups tasks under the project's sections in section order, then "No section". "No section" is shown when it has
- * tasks or when the project has no sections, so there is always somewhere to add a task.
+ * Groups tasks under the project's sections in section order, then "No section" when some tasks have no section.
+ * A blank project (no sections, no tasks) has no groups.
  */
 export function groupTasksBySection(tasks: TProjectListTask[], sections: TProjectSection[]): TProjectListGroup[] {
   // oxlint-disable-next-line unicorn/no-array-sort -- sorts a fresh copy; the lib target lacks toSorted
@@ -96,8 +96,7 @@ export function groupTasksBySection(tasks: TProjectListTask[], sections: TProjec
     tasks: tasks.filter((task) => task.section_id === section.id),
   }));
   const unsectioned = tasks.filter((task) => !task.section_id || !known.has(task.section_id));
-  if (unsectioned.length || !groups.length)
-    groups.push({ key: NO_SECTION_KEY, sectionId: null, name: "No section", tasks: unsectioned });
+  if (unsectioned.length) groups.push({ key: NO_SECTION_KEY, sectionId: null, name: "No section", tasks: unsectioned });
   return groups;
 }
 

@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   bulkAdd: vi.fn(),
   upload: vi.fn(),
   invite: vi.fn(),
+  applyTemplate: vi.fn(),
   push: vi.fn(),
   toast: vi.fn(),
   projectMap: {} as Record<string, { identifier: string }>,
@@ -71,6 +72,7 @@ vi.mock("@/services/project-collaborators.service", () => ({
     invite = mocks.invite;
   },
 }));
+vi.mock("./project-templates", () => ({ applyProjectTemplate: mocks.applyTemplate }));
 vi.mock("@/services/file.service", () => ({
   FileService: class {
     uploadProjectAsset = mocks.upload;
@@ -187,6 +189,20 @@ describe("CreateProjectDialog", () => {
     type(start, "2026-11-03");
     type(due, "2026-11-30");
   };
+
+  it("sets up the chosen template's stages after creating the project", async () => {
+    act(() => root.render(<CreateProjectDialog isOpen onClose={onClose} workspaceSlug="acme" template="general" />));
+    fillRequired();
+    await act(async () => button("Create Project").click());
+    expect(mocks.applyTemplate).toHaveBeenCalledWith(expect.anything(), "acme", "new", "general");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/overview");
+  });
+
+  it("skips templates when none was chosen", async () => {
+    fillRequired();
+    await act(async () => button("Create Project").click());
+    expect(mocks.applyTemplate).not.toHaveBeenCalled();
+  });
 
   it("keeps Create Project disabled until the required fields are valid", () => {
     expect(host.textContent).toContain("Create Project");

@@ -10,6 +10,7 @@ import { Check, ChevronDown, MessageSquare, Plus } from "lucide-react";
 import { CollaboratorAvatars } from "@/components/common/collaborator-avatars";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import type { TProjectListTask } from "@/services/project/project-task-list.service";
+import { AddStage } from "./add-stage";
 import { PRIORITY_LABELS, dueDateDetails, isCompleted } from "./project-list.helpers";
 import type { TProjectListGroup } from "./project-list.helpers";
 import {
@@ -173,6 +174,7 @@ export const ProjectList = observer(function ProjectList({
             ))}
           </table>
           {list.empty && <NoMatchingTasks filtered={list.filtered} onReset={list.reset} />}
+          {list.canEdit && <AddStage noun="Section" onCreate={list.addSection} />}
           {list.truncated && (
             <p className="py-3 text-12 text-secondary">
               Showing the first 1,000 tasks. Use Work items for the full list.
