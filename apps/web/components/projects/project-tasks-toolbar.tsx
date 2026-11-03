@@ -11,8 +11,11 @@ import { CreateTaskEntry } from "@/components/issues/create-task-entry";
 import { ProjectListFilters } from "./project-list-filters";
 import type { TProjectTaskListState } from "./use-project-task-list";
 
-/** `sectionId` is undefined for the top "Add task" button, so the project's default section is used. */
-export type TCreateTarget = { sectionId?: string | null };
+/**
+ * `sectionId` is undefined for the top "Add task" button, so the project's default section is used.
+ * `targetDate` presets the due date when adding from a Calendar day.
+ */
+export type TCreateTarget = { sectionId?: string | null; targetDate?: string };
 
 /** "+ Add task" on the left, Filter and search on the right, shared by the project List and Board tabs. */
 export function ProjectTasksToolbar({
@@ -94,6 +97,7 @@ export function ProjectTaskCreateModal({
       data={{
         project_id: projectId,
         ...(target?.sectionId !== undefined && { section_id: target.sectionId }),
+        ...(target?.targetDate && { target_date: target.targetDate }),
       }}
       storeType={EIssuesStoreType.PROJECT}
       isProjectSelectionDisabled

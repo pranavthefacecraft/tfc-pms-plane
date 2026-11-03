@@ -1,14 +1,15 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { addDays, addMonths, format, isSameMonth, parseISO } from "date-fns";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { calendarDays, dateKey } from "@/components/home/activity-overview.helpers";
 import type { TCalendarView } from "@/components/home/activity-overview.helpers";
 import { rowOnDate, taskStart } from "./my-tasks-board.helpers";
-import type { TaskRow } from "./my-tasks-board.helpers";
+import type { TCalendarRow } from "./my-tasks-board.helpers";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function CalendarChip({ row, onOpen }: { row: TaskRow; onOpen: (row: TaskRow) => void }) {
+function CalendarChip<T extends TCalendarRow>({ row, onOpen }: { row: T; onOpen: (row: T) => void }) {
   return (
     <button
       type="button"
@@ -26,20 +27,22 @@ function CalendarChip({ row, onOpen }: { row: TaskRow; onOpen: (row: TaskRow) =>
   );
 }
 
-function CalendarCell({
+function CalendarCell<T extends TCalendarRow>({
   day,
   anchor,
   view,
   today,
   rows,
   onOpen,
+  onAdd,
 }: {
   day: Date;
   anchor: Date;
   view: TCalendarView;
   today: string;
-  rows: TaskRow[];
-  onOpen: (row: TaskRow) => void;
+  rows: T[];
+  onOpen: (row: T) => void;
+  onAdd?: (day: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const key = dateKey(day);
@@ -50,15 +53,27 @@ function CalendarCell({
   return (
     <div
       aria-label={format(day, "EEEE, d MMMM yyyy")}
-      className={`min-w-0 border-r border-b border-[#E8EDF5] p-2 ${view === "month" ? "min-h-24" : "min-h-64"} ${isToday ? "bg-[#F3F7FF]" : ""}`}
+      className={`group min-w-0 border-r border-b border-[#E8EDF5] p-2 ${view === "month" ? "min-h-24" : "min-h-64"} ${isToday ? "bg-[#F3F7FF]" : ""}`}
     >
-      <span
-        className={`mb-1.5 inline-grid size-6 place-items-center rounded-full text-12 ${
-          isToday ? "bg-[#135DDD] font-semibold text-white" : outside ? "text-[#B5BFCE]" : "text-[#384252]"
-        }`}
-      >
-        {format(day, "d")}
-      </span>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span
+          className={`inline-grid size-6 place-items-center rounded-full text-12 ${
+            isToday ? "bg-[#135DDD] font-semibold text-white" : outside ? "text-[#B5BFCE]" : "text-[#384252]"
+          }`}
+        >
+          {format(day, "d")}
+        </span>
+        {onAdd && (
+          <button
+            type="button"
+            aria-label={`Add task on ${format(day, "d MMMM yyyy")}`}
+            onClick={() => onAdd(key)}
+            className="rounded p-0.5 text-[#135DDD] opacity-0 group-hover:opacity-100 hover:bg-[#E8F0FE] focus-visible:opacity-100"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        )}
+      </div>
       <div className="flex flex-col gap-1">
         {shown.map((row) => (
           <CalendarChip key={row.key} row={row} onOpen={onOpen} />
@@ -78,14 +93,21 @@ function CalendarCell({
   );
 }
 
-export function MyTasksCalendar({
+/** Day / Week / Month task calendar used by My Tasks and the project Calendar tab. */
+export function MyTasksCalendar<T extends TCalendarRow>({
   rows,
   today,
   onOpen,
+  onAdd,
+  legend,
 }: {
-  rows: TaskRow[];
+  rows: T[];
   today: string;
-  onOpen: (row: TaskRow) => void;
+  onOpen: (row: T) => void;
+  /** Shows a "+" on each day that adds a task due that day. */
+  onAdd?: (day: string) => void;
+  /** Replaces the default Personal / PMS task legend. */
+  legend?: ReactNode;
 }) {
   const [anchor, setAnchor] = useState<Date | null>(null);
   const [view, setView] = useState<TCalendarView>("month");
@@ -166,20 +188,25 @@ export function MyTasksCalendar({
                 today={today}
                 rows={rows.filter((row) => rowOnDate(row, dateKey(day)))}
                 onOpen={onOpen}
+                onAdd={onAdd}
               />
             ))}
           </div>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-4 text-11 text-secondary">
-        <span className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="size-2 rounded-full bg-[#135DDD]" />
-          Personal task
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span aria-hidden="true" className="size-2 rounded-full bg-[#00845C]" />
-          PMS task
-        </span>
+        {legend ?? (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="size-2 rounded-full bg-[#135DDD]" />
+              Personal task
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="size-2 rounded-full bg-[#00845C]" />
+              PMS task
+            </span>
+          </>
+        )}
         <span>Select a task to open its details</span>
         {undated > 0 && (
           <span>

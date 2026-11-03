@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EIssueFilterType } from "@plane/constants";
 import { EIssueLayoutTypes } from "@plane/types";
 import { ProjectPageHeader } from "./project-page-header";
+import type { TProjectPageTab } from "./project-page-header";
 
 const mocks = vi.hoisted(() => ({
   filters: undefined as unknown,
@@ -48,7 +49,7 @@ describe("ProjectPageHeader", () => {
     host.remove();
   });
 
-  async function render(active: "overview" | "list" | "board" | "files" = "overview") {
+  async function render(active: TProjectPageTab = "overview") {
     await act(async () => {
       root.render(
         <MemoryRouter initialEntries={["/acme/projects/p1/overview"]}>
@@ -84,6 +85,13 @@ describe("ProjectPageHeader", () => {
     expect(tab("Files").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/files/);
     expect(tab("List").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/list/);
     expect(tab("Board").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/board/);
+    expect(tab("Project Calendar").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/calendar/);
+  });
+
+  it("marks Project Calendar as the current tab on the Calendar page", async () => {
+    await render("calendar");
+    expect(tab("Project Calendar").getAttribute("aria-current")).toBe("page");
+    expect(tab("Board").getAttribute("aria-current")).toBeNull();
   });
 
   it("marks Board as the current tab on the Board page", async () => {
@@ -105,10 +113,7 @@ describe("ProjectPageHeader", () => {
     expect(tab("Overview").getAttribute("aria-current")).toBeNull();
   });
 
-  it.each([
-    ["Project Calendar", EIssueLayoutTypes.CALENDAR],
-    ["Timeline", EIssueLayoutTypes.GANTT],
-  ])("opens work items in the %s layout", async (label, layout) => {
+  it.each([["Timeline", EIssueLayoutTypes.GANTT]])("opens work items in the %s layout", async (label, layout) => {
     await render();
     await act(async () => tab(label).click());
     expect(mocks.fetchFilters).toHaveBeenCalledWith("acme", "p1");

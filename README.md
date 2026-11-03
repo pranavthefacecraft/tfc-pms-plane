@@ -435,6 +435,17 @@ column creates a task in that stage, and **+ Add Stage** creates a new project s
 Guests can view the board but cannot move cards or add tasks and stages. The Work items
 Board layout is unchanged.
 
+### Project Calendar
+
+The **Project Calendar** tab (`/<workspace>/projects/<id>/calendar`) uses the same
+header, tabs, **+ Add task**, Filter and search as List and Board, above the Day / Week /
+Month calendar from My Tasks. Each task shows on every day from its start date to its
+due date (or just its due date); completed tasks are struck through, and clicking one
+opens its peek view. Hover a day and click **+** to add a task due that day in the New
+Task side form. Tasks without dates are counted below the calendar. Guests can view but
+not add tasks. The Work items Calendar layout is unchanged; **Timeline** still opens the
+Work items timeline.
+
 ### New Task side form
 
 Every **Add task** / **New work item** control opens the same right-side **New Task**

@@ -65,13 +65,23 @@ export function projectMovePatch(
   return data;
 }
 
-export function taskStart(row: TaskRow) {
+/** The fields the task calendar needs; My Tasks rows and project List/Board tasks both fit it. */
+export type TCalendarRow = {
+  key: string;
+  name: string;
+  due: string | null;
+  completed: boolean;
+  personal?: { start_date: string | null } | null;
+  project?: { start_date: string | null } | null;
+};
+
+export function taskStart(row: TCalendarRow) {
   const start = row.personal?.start_date ?? row.project?.start_date ?? null;
   return start ?? row.due;
 }
 
 /** A task appears on every day from its start date through its due date. */
-export function rowOnDate(row: TaskRow, day: string) {
+export function rowOnDate(row: TCalendarRow, day: string) {
   const start = taskStart(row);
   const end = row.due ?? start;
   return Boolean(start && end && start <= day && day <= end);
