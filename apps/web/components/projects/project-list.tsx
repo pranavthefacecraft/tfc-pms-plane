@@ -174,7 +174,7 @@ export const ProjectList = observer(function ProjectList({
             ))}
           </table>
           {list.empty && <NoMatchingTasks filtered={list.filtered} onReset={list.reset} />}
-          {list.canEdit && <AddStage noun="Section" onCreate={list.addSection} />}
+          {list.canEdit && <AddStage onCreate={list.addSection} />}
           {list.truncated && (
             <p className="py-3 text-12 text-secondary">
               Showing the first 1,000 tasks. Use Work items for the full list.

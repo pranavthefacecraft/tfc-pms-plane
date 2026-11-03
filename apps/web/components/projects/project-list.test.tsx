@@ -240,15 +240,15 @@ describe("ProjectList", () => {
     expect(JSON.parse(host.querySelector('[data-testid="create-modal"]')!.textContent!)).toEqual({ project_id: "p1" });
   });
 
-  it("shows a blank project empty with an Add Section button", async () => {
+  it("shows a blank project empty with an Add Stage button", async () => {
     mocks.sections = [];
     mocks.list.mockResolvedValue({ ...RESPONSE, results: [] });
     mocks.createSection.mockResolvedValue({ id: "s9", name: "Backlog", sort_order: 1 });
     await render();
     expect(host.querySelectorAll("tbody th")).toHaveLength(0);
     expect(host.textContent).toContain("No tasks yet.");
-    await act(async () => button("Add Section").click());
-    const input = host.querySelector<HTMLInputElement>('[aria-label="Section name"]')!;
+    await act(async () => button("Add Stage").click());
+    const input = host.querySelector<HTMLInputElement>('[aria-label="Stage name"]')!;
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
     await act(async () => {
       setValue.call(input, "Backlog");
@@ -256,7 +256,7 @@ describe("ProjectList", () => {
     });
     await act(async () => button("Add").click());
     expect(mocks.createSection).toHaveBeenCalledWith("acme", "p1", "Backlog");
-    expect(mocks.toast).toHaveBeenCalledWith({ type: "success", title: "Section added" });
+    expect(mocks.toast).toHaveBeenCalledWith({ type: "success", title: "Stage added" });
   });
 
   it("is read-only for guests", async () => {
@@ -264,7 +264,7 @@ describe("ProjectList", () => {
     await render();
     expect(button("Add task")).toBeUndefined();
     expect(button("Add task in To Do")).toBeUndefined();
-    expect(button("Add Section")).toBeUndefined();
+    expect(button("Add Stage")).toBeUndefined();
     expect(host.querySelector<HTMLButtonElement>('[aria-label="Complete Wireframes"]')!.disabled).toBe(true);
   });
 

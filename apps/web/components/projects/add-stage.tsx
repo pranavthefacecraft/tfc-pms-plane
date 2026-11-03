@@ -10,14 +10,8 @@ import { Plus } from "lucide-react";
 import { setToast } from "@plane/blocks/toast";
 import { sectionErrorMessage } from "@/components/project-sections/errors";
 
-/** Inline "+ Add Stage" control; the List tab reuses it as "+ Add section". */
-export function AddStage({
-  onCreate,
-  noun = "Stage",
-}: {
-  onCreate: (name: string) => Promise<unknown>;
-  noun?: "Stage" | "Section";
-}) {
+/** Inline "+ Add Stage" control shared by the project List and Board tabs; a stage is a project section. */
+export function AddStage({ onCreate }: { onCreate: (name: string) => Promise<unknown> }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -35,10 +29,10 @@ export function AddStage({
     setSaving(true);
     try {
       await onCreate(name.trim());
-      setToast({ type: "success", title: `${noun} added` });
+      setToast({ type: "success", title: "Stage added" });
       close();
     } catch (error) {
-      setToast({ type: "error", title: `Could not add ${noun.toLowerCase()}`, message: sectionErrorMessage(error) });
+      setToast({ type: "error", title: "Could not add stage", message: sectionErrorMessage(error) });
     } finally {
       setSaving(false);
     }
@@ -51,15 +45,15 @@ export function AddStage({
         className="mt-5 inline-flex items-center gap-1.5 px-5 text-12 text-[#135DDD] hover:underline"
       >
         <Plus className="size-3.5" />
-        Add {noun}
+        Add Stage
       </button>
     );
   return (
     <form onSubmit={(event) => void submit(event)} className="mt-5 flex items-center gap-2">
       <input
         ref={inputRef}
-        aria-label={`${noun} name`}
-        placeholder={`${noun} name`}
+        aria-label="Stage name"
+        placeholder="Stage name"
         maxLength={255}
         value={name}
         disabled={saving}

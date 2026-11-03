@@ -7,8 +7,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 
-/** A search icon button that expands into a task name search field. */
-export function TaskSearch({ query, setQuery }: { query: string; setQuery: (query: string) => void }) {
+/** A search icon button that expands into a search field; `noun` names what is searched (tasks by default). */
+export function TaskSearch({
+  query,
+  setQuery,
+  noun = "tasks",
+}: {
+  query: string;
+  setQuery: (query: string) => void;
+  noun?: string;
+}) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -19,7 +27,7 @@ export function TaskSearch({ query, setQuery }: { query: string; setQuery: (quer
       <button
         type="button"
         aria-label="Open search"
-        title="Search tasks"
+        title={`Search ${noun}`}
         className="grid size-8 place-items-center rounded border border-subtle hover:bg-layer-1-hover"
         onClick={() => setOpen(true)}
       >
@@ -31,8 +39,8 @@ export function TaskSearch({ query, setQuery }: { query: string; setQuery: (quer
       <Search className="size-3.5" />
       <input
         ref={inputRef}
-        aria-label="Search tasks"
-        placeholder="Search tasks..."
+        aria-label={`Search ${noun}`}
+        placeholder={`Search ${noun}...`}
         className="w-48 bg-transparent text-12 outline-none"
         value={query}
         onChange={(event) => setQuery(event.target.value)}

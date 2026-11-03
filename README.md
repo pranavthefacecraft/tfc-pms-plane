@@ -312,8 +312,7 @@ project admins see the invite box; other members can view the list.
 first asks you to **Choose a Project**:
 
 - **Blank Project** starts with no stages. The project's automatic "Untitled
-  section" is removed, so List and Board start empty with **+ Add section** /
-  **+ Add Stage**.
+  section" is removed, so List and Board start empty with **+ Add Stage**.
 - **General Template** starts with the stages **To Do**, **In Progress**,
   **Review** and **Done** (project sections). The automatic section is renamed
   to To Do, so new tasks land there by default.
@@ -355,7 +354,7 @@ emails, and an invitee's workspace role is never higher than the inviter's.
 Click a project name in the sidebar or project directory to open **Overview**.
 It follows the Figma design: a letter tile and the project name, tabs for
 **Overview**, **List**, **Board**, **Project Calendar**, **Timeline**, and **Files**,
-then three cards. The top bar (breadcrumb, layout switcher, filters, Display and
+a gear icon at the right of the tabs that opens project settings, then three cards. The top bar (breadcrumb, layout switcher, filters, Display and
 Analytics) is hidden here and still shows on the classic layout (`?view=classic`)
 and on Work items. **Project Description** has an **Edit description** link for admins.
 **Project Teammates** lists the owner (the project lead, or the creator when no
@@ -363,10 +362,12 @@ lead is set) followed by other members, with **+ Add Teammate** linking to membe
 settings. **Key Resources** shows linked briefs, Notepad pages, whiteboards, and files
 attached in the Create Project form; each opens via ↗, and admins can add (**+ Resource**)
 or remove them. The **List** and **Board** tabs open the project List and Board pages
-(below); the Project Calendar/Timeline tabs open Work items in that layout. The **Files** tab (`/<workspace>/projects/<id>/files`, API
+(below), and the Project Calendar and Timeline tabs open their own pages. The **Files** tab (`/<workspace>/projects/<id>/files`, API
 `GET /api/workspaces/<slug>/projects/<id>/files/`) gathers every attachment and link
 on the project's tasks plus files attached to the project. It has All/Images/Documents/Links
-filters and search; restricted guests only see files on tasks they created.
+filters, a file count and search in the Board-style toolbar, with file cards on the grey
+Board lane background and no Work items header bar; restricted guests only see files on
+tasks they created.
 Health, task progress, start/due dates, and the owner picker are hidden from this
 layout but still available at `/<workspace>/projects/<id>/overview?view=classic`.
 
@@ -419,8 +420,8 @@ section, and **+ Add task in <section>** creates one in that section. **Filter**
 Status, Priority, Due date and Collaborators checkboxes, and the search icon filters by
 name. Guests can view but not add or complete tasks, and restricted guests only see tasks
 they created. The list shows up to 1,000 tasks; the sidebar **Work items** page is
-unchanged and still offers the full list layout. **+ Add section** below the list creates a
-new project section; a blank project with no sections or tasks shows only this button.
+unchanged and still offers the full list layout. **+ Add Stage** below the list creates a
+new project section (the same stages Board shows as columns); a blank project with no sections or tasks shows only this button.
 
 ### Project Board
 

@@ -110,10 +110,13 @@ describe("ProjectFiles", () => {
     await render();
     await act(async () => button("Links").click());
     expect(cards()).toEqual(["Figma"]);
+    expect(button("Links").getAttribute("aria-pressed")).toBe("true");
     await act(async () => button("Documents").click());
     expect(cards()).toEqual(["brief.pdf"]);
     await act(async () => button("All").click());
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Open search"]')!.click());
     const input = host.querySelector<HTMLInputElement>('input[aria-label="Search files"]')!;
+    expect(input.placeholder).toBe("Search files...");
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, "homepage");
       input.dispatchEvent(new Event("input", { bubbles: true }));

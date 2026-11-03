@@ -8,7 +8,6 @@ import { observer } from "mobx-react";
 import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PageHead } from "@/components/core/page-title";
 import { ProjectFiles } from "@/components/projects/project-files";
-import { ProjectOverviewHeader } from "@/components/projects/overview-header";
 import { ProjectPageHeader } from "@/components/projects/project-page-header";
 import { useProject } from "@/hooks/store/use-project";
 import type { Route } from "./+types/page";
@@ -20,7 +19,6 @@ function ProjectFilesPage({ params }: Pick<Route.ComponentProps, "params">) {
   return (
     <>
       <PageHead title={name ? `${name} - Files` : "Files"} />
-      <ProjectOverviewHeader {...params} />
       <ContentWrapper>
         <div className="min-h-full bg-surface-1">
           <ProjectPageHeader workspaceSlug={workspaceSlug} projectId={projectId} name={name} active="files" />

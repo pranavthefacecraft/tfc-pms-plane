@@ -7,7 +7,8 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Check, FileArchive, FileText, ImageIcon, Link2, Search } from "lucide-react";
+import { Check, FileArchive, FileText, ImageIcon, Link2 } from "lucide-react";
+import { TaskSearch } from "@/components/common/task-search";
 import { fileHref, fileKind, matchesFileFilter } from "@/components/profile/my-tasks-files.helpers";
 import type { TFileFilter } from "@/components/profile/my-tasks-files.helpers";
 import { ProjectFilesService } from "@/services/project-files.service";
@@ -29,7 +30,7 @@ function FileCard({ file, workspaceSlug }: { file: TProjectFile; workspaceSlug: 
   const Icon = KIND_ICONS[kind];
   const href = fileHref(file);
   return (
-    <article className="hover:shadow-md mb-3 break-inside-avoid overflow-hidden rounded-lg border border-subtle bg-surface-1 transition-shadow">
+    <article className="mb-2 break-inside-avoid overflow-hidden rounded-md border border-subtle bg-surface-1 shadow-raised-100 hover:border-strong">
       <div className="flex items-center gap-3 p-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-md bg-[#EAF1FD] text-[#135DDD]">
           <Icon className="size-4" aria-hidden="true" />
@@ -70,7 +71,7 @@ function FileCard({ file, workspaceSlug }: { file: TProjectFile; workspaceSlug: 
   );
 }
 
-/** Asana-style Files tab for a project: every task attachment and link, plus files attached to the project. */
+/** Files tab for a project in the Board style: every task attachment and link, plus files attached to the project. */
 export function ProjectFiles({ workspaceSlug, projectId }: { workspaceSlug: string; projectId: string }) {
   const [filter, setFilter] = useState<TFileFilter>("all");
   const [query, setQuery] = useState("");
@@ -96,49 +97,41 @@ export function ProjectFiles({ workspaceSlug, projectId }: { workspaceSlug: stri
   return (
     <section aria-label="Project files">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex rounded-md bg-layer-1 p-0.5" role="group" aria-label="File type">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="File type">
           {FILE_FILTERS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
               aria-pressed={filter === id}
               onClick={() => setFilter(id)}
-              className={`rounded px-3 py-1 text-12 ${filter === id ? "shadow-sm bg-surface-1 font-medium text-primary" : "text-secondary hover:text-primary"}`}
+              className={`h-8 rounded border px-3 text-12 ${filter === id ? "border-[#135DDD] bg-[#EAF1FD] font-medium text-[#135DDD]" : "border-subtle text-secondary hover:bg-layer-1-hover hover:text-primary"}`}
             >
               {label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3">
-          <label className="flex h-8 items-center gap-2 rounded-md border border-subtle bg-surface-1 px-2.5 text-13">
-            <Search className="size-3.5 text-tertiary" aria-hidden="true" />
-            <input
-              type="search"
-              aria-label="Search files"
-              placeholder="Search files"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="w-40 bg-transparent outline-none placeholder:text-tertiary"
-            />
-          </label>
+        <div className="flex items-center gap-2">
           <span className="text-12 text-secondary">
             {files.length} {files.length === 1 ? "item" : "items"}
           </span>
+          <TaskSearch query={query} setQuery={setQuery} noun="files" />
         </div>
       </div>
-      {files.length ? (
-        <div className="columns-1 gap-3 md:columns-2 xl:columns-3">
-          {files.map((file) => (
-            <FileCard key={`${file.kind}-${file.id}`} file={file} workspaceSlug={workspaceSlug} />
-          ))}
-        </div>
-      ) : (
-        <p className="rounded-lg border border-dashed border-subtle py-12 text-center text-13 text-secondary">
-          {data.length
-            ? "No files match your filters."
-            : "No files or links yet. Attachments and links added to this project's tasks will appear here."}
-        </p>
-      )}
+      <div className="rounded-md bg-[#F4F6FA] p-2">
+        {files.length ? (
+          <div className="columns-1 gap-2 md:columns-2 xl:columns-3">
+            {files.map((file) => (
+              <FileCard key={`${file.kind}-${file.id}`} file={file} workspaceSlug={workspaceSlug} />
+            ))}
+          </div>
+        ) : (
+          <p className="py-12 text-center text-13 text-secondary">
+            {data.length
+              ? "No files match your filters."
+              : "No files or links yet. Attachments and links added to this project's tasks will appear here."}
+          </p>
+        )}
+      </div>
     </section>
   );
 }

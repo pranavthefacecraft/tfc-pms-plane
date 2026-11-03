@@ -66,6 +66,13 @@ describe("ProjectPageHeader", () => {
     expect(tab("Timeline").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/timeline/);
   });
 
+  it("links the gear icon to the project settings", async () => {
+    await render();
+    const gear = host.querySelector<HTMLAnchorElement>('a[aria-label="Project settings"]')!;
+    expect(gear.getAttribute("href")).toMatch(/^\/acme\/settings\/projects\/p1/);
+    expect(gear.querySelector("svg")).not.toBeNull();
+  });
+
   it("marks Timeline as the current tab on the Timeline page", async () => {
     await render("timeline");
     expect(tab("Timeline").getAttribute("aria-current")).toBe("page");
