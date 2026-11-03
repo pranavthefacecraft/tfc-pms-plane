@@ -125,6 +125,7 @@ export function useProjectTaskList(workspaceSlug: string, projectId: string) {
     failed: Boolean(tasks.error || sectionsRequest.error),
     loading: tasks.isLoading || sectionsRequest.isLoading,
     today,
+    timeZone: user?.user_timezone,
     busy,
     toggle,
     move,

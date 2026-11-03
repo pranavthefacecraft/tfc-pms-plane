@@ -119,30 +119,47 @@ describe("ProjectCalendar", () => {
   }
   const day = (label: string) => host.querySelector(`[aria-label="${label}"]`) as HTMLElement;
   const button = (label: string) =>
-    [...host.querySelectorAll("button")].find((node) => node.textContent?.trim() === label) as HTMLButtonElement;
+    [...host.querySelectorAll("button")].find(
+      (node) => node.textContent?.trim() === label || node.getAttribute("aria-label") === label
+    ) as HTMLButtonElement;
 
-  it("shows the List/Board toolbar and places tasks on their dates", async () => {
+  it("shows the List/Board toolbar and a Week hour grid with tasks in the All day row", async () => {
     await render();
     expect(button("Add task")).toBeDefined();
     expect(button("Filter")).toBeDefined();
-    expect(host.textContent).toContain("November 2026");
+    expect(button("Week").getAttribute("aria-pressed")).toBe("true");
+    expect(host.textContent).toContain("Nov 2–8, 2026");
+    expect(host.textContent).toContain("UTC");
+    expect(host.textContent).toContain("All day");
+    for (const hour of ["9 AM", "12 PM", "4 PM"]) expect(host.textContent).toContain(hour);
     for (const date of ["Monday, 2 November 2026", "Tuesday, 3 November 2026", "Wednesday, 4 November 2026"])
       expect(day(date).textContent).toContain("Wireframes");
     expect(day("Thursday, 5 November 2026").textContent).not.toContain("Wireframes");
-    expect(day("Tuesday, 10 November 2026").querySelector('[aria-label="Completed"]')).not.toBeNull();
+    expect(host.textContent).toContain("Project tasks");
+    expect(host.textContent).toContain("Completed");
     expect(host.textContent).toContain("1 task without dates are only shown in List and Board.");
+  });
+
+  it("switches to the Day and Month views", async () => {
+    await render();
+    await act(async () => button("Day").click());
+    expect(host.textContent).toContain("Tuesday, November 3");
+    expect(day("Tuesday, 3 November 2026").textContent).toContain("Wireframes");
+    await act(async () => button("Month").click());
+    expect(host.textContent).toContain("November 2026");
+    expect(day("Tuesday, 10 November 2026").querySelector('[aria-label="Completed"]')).not.toBeNull();
+    await act(async () => button("Next period").click());
+    expect(host.textContent).toContain("December 2026");
   });
 
   it("opens a task in the peek view and adds a task due on a chosen day", async () => {
     await render();
     await act(async () => button("Wireframes").click());
     expect(mocks.setPeekIssue).toHaveBeenCalledWith({ workspaceSlug: "acme", projectId: "p1", issueId: "t1" });
-    await act(async () =>
-      host.querySelector<HTMLButtonElement>('[aria-label="Add task on 12 November 2026"]')!.click()
-    );
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Add task on 5 November 2026"]')!.click());
     expect(JSON.parse(host.querySelector('[data-testid="create-modal"]')!.textContent!)).toEqual({
       project_id: "p1",
-      target_date: "2026-11-12",
+      target_date: "2026-11-05",
     });
   });
 

@@ -17,6 +17,19 @@ import type { TProjectTaskListState } from "./use-project-task-list";
  */
 export type TCreateTarget = { sectionId?: string | null; targetDate?: string };
 
+export function AddTaskButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#135DDD] px-4 text-13 font-medium text-white hover:bg-[#0F4FC0]"
+    >
+      <Plus className="size-4" />
+      Add task
+    </button>
+  );
+}
+
 /** "+ Add task" on the left, Filter and search on the right, shared by the project List and Board tabs. */
 export function ProjectTasksToolbar({
   list,
@@ -27,18 +40,7 @@ export function ProjectTasksToolbar({
 }) {
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      {list.canEdit ? (
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#135DDD] px-4 text-13 font-medium text-white hover:bg-[#0F4FC0]"
-        >
-          <Plus className="size-4" />
-          Add task
-        </button>
-      ) : (
-        <span />
-      )}
+      {list.canEdit ? <AddTaskButton onClick={onAdd} /> : <span />}
       <div className="flex items-center gap-2">
         <ProjectListFilters filters={list.filters} onApply={list.setFilters} />
         <TaskSearch query={list.query} setQuery={list.setQuery} />

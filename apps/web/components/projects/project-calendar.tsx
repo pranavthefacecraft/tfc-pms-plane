@@ -7,8 +7,8 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
-import { MyTasksCalendar } from "@/components/profile/my-tasks-calendar";
 import type { TProjectListTask } from "@/services/project/project-task-list.service";
+import { ProjectCalendarGrid } from "./project-calendar-grid";
 import { isCompleted } from "./project-list.helpers";
 import type { TProjectListGroup } from "./project-list.helpers";
 import {
@@ -43,7 +43,7 @@ export function projectCalendarRows(groups: TProjectListGroup[]): TProjectCalend
   );
 }
 
-/** Figma project Calendar tab: the List/Board toolbar above a Day / Week / Month calendar of the project's tasks. */
+/** Figma project Calendar tab: the List/Board toolbar above the Day / Week / Month project calendar. */
 export const ProjectCalendar = observer(function ProjectCalendar({
   workspaceSlug,
   projectId,
@@ -62,17 +62,12 @@ export const ProjectCalendar = observer(function ProjectCalendar({
       ) : (
         <>
           {list.empty && list.filtered && <NoMatchingTasks filtered onReset={list.reset} />}
-          <MyTasksCalendar
+          <ProjectCalendarGrid
             rows={rows}
             today={list.today}
+            timeZone={list.timeZone}
             onOpen={(row) => list.open(row.task)}
             onAdd={list.canEdit ? (day) => setCreating({ targetDate: day }) : undefined}
-            legend={
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden="true" className="size-2 rounded-full bg-[#00845C]" />
-                Task (shown from its start date to its due date)
-              </span>
-            }
           />
           {list.truncated && (
             <p className="py-3 text-12 text-secondary">

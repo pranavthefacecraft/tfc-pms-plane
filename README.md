@@ -248,8 +248,10 @@ and search controls have 16px of top and bottom padding in the top bar.
 In light mode the top bar is white (`#FFFFFF`) with a 1px `#E2E6EF` bottom border.
 The profile trigger shows the user's first initial in white on blue instead of their photo; the
 profile menu and stored avatar remain unchanged.
-Tools sits directly below My tasks with a four-square grid icon; its Notepad and
-Whiteboard links and expand/collapse preference are unchanged. My tasks is the
+Tools sits directly below My tasks with a four-square grid icon. Clicking it opens a
+flyout to its right (Figma design) with **Notepad** (blue tile) and **Whiteboard**
+(yellow tile); choosing one opens it and closes the flyout. Tools stays highlighted
+while a tool page is open. My tasks is the
 display label for Your work, with a bulleted-list icon; its profile route and
 functionality are unchanged. The sidebar
 Inbox and Drafts entries are temporarily hidden, not removed; their routes,
@@ -446,21 +448,37 @@ Board layout is unchanged.
 ### Project Calendar
 
 The **Project Calendar** tab (`/<workspace>/projects/<id>/calendar`) uses the same
-header, tabs, **+ Add task**, Filter and search as List and Board, above the Day / Week /
-Month calendar from My Tasks. Each task shows on every day from its start date to its
-due date (or just its due date); completed tasks are struck through, and clicking one
-opens its peek view. Hover a day and click **+** to add a task due that day in the New
-Task side form. Tasks without dates are counted below the calendar. Guests can view but
-not add tasks. The Work items Calendar layout is unchanged.
+header, tabs, **+ Add task**, Filter and search as List and Board, above a Figma-style
+calendar that opens on the **Week** view:
+
+- **Week** and **Day** show an hour grid (9 AM to 4 PM) with your time zone in the corner
+  and today's column highlighted in blue. Tasks have dates but no times, so they sit in
+  the **All day** row.
+- **Month** shows a grid with today's date in a blue circle and up to two tasks per day,
+  then "+N more".
+- Each task shows on every day from its start date to its due date (or just its due
+  date). Open tasks are blue ("Project tasks") and completed tasks green with a check
+  ("Completed"); clicking one opens its peek view.
+- Hover a day and click **+** to add a task due that day in the New Task side form.
+  Tasks without dates are counted below the calendar. Guests can view but not add tasks.
+- The My Tasks and Work items calendars are unchanged.
 
 ### Project Timeline
 
-The **Timeline** tab (`/<workspace>/projects/<id>/timeline`) uses the same header, toolbar, filters and search as the Board and List pages.
+The **Timeline** tab (`/<workspace>/projects/<id>/timeline`) is a Figma-style Gantt chart.
 
-- Tasks are shown on the My Tasks Gantt chart; open tasks are green and completed tasks grey.
-- Editors can drag or resize bars to reschedule start and due dates; guests get a read-only view.
-- Clicking a task opens the peek view, and **Add task** opens the side form.
-- The Work items timeline layout is unchanged.
+- The toolbar has **+ Add task**, **< Today >** to scroll the chart, a **Days / Weeks /
+  Months** scale (Weeks by default), a sort (stage order, start date, due date or name),
+  Filter and search.
+- The left **Stage / Task** column groups tasks under their coloured stage names with a
+  task count. Month and week headers run across the top, with a blue line for today.
+- Tasks with a start and due date are blue bars (green when completed or in the Done
+  stage). Tasks with only a due date are diamond milestones with the date beside them;
+  tasks without dates are listed with "No dates".
+- Editors drag a bar to move it, drag its ends to change the start or due date, or drag a
+  milestone to change its due date. Guests get a read-only view.
+- Clicking a task name or bar opens the peek view.
+- The My Tasks and Work items timelines are unchanged.
 
 ### New Task side form
 

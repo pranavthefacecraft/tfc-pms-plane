@@ -5,19 +5,20 @@
  */
 
 import { act } from "react";
-import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TProjectListTask, TProjectTaskList } from "@/services/project/project-task-list.service";
-import { ProjectTimeline, projectTimelineRows } from "./project-timeline";
+import { ProjectTimeline } from "./project-timeline";
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   patchIssue: vi.fn(),
-  timeline: undefined as Record<string, unknown> | undefined,
   fetchSections: vi.fn(),
-  sections: [{ id: "s1", name: "To Do", sort_order: 1 }],
+  sections: [
+    { id: "s1", name: "To Do", sort_order: 1 },
+    { id: "s2", name: "Review", sort_order: 2 },
+  ],
   setPeekIssue: vi.fn(),
   canEdit: true,
 }));
@@ -52,26 +53,10 @@ vi.mock("@/components/issues/create-task-entry", () => ({
   CreateTaskEntry: ({ isOpen, data }: { isOpen: boolean; data: Record<string, unknown> }) =>
     isOpen ? <div data-testid="create-modal">{JSON.stringify(data)}</div> : null,
 }));
-vi.mock("@/components/profile/my-tasks-timeline", () => ({
-  MyTasksTimeline: (props: { rows: { key: string; name: string }[]; onOpen: (row: unknown) => void }) => {
-    mocks.timeline = props;
-    return (
-      <ul aria-label="Timeline rows">
-        {props.rows.map(
-          (row): ReactNode => (
-            <li key={row.key}>
-              <button type="button" onClick={() => props.onOpen(row)}>
-                {row.name}
-              </button>
-            </li>
-          )
-        )}
-      </ul>
-    );
-  },
-}));
 vi.mock("./project-list-filters", () => ({ ProjectListFilters: () => <button type="button">Filter</button> }));
 
+const pointer = (node: Element, type: string, clientX: number) =>
+  node.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX }));
 const task = (patch: Partial<TProjectListTask>): TProjectListTask => ({
   id: "t1",
   name: "Task",
@@ -91,6 +76,7 @@ const TASKS = [
   task({ id: "t1", name: "Wireframes", start_date: "2026-11-02", target_date: "2026-11-04" }),
   task({ id: "t2", name: "Launch", target_date: "2026-11-10", state_group: "completed", state_id: "done" }),
   task({ id: "t3", name: "Someday" }),
+  task({ id: "t4", name: "Polish", start_date: "2026-11-05", target_date: "2026-11-06", section_id: "s2" }),
 ];
 const RESPONSE: TProjectTaskList = {
   project_identifier: "WEB",
@@ -100,26 +86,6 @@ const RESPONSE: TProjectTaskList = {
   results: TASKS,
 };
 
-describe("projectTimelineRows", () => {
-  it("maps grouped tasks to timeline rows with the project key, dates and colour", () => {
-    const rows = projectTimelineRows([{ key: "s1", sectionId: "s1", name: "To Do", tasks: TASKS }], "p1", "WEB");
-    expect(
-      rows.map(({ key, due, completed, project }) => [
-        key,
-        due,
-        completed,
-        project.start_date,
-        `${project.project_identifier}-${project.sequence_id}`,
-        project.state_color,
-      ])
-    ).toEqual([
-      ["t1", "2026-11-04", false, "2026-11-02", "WEB-1", "#00845C"],
-      ["t2", "2026-11-10", true, null, "WEB-1", "#94A3B8"],
-      ["t3", null, false, null, "WEB-1", "#00845C"],
-    ]);
-  });
-});
-
 describe("ProjectTimeline", () => {
   let host: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
@@ -127,7 +93,6 @@ describe("ProjectTimeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.canEdit = true;
-    mocks.timeline = undefined;
     mocks.list.mockResolvedValue(RESPONSE);
     mocks.patchIssue.mockResolvedValue({});
     mocks.fetchSections.mockResolvedValue(mocks.sections);
@@ -150,44 +115,95 @@ describe("ProjectTimeline", () => {
     });
   }
   const button = (label: string) =>
-    [...host.querySelectorAll("button")].find((node) => node.textContent?.trim() === label) as HTMLButtonElement;
-  type TTimelineProps = {
-    rows: { key: string; task: TProjectListTask }[];
-    canEdit: (row: unknown) => boolean;
-    onReschedule: (row: unknown, dates: object) => Promise<void>;
+    [...host.querySelectorAll("button")].find(
+      (node) => node.textContent?.trim() === label || node.getAttribute("aria-label") === label
+    ) as HTMLButtonElement;
+  const stage = (name: string) => host.querySelector(`section[aria-label="${name}"]`) as HTMLElement;
+  const rowNames = (name: string) =>
+    [...stage(name).querySelectorAll('[role="row"]')].map((row) => row.querySelector("button")!.textContent);
+  const choose = async (label: string, value: string) => {
+    const select = host.querySelector(`select[aria-label="${label}"]`) as HTMLSelectElement;
+    await act(async () => {
+      select.value = value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
   };
 
-  it("shows the List/Board toolbar above the task timeline and opens tasks", async () => {
+  it("shows the toolbar, stage rows with counts, bars, milestones and the today line", async () => {
     await render();
     expect(button("Add task")).toBeDefined();
     expect(button("Filter")).toBeDefined();
-    expect([...host.querySelectorAll('[aria-label="Timeline rows"] li')].map((item) => item.textContent)).toEqual([
-      "Wireframes",
-      "Launch",
-      "Someday",
-    ]);
+    expect(button("Today")).toBeDefined();
+    expect(host.textContent).toContain("Stage / Task");
+    expect(host.textContent).toContain("November 2026");
+    expect(host.textContent).toContain("Nov 2 – 8");
+    expect(stage("To Do").textContent).toContain("3");
+    expect(rowNames("To Do")).toEqual(["Wireframes", "Launch", "Someday"]);
+    expect(rowNames("Review")).toEqual(["Polish"]);
+    const bar = button("Wireframes, Nov 2 – Nov 4");
+    expect(bar.dataset.shape).toBe("bar");
+    expect(bar.className).toContain("bg-[#135DDD]");
+    expect(button("Launch, Nov 10").dataset.shape).toBe("milestone");
+    expect(stage("To Do").textContent).toContain("No dates");
+    expect(host.querySelector('[data-testid="today-line"]')).not.toBeNull();
+  });
+
+  it("opens tasks from the name or the bar and adds tasks", async () => {
+    await render();
     await act(async () => button("Wireframes").click());
     expect(mocks.setPeekIssue).toHaveBeenCalledWith({ workspaceSlug: "acme", projectId: "p1", issueId: "t1" });
+    await act(async () => button("Polish, Nov 5 – Nov 6").click());
+    expect(mocks.setPeekIssue).toHaveBeenCalledWith({ workspaceSlug: "acme", projectId: "p1", issueId: "t4" });
     await act(async () => button("Add task").click());
     expect(JSON.parse(host.querySelector('[data-testid="create-modal"]')!.textContent!)).toEqual({ project_id: "p1" });
   });
 
-  it("saves dragged dates to the task", async () => {
+  it("sorts tasks within a stage and changes the scale", async () => {
     await render();
-    const props = mocks.timeline as unknown as TTimelineProps;
-    expect(props.canEdit(props.rows[0])).toBe(true);
-    await act(() => props.onReschedule(props.rows[0], { start_date: "2026-11-05", target_date: "2026-11-09" }));
+    await choose("Sort tasks", "name");
+    expect(rowNames("To Do")).toEqual(["Launch", "Someday", "Wireframes"]);
+    await choose("Timeline scale", "days");
+    expect(host.textContent).toContain("T 3");
+    await choose("Timeline scale", "months");
+    expect(host.textContent).toContain("2026");
+  });
+
+  it("drags a bar to reschedule the task without opening it", async () => {
+    await render();
+    const bar = button("Wireframes, Nov 2 – Nov 4");
+    await act(async () => pointer(bar, "pointerdown", 100));
+    await act(async () => pointer(bar, "pointermove", 140));
+    expect(button("Wireframes, Nov 4 – Nov 6")).toBeDefined();
+    await act(async () => pointer(bar, "pointerup", 140));
+    await act(async () => bar.click());
     expect(mocks.patchIssue).toHaveBeenCalledWith("acme", "p1", "t1", {
-      start_date: "2026-11-05",
-      target_date: "2026-11-09",
+      start_date: "2026-11-04",
+      target_date: "2026-11-06",
+    });
+    expect(mocks.setPeekIssue).not.toHaveBeenCalled();
+  });
+
+  it("drags a bar end to change only the due date", async () => {
+    await render();
+    const end = button("Wireframes, Nov 2 – Nov 4").querySelector('[data-handle="end"]')!;
+    await act(async () => pointer(end, "pointerdown", 100));
+    await act(async () => pointer(end, "pointermove", 120));
+    await act(async () => pointer(end, "pointerup", 120));
+    expect(mocks.patchIssue).toHaveBeenCalledWith("acme", "p1", "t1", {
+      start_date: "2026-11-02",
+      target_date: "2026-11-05",
     });
   });
 
   it("is read-only for guests", async () => {
     mocks.canEdit = false;
     await render();
-    const props = mocks.timeline as unknown as TTimelineProps;
     expect(button("Add task")).toBeUndefined();
-    expect(props.canEdit(props.rows[0])).toBe(false);
+    const bar = button("Wireframes, Nov 2 – Nov 4");
+    expect(bar.querySelector("[data-handle]")).toBeNull();
+    await act(async () => pointer(bar, "pointerdown", 100));
+    await act(async () => pointer(bar, "pointermove", 160));
+    await act(async () => pointer(bar, "pointerup", 160));
+    expect(mocks.patchIssue).not.toHaveBeenCalled();
   });
 });
