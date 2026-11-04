@@ -5,17 +5,12 @@
  */
 
 import { Outlet } from "react-router";
-import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
-import { WorkspaceToolHeader } from "@/components/workspace-pages/tool-header";
 
 export default function WorkspaceToolWhiteboardsLayout() {
   return (
-    <>
-      <AppHeader header={<WorkspaceToolHeader toolType="whiteboard" />} />
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
+    <ContentWrapper>
+      <Outlet />
+    </ContentWrapper>
   );
 }

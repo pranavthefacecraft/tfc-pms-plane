@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   CaptureUpdateAction,
   Excalidraw,
@@ -31,6 +32,7 @@ import { WhiteboardComments } from "./comments";
 import type { useWhiteboardCollaboration } from "./collaboration";
 import { documentPath, documentService, isWhiteboardDocument, safeTextLink } from "./documents";
 import "@excalidraw/excalidraw/index.css";
+import "./canvas.css";
 
 type TOnChange = NonNullable<ExcalidrawProps["onChange"]>;
 type TSceneSnapshot = {
@@ -46,6 +48,7 @@ export type TWhiteboardCanvasProps = {
   theme: "light" | "dark";
   collaboration: ReturnType<typeof useWhiteboardCollaboration>;
   onDirtyChange?: (isDirty: boolean) => void;
+  header?: ReactNode;
 };
 
 const SAVE_DEBOUNCE_MS = 300;
@@ -54,7 +57,7 @@ const getSceneSignature = ({ elements, appState, files }: TSceneSnapshot) =>
   `${hashElementsVersion(elements)}:${Object.keys(files).length}:${appState.viewBackgroundColor}`;
 
 export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
-  const { boardId, workspaceSlug, initialScene, theme, collaboration, onDirtyChange } = props;
+  const { boardId, workspaceSlug, initialScene, theme, collaboration, onDirtyChange, header } = props;
   const { state: session, connected, clientId, send, error, reconnect } = collaboration;
   const readOnly = !connected || !session || session.role === "viewer" || !!session.presenter;
   const presenting = session?.presenter?.client_id === clientId;
@@ -358,7 +361,7 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
   return (
     <div
       ref={wrapper}
-      className="flex h-full w-full flex-col"
+      className={`pms-whiteboard relative flex h-full w-full flex-col ${theme === "dark" ? "pms-whiteboard--dark" : ""}`}
       onDragOverCapture={(event) => {
         if (!readOnly && event.dataTransfer.types.includes("Files")) event.preventDefault();
       }}
@@ -383,102 +386,122 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
         void attachFiles(files, { clientX: event.clientX, clientY: event.clientY });
       }}
     >
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-subtle bg-surface-1 p-2 text-13">
-        <span role="status">
-          {connected ? `${session?.participants.length ?? 0} online` : "Connecting to live session..."}
-        </span>
-        <span className="text-secondary">
-          {session?.participants.map((entry) => entry.user.display_name).join(", ")}
-        </span>
-        {session?.presenter && (
-          <span className="font-semibold">
-            {presenting ? "You are presenting" : "Following presenter"} — editing paused
+      {header && (
+        <div className="pointer-events-none absolute inset-x-4 top-4 z-[5] [&>*]:pointer-events-auto">{header}</div>
+      )}
+      <details className="shadow-sm absolute top-[var(--pms-board-controls-top)] right-40 z-[5] max-w-[calc(100%-176px)] rounded-md border border-[#E2E6EF] bg-surface-1 text-12 dark:border-subtle">
+        <summary className="cursor-pointer px-3 py-2 text-secondary">Board tools</summary>
+        <div className="flex max-w-lg flex-wrap items-center gap-2 border-t border-subtle p-2 text-12">
+          <span role="status">
+            {connected ? `${session?.participants.length ?? 0} online` : "Connecting to live session..."}
           </span>
-        )}
-        {session?.role === "viewer" && <span>Viewer access</span>}
-        {session?.role === "owner" && connected && (
-          <Button
-            variant="secondary"
-            size="sm"
-            stretch="auto"
-            label={presenting ? "Stop presenting" : "Present"}
-            disabled={!!session.presenter && !presenting}
-            onClick={() => void togglePresentation()}
-          />
-        )}
-        {error && (
-          <span role="alert" className="text-danger-primary">
-            {error}{" "}
-            <button type="button" className="underline" onClick={reconnect}>
-              Reconnect
-            </button>
+          <span className="text-secondary">
+            {session?.participants.map((entry) => entry.user.display_name).join(", ")}
           </span>
-        )}
-      </div>
-      {!readOnly && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-subtle p-2">
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".pdf,.docx,.xlsx"
-            multiple
-            className="hidden"
-            aria-label="Choose whiteboard documents"
-            onChange={(event) => {
-              void attachFiles(Array.from(event.target.files ?? []));
-              event.target.value = "";
-            }}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            stretch="auto"
-            label={uploading ? "Uploading..." : "Attach documents"}
-            disabled={!api || uploading}
-            onClick={() => fileInput.current?.click()}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            stretch="auto"
-            label="Add / edit text link"
-            disabled={!selectedTextId}
-            onClick={() => {
-              setLinkValue(api?.getSceneElements().find((element) => element.id === selectedTextId)?.link ?? "");
-              setLinkEditorOpen(true);
-            }}
-          />
-          <span className="text-11 text-secondary">
-            Drop PDF, DOCX or XLSX files. Double-click a preview to scroll.
-          </span>
-          {linkEditorOpen && selectedTextId && (
-            <form
-              className="flex w-full items-center gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                saveTextLink();
+          {session?.presenter && (
+            <span className="font-semibold">
+              {presenting ? "You are presenting" : "Following presenter"} — editing paused
+            </span>
+          )}
+          {session?.role === "viewer" && <span>Viewer access</span>}
+          {session?.role === "owner" && connected && (
+            <Button
+              variant="secondary"
+              size="sm"
+              stretch="auto"
+              label={presenting ? "Stop presenting" : "Present"}
+              disabled={!!session.presenter && !presenting}
+              onClick={() => void togglePresentation()}
+            />
+          )}
+        </div>
+        {!readOnly && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-subtle p-2">
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".pdf,.docx,.xlsx"
+              multiple
+              className="hidden"
+              aria-label="Choose whiteboard documents"
+              onChange={(event) => {
+                void attachFiles(Array.from(event.target.files ?? []));
+                event.target.value = "";
               }}
-            >
-              <input
-                aria-label="Text link URL"
-                className="min-w-0 flex-1 rounded border border-subtle bg-surface-1 px-2 py-1 text-13"
-                placeholder="https://example.com (leave empty to remove)"
-                value={linkValue}
-                onChange={(event) => setLinkValue(event.target.value)}
-              />
-              <Button type="submit" variant="primary" size="sm" stretch="auto" label="Save link" />
-              <Button
-                variant="secondary"
-                size="sm"
-                stretch="auto"
-                label="Cancel"
-                onClick={() => setLinkEditorOpen(false)}
-              />
-            </form>
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              stretch="auto"
+              label={uploading ? "Uploading..." : "Attach documents"}
+              disabled={!api || uploading}
+              onClick={() => fileInput.current?.click()}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              stretch="auto"
+              label="Add / edit text link"
+              disabled={!selectedTextId}
+              onClick={() => {
+                setLinkValue(api?.getSceneElements().find((element) => element.id === selectedTextId)?.link ?? "");
+                setLinkEditorOpen(true);
+              }}
+            />
+            <span className="text-11 text-secondary">
+              Drop PDF, DOCX or XLSX files. Double-click a preview to scroll.
+            </span>
+            {linkEditorOpen && selectedTextId && (
+              <form
+                className="flex w-full items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  saveTextLink();
+                }}
+              >
+                <input
+                  aria-label="Text link URL"
+                  className="min-w-0 flex-1 rounded border border-subtle bg-surface-1 px-2 py-1 text-13"
+                  placeholder="https://example.com (leave empty to remove)"
+                  value={linkValue}
+                  onChange={(event) => setLinkValue(event.target.value)}
+                />
+                <Button type="submit" variant="primary" size="sm" stretch="auto" label="Save link" />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  stretch="auto"
+                  label="Cancel"
+                  onClick={() => setLinkEditorOpen(false)}
+                />
+              </form>
+            )}
+          </div>
+        )}
+      </details>
+      {(!connected || error || session?.presenter || session?.role === "viewer") && (
+        <div
+          role={error ? "alert" : "status"}
+          className="absolute right-4 bottom-16 z-[4] max-w-xs rounded-md border border-subtle bg-surface-1 px-3 py-2 text-12 text-secondary"
+        >
+          {error ? (
+            <>
+              {error}{" "}
+              <button type="button" className="underline" onClick={reconnect}>
+                Reconnect
+              </button>
+            </>
+          ) : !connected ? (
+            "Connecting to live session..."
+          ) : session?.presenter ? (
+            "Presentation in progress - editing paused"
+          ) : (
+            "Viewer access"
           )}
         </div>
       )}
       <div className="relative min-h-0 flex-1">
+        <div aria-hidden="true" className="pms-whiteboard__dots pointer-events-none absolute inset-0 z-[3]" />
         <Excalidraw
           excalidrawAPI={setApi}
           key={boardId}
@@ -532,9 +555,12 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
             {!readOnly && <MainMenu.DefaultItems.ChangeCanvasBackground />}
           </MainMenu>
           <WelcomeScreen>
-            <WelcomeScreen.Hints.ToolbarHint />
-            <WelcomeScreen.Hints.MenuHint />
-            <WelcomeScreen.Hints.HelpHint />
+            <WelcomeScreen.Center>
+              <div className="pointer-events-none text-center">
+                <h2 className="text-24 font-semibold text-primary">Start With An Idea</h2>
+                <p className="mt-2 text-13 text-secondary">Choose a tool below and add a note, task or sketch</p>
+              </div>
+            </WelcomeScreen.Center>
           </WelcomeScreen>
         </Excalidraw>
         {api && <WhiteboardComments api={api} workspaceSlug={workspaceSlug} boardId={boardId} readOnly={readOnly} />}

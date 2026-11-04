@@ -484,7 +484,7 @@ notepad collaborators, not an edit history.
 Dates show Today, Yesterday or a short date in the browser's local time zone.
 The row menu preserves visibility information, task attachment links and
 owner-only deletion with confirmation. Existing page URLs, editor, creation and
-permissions are unchanged. Whiteboards retain their existing list layout.
+permissions are unchanged. Whiteboards use the same compact list layout.
 Admins and Editors can choose **Link to task or project** in a notepad's row menu
 to open the same attachment popup used inside the editor. Attaching or replacing
 a link updates the list and cached detail immediately; Viewers cannot attach.
@@ -609,6 +609,25 @@ tests with `pnpm --filter web test`.
 
 ## TFCPMS whiteboards
 
+### Whiteboards layout and linking
+
+The Whiteboards list has full-width search, **Create Whiteboard**, and Name,
+Project, Collaborators and Updated columns. The row menu retains **Link to task
+or project** and confirmed owner-only deletion. Project names and links remain
+hidden for restricted attachments. The collaborators column displays the owner
+and most recent editor; use **Share** inside a board for its actual access list.
+
+The editor uses an inset, bordered dotted canvas with a floating editable title,
+**Link to Task or Project**, owner **Share**, settings, expand and close controls.
+The link dropdown searches accessible tasks and projects together and updates the
+existing attachment. Linking and title editing remain disabled for Viewers,
+disconnected sessions and during presentations. Settings retain detach,
+visibility and save status. Existing Excalidraw drawing tools and comments stay
+functional in the bottom tool dock; **Board tools** contains live participants,
+presentation, document upload and text-link controls. Connection errors and
+read-only status remain visible when Board tools is collapsed. Guest sharing,
+autosave and existing drawing data are unchanged.
+
 ### Live sharing and presentation
 
 Open **Tool > Whiteboard** and choose a board. The owner can use **Share** to
@@ -674,7 +693,7 @@ sessions against the API every five seconds, including role changes/revocations.
 Tests: `pnpm --filter web test` and the API contract suite
 `plane/tests/contract/app/test_whiteboard_collaboration_app.py`.
 
-Open **Tool > Whiteboard**, then use **Attach documents** or drop PDF, Word
+Open **Tool > Whiteboard**, then **Board tools > Attach documents** or drop PDF, Word
 (`.docx`) and Excel (`.xlsx`) files onto the canvas. Documents become movable,
 resizable previews. Double-click a preview to interact with it, scroll, change
 PDF pages or select an Excel sheet. Images still use the existing image tool.

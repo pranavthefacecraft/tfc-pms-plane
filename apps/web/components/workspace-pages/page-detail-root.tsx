@@ -23,7 +23,7 @@ import { WorkspaceToolPageTitleInput } from "./page-title-input";
 import { useWorkspaceToolPage } from "./use-workspace-tool-page";
 import { NotepadToolbar } from "./notepad-toolbar";
 import { NotepadCollaborators } from "./notepad-collaborators";
-import { LinkNotepadPopover } from "./link-notepad-popover";
+import { LinkWorkspacePagePopover } from "./link-page-popover";
 import { WorkspacePageService } from "@/services/page/workspace-page.service";
 import type { TWorkspacePage } from "@/services/page/workspace-page.service";
 import type { TNameDescriptionLoader } from "@plane/types";
@@ -156,7 +156,7 @@ export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot
             onAttach={() => setIsAttachModalOpen(true)}
             attachmentControl={
               canLink ? (
-                <LinkNotepadPopover workspaceSlug={workspaceSlug} page={page} onAttached={applyUpdate} />
+                <LinkWorkspacePagePopover workspaceSlug={workspaceSlug} page={page} onAttached={applyUpdate} />
               ) : shared ? (
                 <span className="text-11 text-tertiary">Notepad-only access</span>
               ) : undefined

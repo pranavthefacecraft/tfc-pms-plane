@@ -5,6 +5,7 @@
  */
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 // plane imports
 import { Button } from "@makeplane/propel/components/button";
 import { GlobeOutline, LinkPageOutline, LockOutline, ProjectsOutline, WorkItemsOutline } from "@makeplane/propel/icons";
@@ -21,12 +22,14 @@ type Props = {
   page: TWorkspacePage;
   isOwner: boolean;
   saveStatus: TNameDescriptionLoader;
-  onAttachClick: () => void;
   onDetach: () => void;
   onToggleAccess: () => void;
   className?: string;
   readOnly?: boolean;
-};
+} & (
+  | { onAttachClick: () => void; attachmentControl?: never }
+  | { attachmentControl: ReactNode; onAttachClick?: never }
+);
 
 export function WorkspaceToolPageMetaBar(props: Props) {
   const {
@@ -39,6 +42,7 @@ export function WorkspaceToolPageMetaBar(props: Props) {
     onToggleAccess,
     className = "",
     readOnly = false,
+    attachmentControl,
   } = props;
   const isPrivate = page.access === WORKSPACE_PAGE_ACCESS.PRIVATE;
   const attachmentLabel = getAttachmentLabel(page.attachment);
@@ -68,14 +72,16 @@ export function WorkspaceToolPageMetaBar(props: Props) {
           <span>Not attached</span>
         )}
       </div>
-      <Button
-        variant="secondary"
-        size="sm"
-        stretch="auto"
-        label={page.attachment ? "Change" : "Attach to task or project"}
-        onClick={onAttachClick}
-        disabled={readOnly}
-      />
+      {attachmentControl ?? (
+        <Button
+          variant="secondary"
+          size="sm"
+          stretch="auto"
+          label={page.attachment ? "Change" : "Attach to task or project"}
+          onClick={onAttachClick}
+          disabled={readOnly}
+        />
+      )}
       {page.attachment && (
         <Button variant="secondary" size="sm" stretch="auto" label="Detach" onClick={onDetach} disabled={readOnly} />
       )}

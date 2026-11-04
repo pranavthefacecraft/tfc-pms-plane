@@ -251,7 +251,7 @@ export function WhiteboardComments({
   return (
     <div ref={root} className="pointer-events-none absolute inset-0 z-[5] overflow-hidden">
       {toolbar && createPortal(commentTool, toolbar)}
-      <div className="shadow-sm pointer-events-auto absolute top-16 right-3 z-10 flex items-center gap-2 rounded-lg border border-subtle bg-surface-1 p-2">
+      <div className="pms-whiteboard__comments-toggle shadow-sm pointer-events-auto absolute top-16 right-3 z-10 flex items-center gap-2 rounded-lg border border-subtle bg-surface-1 p-2">
         {!toolbar && commentTool}
         <Button
           variant="secondary"
@@ -335,7 +335,7 @@ export function WhiteboardComments({
       {showList && (
         <section
           aria-label="Whiteboard comments"
-          className="shadow-lg pointer-events-auto absolute top-28 right-3 max-h-[60%] w-80 max-w-[95%] overflow-auto rounded-lg border border-subtle bg-surface-1 p-3"
+          className="pms-whiteboard__comments-panel shadow-lg pointer-events-auto absolute top-28 right-3 max-h-[60%] w-80 max-w-[95%] overflow-auto rounded-lg border border-subtle bg-surface-1 p-3"
         >
           <label className="mb-3 flex items-center gap-2 text-13">
             <input type="checkbox" checked={showResolved} onChange={(event) => setShowResolved(event.target.checked)} />

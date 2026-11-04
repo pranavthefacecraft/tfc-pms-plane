@@ -11,18 +11,15 @@ import useSWR, { mutate as globalMutate } from "swr";
 import { format, isToday, isYesterday } from "date-fns";
 import { MoreHorizontal, Plus, Search } from "lucide-react";
 // plane imports
-import { Avatar } from "@makeplane/propel/components/avatar";
 import { Button } from "@makeplane/propel/components/button";
 import { Input, InputGroup } from "@makeplane/propel/components/input";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/components/menu";
-import { DeleteOutline, GlobeOutline, LockOutline } from "@makeplane/propel/icons";
 import { setToast } from "@plane/blocks/toast";
-import { calculateTimeAgo, getFileURL } from "@plane/utils";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // hooks
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 // services
-import type { TWorkspacePage, TWorkspacePageUser, TWorkspaceToolType } from "@/services/page/workspace-page.service";
+import type { TWorkspacePage, TWorkspaceToolType } from "@/services/page/workspace-page.service";
 import { WORKSPACE_PAGE_ACCESS, WorkspacePageService } from "@/services/page/workspace-page.service";
 // local imports
 import {
@@ -41,40 +38,16 @@ import { AttachWorkspacePageModal } from "./attach-page-modal";
 const workspacePageService = new WorkspacePageService();
 
 const listStyles = {
-  page: {
-    root: "gap-6 p-4 md:p-7",
-    search: "w-full",
-    tableWrapper: "min-h-0 overflow-auto border border-subtle",
-    table: "min-w-[700px]",
-    header: "bg-surface-1",
-  },
-  whiteboard: {
-    root: "gap-4 px-page-x py-5",
-    search: "w-full max-w-xs",
-    tableWrapper: "flex-1 overflow-auto rounded-md border border-subtle",
-    table: "min-w-[860px]",
-    header: "bg-layer-1",
-  },
+  root: "gap-6 p-4 md:p-7",
+  search: "w-full",
+  tableWrapper: "min-h-0 overflow-auto border border-subtle",
+  table: "min-w-[700px]",
+  header: "bg-surface-1",
 };
 
 type Props = {
   workspaceSlug: string;
   toolType?: TWorkspaceToolType;
-};
-
-const UserCell = ({ user }: { user: TWorkspacePageUser | null }) => {
-  if (!user) return <span className="text-placeholder">—</span>;
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <Avatar
-        size="sm"
-        alt={user.display_name}
-        fallback={user.display_name?.[0]?.toUpperCase()}
-        src={user.avatar_url ? getFileURL(user.avatar_url) : undefined}
-      />
-      <span className="truncate">{user.display_name}</span>
-    </div>
-  );
 };
 
 export function notepadUpdatedLabel(value: string): string {
@@ -94,25 +67,18 @@ export function notepadCollaborators(page: TWorkspacePage): string {
     .join(", ");
 }
 
-function NotepadRow({
-  page,
-  workspaceSlug,
-  canDelete,
-  onDelete,
-  canAttach,
-  onAttached,
-}: {
+type ToolPageRowProps = {
   page: TWorkspacePage;
   workspaceSlug: string;
   canDelete: boolean;
   onDelete: (page: TWorkspacePage) => Promise<void>;
   canAttach: boolean;
   onAttached: (page: TWorkspacePage) => Promise<void>;
-}) {
-  const [isAttachOpen, setIsAttachOpen] = useState(false);
+  toolType: TWorkspaceToolType;
+};
+
+function ToolPageRow({ page, workspaceSlug, toolType, ...actions }: ToolPageRowProps) {
   const attachment = page.attachment;
-  const attachmentLabel = getAttachmentLabel(attachment);
-  const attachmentHref = getAttachmentHref(workspaceSlug, attachment);
   const projectLabel = attachment
     ? attachment.is_accessible
       ? attachment.project_name || "Attached project"
@@ -121,7 +87,9 @@ function NotepadRow({
   const projectHref = attachment?.is_accessible
     ? `/${workspaceSlug}/projects/${attachment.project_id}/overview`
     : undefined;
-  const href = getWorkspacePageHref(workspaceSlug, page.id);
+  const href = getWorkspacePageHref(workspaceSlug, page.id, toolType);
+  const collaborators =
+    toolType === "page" ? page : { ...page, collaborators: page.updated_by ? [page.updated_by] : [] };
   return (
     <tr className="border-t border-subtle hover:bg-layer-1-hover">
       <td className="px-4 py-6">
@@ -139,8 +107,11 @@ function NotepadRow({
         )}
       </td>
       <td className="px-4 py-6 text-secondary">
-        <span className="block truncate" title="Owner and most recent editor">
-          {notepadCollaborators(page) || "—"}
+        <span
+          className="block truncate"
+          title={toolType === "page" ? "Owner and invited collaborators" : "Owner and most recent editor"}
+        >
+          {notepadCollaborators(collaborators) || "—"}
         </span>
       </td>
       <td className="px-4 py-6 text-secondary">
@@ -149,116 +120,73 @@ function NotepadRow({
         </time>
       </td>
       <td className="px-2 py-6">
-        <Menu>
-          <MenuTrigger
-            render={
-              <button
-                type="button"
-                aria-label={`Actions for ${getWorkspacePageName(page)}`}
-                className="rounded p-1 text-secondary hover:bg-layer-1"
-              >
-                <MoreHorizontal size={16} />
-              </button>
-            }
-          />
-          <MenuContent align="end">
-            <MenuItem label="Open notepad" render={<Link href={href} />} />
-            {canAttach && <MenuItem label="Link to task or project" onClick={() => setIsAttachOpen(true)} />}
-            <div className="px-3 py-2 text-12 text-secondary">
-              {page.access === WORKSPACE_PAGE_ACCESS.PRIVATE ? "Private · Owner only" : "Public · Workspace access"}
-            </div>
-            {attachmentLabel && (
-              <div className="max-w-64 px-3 py-2 text-12 text-secondary">
-                {attachmentHref ? (
-                  <Link href={attachmentHref} className="hover:underline">
-                    {attachmentLabel}
-                  </Link>
-                ) : (
-                  attachmentLabel
-                )}
-              </div>
-            )}
-            {canDelete && <MenuItem label="Delete notepad" onClick={() => void onDelete(page)} />}
-          </MenuContent>
-        </Menu>
-        {isAttachOpen && canAttach && (
-          <AttachWorkspacePageModal
-            key={`${workspaceSlug}:${page.id}`}
-            isOpen={isAttachOpen}
-            onClose={() => setIsAttachOpen(false)}
-            workspaceSlug={workspaceSlug}
-            page={page}
-            onAttached={onAttached}
-          />
-        )}
+        <ToolPageActions page={page} workspaceSlug={workspaceSlug} toolType={toolType} {...actions} />
       </td>
     </tr>
   );
 }
 
-function WhiteboardRow({
+function ToolPageActions({
   page,
   workspaceSlug,
+  toolType,
+  canAttach,
   canDelete,
   onDelete,
-}: {
-  page: TWorkspacePage;
-  workspaceSlug: string;
-  canDelete: boolean;
-  onDelete: (page: TWorkspacePage) => Promise<void>;
-}) {
+  onAttached,
+}: ToolPageRowProps) {
+  const [isAttachOpen, setIsAttachOpen] = useState(false);
   const attachmentLabel = getAttachmentLabel(page.attachment);
   const attachmentHref = getAttachmentHref(workspaceSlug, page.attachment);
-  const isPrivate = page.access === WORKSPACE_PAGE_ACCESS.PRIVATE;
-  const ToolIcon = getToolTypeIcon("whiteboard");
+  const href = getWorkspacePageHref(workspaceSlug, page.id, toolType);
+  const label = toolType === "page" ? "notepad" : "whiteboard";
   return (
-    <tr className="group border-t border-subtle hover:bg-layer-1-hover">
-      <td className="px-4 py-2.5">
-        <Link
-          href={getWorkspacePageHref(workspaceSlug, page.id, "whiteboard")}
-          className="flex min-w-0 items-center gap-2 font-medium text-primary"
-        >
-          <ToolIcon className="size-4 flex-shrink-0 text-tertiary" />
-          <span className="truncate">{getWorkspacePageName(page)}</span>
-        </Link>
-      </td>
-      <td className="px-4 py-2.5 text-secondary">
-        <UserCell user={page.owner} />
-      </td>
-      <td className="px-4 py-2.5 text-secondary">
-        {!attachmentLabel ? (
-          <span className="text-placeholder">—</span>
-        ) : attachmentHref ? (
-          <Link href={attachmentHref} className="block truncate hover:underline">
-            {attachmentLabel}
-          </Link>
-        ) : (
-          <span className="block truncate text-placeholder">{attachmentLabel}</span>
-        )}
-      </td>
-      <td className="px-4 py-2.5 text-secondary">{calculateTimeAgo(page.updated_at)}</td>
-      <td className="px-4 py-2.5 text-secondary">
-        <span className="flex items-center gap-1.5">
-          {isPrivate ? <LockOutline className="size-3.5" /> : <GlobeOutline className="size-3.5" />}
-          {isPrivate ? "Private" : "Public"}
-        </span>
-      </td>
-      <td className="px-4 py-2.5 text-secondary">
-        {isPrivate ? <UserCell user={page.owner} /> : <span>Workspace</span>}
-      </td>
-      <td className="px-2 py-2.5 text-right">
-        {canDelete && (
-          <button
-            type="button"
-            onClick={() => void onDelete(page)}
-            className="rounded p-1 text-tertiary opacity-0 group-hover:opacity-100 hover:bg-layer-1 hover:text-danger-primary focus:opacity-100"
-            aria-label={`Delete ${getWorkspacePageName(page)}`}
-          >
-            <DeleteOutline className="size-4" />
-          </button>
-        )}
-      </td>
-    </tr>
+    <>
+      <Menu>
+        <MenuTrigger
+          render={
+            <button
+              type="button"
+              aria-label={`Actions for ${getWorkspacePageName(page)}`}
+              className="rounded p-1 text-secondary hover:bg-layer-1"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          }
+        />
+        <MenuContent align="end">
+          {toolType === "page" && <MenuItem label="Open notepad" render={<Link href={href} />} />}
+          {canAttach && <MenuItem label="Link to task or project" onClick={() => setIsAttachOpen(true)} />}
+          {toolType === "page" && (
+            <div className="px-3 py-2 text-12 text-secondary">
+              {page.access === WORKSPACE_PAGE_ACCESS.PRIVATE ? "Private · Owner only" : "Public · Workspace access"}
+            </div>
+          )}
+          {toolType === "page" && attachmentLabel && (
+            <div className="max-w-64 px-3 py-2 text-12 text-secondary">
+              {attachmentHref ? (
+                <Link href={attachmentHref} className="hover:underline">
+                  {attachmentLabel}
+                </Link>
+              ) : (
+                attachmentLabel
+              )}
+            </div>
+          )}
+          {canDelete && <MenuItem label={`Delete ${label}`} onClick={() => void onDelete(page)} />}
+        </MenuContent>
+      </Menu>
+      {isAttachOpen && canAttach && (
+        <AttachWorkspacePageModal
+          key={`${workspaceSlug}:${page.id}`}
+          isOpen={isAttachOpen}
+          onClose={() => setIsAttachOpen(false)}
+          workspaceSlug={workspaceSlug}
+          page={page}
+          onAttached={onAttached}
+        />
+      )}
+    </>
   );
 }
 
@@ -278,7 +206,7 @@ function EmptyPagesRow({
   const ToolIcon = getToolTypeIcon(toolType);
   return (
     <tr>
-      <td colSpan={isNotepad ? 5 : 7} className="px-4 py-12">
+      <td colSpan={5} className="px-4 py-12">
         <div className="flex flex-col items-center gap-3 text-center">
           <ToolIcon className="size-8 text-placeholder" />
           <p className="text-14 font-medium text-primary">
@@ -312,10 +240,10 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
   toolType = "page",
 }: Props) {
   const labels = TOOL_TYPE_LABELS[toolType];
-  const styles = listStyles[toolType];
+  const styles = listStyles;
   const isNotepad = toolType === "page";
   const plural = isNotepad ? "Notepads" : labels.plural;
-  const columnCount = isNotepad ? 5 : 7;
+  const columnCount = 5;
   // states
   const [search, setSearch] = useState("");
   // store hooks
@@ -368,24 +296,22 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
 
   return (
     <div className={`flex h-full w-full flex-col overflow-hidden ${styles.root}`}>
-      {isNotepad && (
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-24 font-semibold text-primary">Notepads</h1>
-          <button
-            type="button"
-            disabled={isCreating}
-            onClick={() => void createPage()}
-            className="flex shrink-0 items-center gap-2 rounded-full bg-[#135DDD] px-5 py-2.5 text-12 font-medium text-white hover:bg-[#104FC0] disabled:opacity-50"
-          >
-            <Plus size={14} aria-hidden="true" />
-            {isCreating ? "Creating..." : "Create Notepad"}
-          </button>
-        </div>
-      )}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-24 font-semibold text-primary">{plural}</h1>
+        <button
+          type="button"
+          disabled={isCreating}
+          onClick={() => void createPage()}
+          className="flex shrink-0 items-center gap-2 rounded-full bg-[#135DDD] px-5 py-2.5 text-12 font-medium text-white hover:bg-[#104FC0] disabled:opacity-50"
+        >
+          <Plus size={14} aria-hidden="true" />
+          {isCreating ? "Creating..." : isNotepad ? "Create Notepad" : "Create Whiteboard"}
+        </button>
+      </div>
       <div className="flex items-center justify-between gap-3">
         <div className={styles.search}>
           <InputGroup size="lg">
-            {isNotepad && <Search size={14} aria-hidden="true" className="ml-3 shrink-0 text-secondary" />}
+            <Search size={14} aria-hidden="true" className="ml-3 shrink-0 text-secondary" />
             <Input
               size="lg"
               type="text"
@@ -401,25 +327,13 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
       <div className={styles.tableWrapper}>
         <table className={`w-full table-fixed border-collapse text-13 ${styles.table}`}>
           <thead className={`sticky top-0 z-[1] ${styles.header}`}>
-            {isNotepad ? (
-              <tr className="text-left text-11 text-secondary">
-                <th className="w-[38%] px-4 py-4 font-medium">NAME</th>
-                <th className="w-[24%] px-4 py-4 font-medium">PROJECT</th>
-                <th className="w-[21%] px-4 py-4 font-medium">COLLABORATORS</th>
-                <th className="w-[13%] px-4 py-4 font-medium">UPDATED</th>
-                <th className="w-12 px-2 py-4" aria-label="Actions" />
-              </tr>
-            ) : (
-              <tr className="text-left text-12 font-medium text-tertiary">
-                <th className="w-[30%] px-4 py-2 font-medium">Name</th>
-                <th className="w-[15%] px-4 py-2 font-medium">Created by</th>
-                <th className="w-[20%] px-4 py-2 font-medium">Attached to</th>
-                <th className="w-[13%] px-4 py-2 font-medium">Last modified</th>
-                <th className="w-[10%] px-4 py-2 font-medium">Access</th>
-                <th className="w-[12%] px-4 py-2 font-medium">Members</th>
-                <th className="w-12 px-2 py-2" aria-label="Actions" />
-              </tr>
-            )}
+            <tr className="text-left text-11 text-secondary">
+              <th className="w-[38%] px-4 py-4 font-medium">NAME</th>
+              <th className="w-[24%] px-4 py-4 font-medium">PROJECT</th>
+              <th className="w-[21%] px-4 py-4 font-medium">COLLABORATORS</th>
+              <th className="w-[13%] px-4 py-4 font-medium">UPDATED</th>
+              <th className="w-12 px-2 py-4" aria-label="Actions" />
+            </tr>
           </thead>
           <tbody>
             {isLoading && (
@@ -446,26 +360,16 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
             )}
             {filteredPages.map((page) => {
               const canDelete = page.owned_by === currentUser?.id;
-              if (isNotepad) {
-                return (
-                  <NotepadRow
-                    key={page.id}
-                    page={page}
-                    workspaceSlug={workspaceSlug}
-                    canDelete={canDelete}
-                    onDelete={handleDelete}
-                    canAttach={canAttach}
-                    onAttached={handleAttached}
-                  />
-                );
-              }
               return (
-                <WhiteboardRow
+                <ToolPageRow
                   key={page.id}
                   page={page}
                   workspaceSlug={workspaceSlug}
                   canDelete={canDelete}
                   onDelete={handleDelete}
+                  canAttach={canAttach}
+                  onAttached={handleAttached}
+                  toolType={toolType}
                 />
               );
             })}
@@ -475,6 +379,11 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
       {isNotepad && (
         <p className="text-11 text-tertiary">
           Collaborators shows the owner and invited collaborators, not everyone with workspace access.
+        </p>
+      )}
+      {!isNotepad && (
+        <p className="text-11 text-tertiary">
+          Collaborators shows the owner and most recent editor. Use Share inside the whiteboard to manage access.
         </p>
       )}
     </div>

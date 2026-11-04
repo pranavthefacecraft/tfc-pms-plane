@@ -225,19 +225,54 @@ it("disables creation while creating and keeps unattached notes visible", async 
   expect(host.textContent).toContain("Untitled");
   expect(host.textContent).not.toContain("Website Redesign");
 });
-it("retains the existing Whiteboards list columns and search", async () => {
+it("matches the Whiteboards list design, project link, contributors and row actions", async () => {
+  state.pages = [{ ...page, tool_type: "whiteboard" }];
   await render("whiteboard");
-  expect(host.querySelector("h1")).toBeNull();
+  expect(host.querySelector("h1")?.textContent).toBe("Whiteboards");
   expect([...host.querySelectorAll("th")].map((cell) => cell.textContent)).toEqual([
-    "Name",
-    "Created by",
-    "Attached to",
-    "Last modified",
-    "Access",
-    "Members",
+    "NAME",
+    "PROJECT",
+    "COLLABORATORS",
+    "UPDATED",
     "",
   ]);
   expect(host.querySelector('input[aria-label="Search whiteboards"]')).not.toBeNull();
+  expect(host.querySelector('a[href="/team/tool/whiteboards/note/"]')).not.toBeNull();
+  expect(host.textContent).toContain("Ima, Pranav");
+  expect(host.textContent).toContain("Website Redesign");
+  await click("Create Whiteboard");
+  expect(state.create).toHaveBeenCalledOnce();
+  await click("Link to task or project");
+  await click("Attach selected project");
+  expect(state.globalMutate).toHaveBeenCalledWith(
+    "WORKSPACE_TOOL_PAGE_DETAIL_team_note",
+    expect.objectContaining({
+      tool_type: "whiteboard",
+      attachment: expect.objectContaining({ project_name: "New project" }),
+    }),
+    { revalidate: false }
+  );
+});
+it("keeps restricted whiteboard project details hidden and prevents Viewer linking", async () => {
+  state.pages = [
+    { ...page, tool_type: "whiteboard", owned_by: "other", attachment: { ...page.attachment!, is_accessible: false } },
+  ];
+  state.canAttach = false;
+  await render("whiteboard");
+  expect(host.textContent).toContain("Restricted project");
+  expect(host.textContent).not.toContain("Website Redesign");
+  expect(host.textContent).not.toContain("Link to task or project");
+  expect(host.textContent).not.toContain("Delete whiteboard");
+});
+it("keeps confirmation for whiteboard deletion", async () => {
+  state.pages = [{ ...page, tool_type: "whiteboard" }];
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  await render("whiteboard");
+  await click("Delete whiteboard");
+  expect(state.destroy).not.toHaveBeenCalled();
+  confirm.mockReturnValue(true);
+  await click("Delete whiteboard");
+  expect(state.destroy).toHaveBeenCalledWith("team", "note");
 });
 it("deduplicates owner and latest editor and formats Today/Yesterday and older years", () => {
   vi.useFakeTimers();

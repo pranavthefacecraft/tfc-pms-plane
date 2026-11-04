@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { TWorkspacePage } from "@/services/page/workspace-page.service";
-import { LinkNotepadPopover } from "./link-notepad-popover";
+import { LinkWorkspacePagePopover } from "./link-page-popover";
 import { NotepadCollaborators } from "./notepad-collaborators";
 
 const mocks = vi.hoisted(() => ({
@@ -94,12 +94,17 @@ async function input(label: string, value: string) {
     field.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
-async function render(kind: "link" | "sharing" = "link", canManage = true) {
+async function render(kind: "link" | "sharing" | "whiteboard" = "link", canManage = true) {
   await act(() =>
     root.render(
       <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-        {kind === "link" ? (
-          <LinkNotepadPopover workspaceSlug="team" page={page} onAttached={mocks.onAttached} />
+        {kind !== "sharing" ? (
+          <LinkWorkspacePagePopover
+            workspaceSlug="team"
+            page={kind === "whiteboard" ? { ...page, tool_type: "whiteboard" } : page}
+            onAttached={mocks.onAttached}
+            disabled={!canManage}
+          />
         ) : (
           <NotepadCollaborators workspaceSlug="team" page={page} canManage={canManage} onChange={mocks.onChange} />
         )}
@@ -187,4 +192,27 @@ it("does not offer sharing management to nonowners", async () => {
   await render("sharing", false);
   expect(document.querySelector('[aria-label="Add collaborator"]')).toBeNull();
   expect(mocks.sharing).not.toHaveBeenCalled();
+});
+it("reuses the compact dropdown for whiteboards and refreshes the linked board", async () => {
+  await render("whiteboard");
+  await click("Link to Task or Project");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
+  expect(document.body.textContent).toContain("Link Whiteboard");
+  await click("WebsiteProject");
+  expect(mocks.attach).toHaveBeenCalledWith("team", "note", { entity_type: "project", entity_id: "project" });
+  expect(mocks.toast).toHaveBeenCalledWith({ type: "success", title: "Whiteboard linked" });
+});
+it("keeps viewer and paused whiteboard linking disabled", async () => {
+  await render("whiteboard", false);
+  expect(button("Link to Task or Project").disabled).toBe(true);
+  expect(mocks.search).not.toHaveBeenCalled();
+});
+it("closes an open whiteboard dropdown when editing is paused", async () => {
+  await render("whiteboard");
+  await click("Link to Task or Project");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
+  expect(document.body.textContent).toContain("Link Whiteboard");
+  await render("whiteboard", false);
+  expect(document.body.textContent).not.toContain("Link Whiteboard");
+  expect(button("Link to Task or Project").disabled).toBe(true);
 });

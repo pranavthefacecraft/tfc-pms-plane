@@ -99,8 +99,8 @@ vi.mock("./notepad-collaborators", () => ({
     </div>
   ),
 }));
-vi.mock("./link-notepad-popover", () => ({
-  LinkNotepadPopover: () => {
+vi.mock("./link-page-popover", () => ({
+  LinkWorkspacePagePopover: () => {
     const [open, setOpen] = useState(false);
     return (
       <>

@@ -1,0 +1,103 @@
+.pms-whiteboard {
+  --pms-board-dot: #dce8fa;
+  --pms-board-controls-top: 64px;
+  container: pms-whiteboard / inline-size;
+}
+
+.pms-whiteboard--dark {
+  --pms-board-dot: #303e55;
+}
+
+.pms-whiteboard__dots {
+  background-image: radial-gradient(circle, var(--pms-board-dot) 0.7px, transparent 0.8px);
+  background-size: 20px 20px;
+  mix-blend-mode: multiply;
+}
+
+.pms-whiteboard--dark .pms-whiteboard__dots {
+  mix-blend-mode: screen;
+}
+
+.pms-whiteboard .pms-whiteboard__comments-toggle {
+  top: var(--pms-board-controls-top);
+}
+
+.pms-whiteboard .pms-whiteboard__comments-panel {
+  top: calc(var(--pms-board-controls-top) + 48px);
+}
+
+/* Keep Excalidraw's native tools and comment portal when moving the dock. */
+.pms-whiteboard .excalidraw:not(.excalidraw--mobile) .shapes-section {
+  position: absolute;
+  top: auto;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  z-index: 3;
+}
+
+.pms-whiteboard .excalidraw--mobile .App-top-bar > section {
+  position: absolute;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+}
+
+.pms-whiteboard .excalidraw--mobile .mobile-misc-tools-container {
+  top: auto;
+  right: 0;
+  bottom: calc(100% + 8px);
+  flex-direction: row;
+  border: 1px solid var(--sidebar-border-color);
+  border-radius: 8px;
+}
+
+.pms-whiteboard .excalidraw--mobile .scroll-back-to-content {
+  bottom: 240px;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar {
+  border: 1px solid #e2e6ef;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px #203c6420;
+  background: var(--color-surface-lowest);
+}
+
+.pms-whiteboard .excalidraw .App-menu_top {
+  padding-top: 104px;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar__extra-tools-dropdown {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+@container pms-whiteboard (max-width: 767px) {
+  .pms-whiteboard > * {
+    --pms-board-controls-top: 160px;
+  }
+
+  .pms-whiteboard .excalidraw .App-menu_top {
+    padding-top: 208px;
+  }
+
+  .pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(7, 32px);
+    gap: 2px;
+  }
+
+  .pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar__divider {
+    display: none;
+  }
+
+  .pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon__icon,
+  .pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button {
+    width: 32px;
+    height: 32px;
+  }
+}
