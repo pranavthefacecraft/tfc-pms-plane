@@ -102,12 +102,16 @@ export default function WhiteboardCanvas(props: TWhiteboardCanvasProps) {
     }
     const files = session.scene.files as BinaryFiles | undefined;
     const viewport = session.presenter?.viewport;
+    const { viewBackgroundColor, scrollX, scrollY, zoom } = api.getAppState();
     applyingRemote.current = true;
     if (files) api.addFiles(Object.values(files));
     api.updateScene({
       elements: [...elements.values()],
       appState: {
-        ...api.getAppState(),
+        viewBackgroundColor,
+        scrollX,
+        scrollY,
+        zoom,
         ...((session.scene.appState as { viewBackgroundColor?: string } | undefined)?.viewBackgroundColor
           ? { viewBackgroundColor: (session.scene.appState as { viewBackgroundColor: string }).viewBackgroundColor }
           : {}),

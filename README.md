@@ -627,6 +627,9 @@ functional in the bottom tool dock; **Board tools** contains live participants,
 presentation, document upload and text-link controls. Connection errors and
 read-only status remain visible when Board tools is collapsed. Guest sharing,
 autosave and existing drawing data are unchanged.
+Live scene refreshes synchronize only the shared background and presenter viewport,
+not local UI flags, so joining or reconnecting an editable session does not restore
+the canvas's earlier read-only state and hide the drawing tools.
 
 ### Live sharing and presentation
 

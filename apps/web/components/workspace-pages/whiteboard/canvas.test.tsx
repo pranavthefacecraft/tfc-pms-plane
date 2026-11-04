@@ -1,13 +1,44 @@
-import { act } from "react";
+import { act, useEffect } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { TWhiteboardCanvasProps } from "./canvas";
 import WhiteboardCanvas from "./canvas";
 
-const mocks = vi.hoisted(() => ({ send: vi.fn(), reconnect: vi.fn(), readOnly: false }));
+const mocks = vi.hoisted(() => ({
+  send: vi.fn(),
+  reconnect: vi.fn(),
+  readOnly: false,
+  attachApi: false,
+  api: {
+    getSceneElementsIncludingDeleted: vi.fn(() => []),
+    getSceneElements: vi.fn(() => []),
+    getFiles: vi.fn(() => ({})),
+    getAppState: vi.fn(() => ({
+      viewModeEnabled: true,
+      zenModeEnabled: false,
+      viewBackgroundColor: "#ffffff",
+      scrollX: 0,
+      scrollY: 0,
+      zoom: { value: 1 },
+    })),
+    updateScene: vi.fn(),
+    addFiles: vi.fn(),
+  },
+}));
 vi.mock("@excalidraw/excalidraw", () => ({
-  Excalidraw: ({ children, viewModeEnabled }: { children: ReactNode; viewModeEnabled: boolean }) => {
+  Excalidraw: ({
+    children,
+    viewModeEnabled,
+    excalidrawAPI,
+  }: {
+    children: ReactNode;
+    viewModeEnabled: boolean;
+    excalidrawAPI: (api: typeof mocks.api) => void;
+  }) => {
+    useEffect(() => {
+      if (mocks.attachApi) excalidrawAPI(mocks.api);
+    }, [excalidrawAPI]);
     mocks.readOnly = viewModeEnabled;
     return <div data-excalidraw>{children}</div>;
   },
@@ -39,6 +70,7 @@ let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.clearAllMocks();
+  mocks.attachApi = false;
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -62,7 +94,7 @@ async function render(overrides: Partial<TWhiteboardCanvasProps["collaboration"]
           clientId: "client",
           state: {
             revision: 1,
-            scene: {},
+            scene: { elements: [] },
             role: "owner",
             user: { id: "owner", display_name: "Owner", first_name: "", last_name: "", avatar_url: null },
             presenter: null,
@@ -94,4 +126,48 @@ it("shows disconnected and error states outside collapsed tools and reconnects",
   expect(mocks.readOnly).toBe(true);
   await act(() => alert.querySelector("button")!.click());
   expect(mocks.reconnect).toHaveBeenCalled();
+});
+it("does not restore stale read-only UI state when joining or reconnecting an editable session", async () => {
+  mocks.attachApi = true;
+  await render({ connected: false, state: null });
+  expect(mocks.readOnly).toBe(true);
+  expect(mocks.api.updateScene).not.toHaveBeenCalled();
+  await render();
+  expect(mocks.readOnly).toBe(false);
+  expect(mocks.api.updateScene).toHaveBeenLastCalledWith({
+    elements: [],
+    appState: { viewBackgroundColor: "#ffffff", scrollX: 0, scrollY: 0, zoom: { value: 1 } },
+    captureUpdate: "NEVER",
+  });
+  await render({ connected: false });
+  expect(mocks.readOnly).toBe(true);
+  await render();
+  expect(mocks.readOnly).toBe(false);
+  for (const [update] of mocks.api.updateScene.mock.calls) {
+    expect(update.appState).not.toHaveProperty("viewModeEnabled");
+    expect(update.appState).not.toHaveProperty("zenModeEnabled");
+  }
+});
+it("still synchronizes the shared background and presenter viewport without copying local UI state", async () => {
+  mocks.attachApi = true;
+  await render({
+    state: {
+      revision: 1,
+      scene: { elements: [], appState: { viewBackgroundColor: "#fff2b8" } },
+      role: "editor",
+      user: { id: "editor", display_name: "Editor", first_name: "", last_name: "", avatar_url: null },
+      presenter: {
+        client_id: "presenter",
+        user_id: "presenter",
+        viewport: { scrollX: 10, scrollY: 20, zoom: 1.5 },
+      },
+      participants: [],
+    },
+  });
+  expect(mocks.readOnly).toBe(true);
+  expect(mocks.api.updateScene).toHaveBeenLastCalledWith({
+    elements: [],
+    appState: { viewBackgroundColor: "#fff2b8", scrollX: 10, scrollY: 20, zoom: { value: 1.5 } },
+    captureUpdate: "NEVER",
+  });
 });
