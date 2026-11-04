@@ -7,6 +7,8 @@
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { LogOutOutline, SettingsOutline } from "@makeplane/propel/icons";
 // plane imports
 import { Avatar } from "@makeplane/propel/components/avatar";
@@ -15,27 +17,34 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/comp
 import { GOD_MODE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { setToast } from "@plane/blocks/toast";
-import { getFileURL } from "@plane/utils";
+import { getFileURL, orderWorkspacesList } from "@plane/utils";
+import type { IWorkspace } from "@plane/types";
 // components
-import { CoverImage } from "@/components/common/cover-image";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useUser } from "@/hooks/store/user";
+import { useUser, useUserProfile } from "@/hooks/store/user";
 import { useWorkspace } from "@/hooks/store/use-workspace";
+import { useInstance } from "@/hooks/store/use-instance";
 
 export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false }: { showInitial?: boolean }) {
   // states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState("");
   // router
   const router = useRouter();
   // store hooks
   const { toggleAnySidebarDropdown } = useAppTheme();
   const { data: currentUser } = useUser();
   const { signOut } = useUser();
-  const { currentWorkspace } = useWorkspace();
-  const { toggleProfileSettingsModal } = useCommandPalette();
+  const { currentWorkspace, workspaces } = useWorkspace();
+  const { updateUserProfile } = useUserProfile();
+  const { config } = useInstance();
+  const orderedWorkspaces = orderWorkspacesList(Object.values(workspaces ?? {}));
+  const workspacesList = currentWorkspace
+    ? [currentWorkspace, ...orderedWorkspaces.filter((workspace) => workspace.id !== currentWorkspace.id)]
+    : orderedWorkspaces;
   // derived values
   const isUserInstanceAdmin = false;
   const userInitial = Array.from(
@@ -54,6 +63,29 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
     );
   };
 
+  const switchWorkspace = async (workspace: IWorkspace) => {
+    if (switching) return;
+    if (workspace.id === currentWorkspace?.id) {
+      setIsUserMenuOpen(false);
+      return;
+    }
+    setSwitching(true);
+    setSwitchError("");
+    try {
+      const saved = await updateUserProfile({ last_workspace_id: workspace.id });
+      if (!saved) throw new Error("Workspace preference could not be saved");
+      router.push(`/${workspace.slug}`);
+      setIsUserMenuOpen(false);
+    } catch (cause) {
+      console.error("Workspace switching failed", cause);
+      const message = "Could not switch workspace. Please try again.";
+      setSwitchError(message);
+      setToast({ type: "error", title: "Workspace switch failed", message });
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   // Toggle sidebar dropdown state when menu is open
   useEffect(() => {
     if (isUserMenuOpen) toggleAnySidebarDropdown(true);
@@ -62,7 +94,7 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
 
   return (
     <div className="flex items-center">
-      <Menu onOpenChange={setIsUserMenuOpen}>
+      <Menu open={isUserMenuOpen} onOpenChange={setIsUserMenuOpen}>
         {/* propel: `AppSidebarItem` takes no arbitrary props, so it cannot be the Base UI trigger
             — the popup would have no element to anchor to. The trigger is a plain button wearing
             the same chrome, with the item's own icon part inside it. */}
@@ -95,51 +127,57 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
         />
         <MenuContent side="bottom" align="end">
           <div className="flex w-72 max-w-full flex-col gap-y-3 p-2">
-            <div className="relative h-29 w-full rounded-lg">
-              <CoverImage
-                src={currentUser?.cover_image_url ?? undefined}
-                alt={currentUser?.display_name}
-                className="h-29 w-full rounded-lg"
-                showDefaultWhenEmpty
-              />
-              <div className="absolute inset-0 bg-layer-1/50" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className="flex flex-col items-center gap-y-2">
-                  <div>
-                    <Avatar
-                      alt={currentUser?.display_name}
-                      fallback={currentUser?.display_name?.[0]?.toUpperCase()}
-                      src={getFileURL(currentUser?.avatar_url ?? "")}
-                      size="xl"
-                    />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-body-sm-medium">
-                      {currentUser?.first_name} {currentUser?.last_name}
-                    </p>
-                    <p className="text-caption-md-regular">{currentUser?.email}</p>
-                  </div>
-                </div>
-              </div>
+            <div className="rounded-md bg-[#EAF2FF] px-3 py-3 dark:bg-layer-1">
+              <p className="text-13 font-semibold">
+                {[currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(" ") ||
+                  currentUser?.display_name}
+              </p>
+              <p className="mt-1 truncate text-12 text-secondary">{currentUser?.email}</p>
             </div>
+            <p className="px-2 text-11 font-medium text-secondary">ACCOUNTS</p>
+            <div aria-label="Workspaces" className="max-h-64 overflow-y-auto">
+              {workspacesList.map((workspace) => {
+                const active = workspace.id === currentWorkspace?.id;
+                return (
+                  <BaseMenu.Item
+                    key={workspace.id}
+                    closeOnClick={false}
+                    disabled={switching}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => void switchWorkspace(workspace)}
+                    className={`w-full rounded-md px-3 py-2 text-left outline-none data-highlighted:bg-layer-1-hover ${active ? "dark:text-custom-primary-100 bg-[#EAF2FF] text-[#135DDD] dark:bg-layer-1" : "text-primary"}`}
+                  >
+                    <p className="truncate text-13 font-medium">{workspace.name}</p>
+                    <p className="mt-1 text-12 text-secondary">{active ? "Current account" : "Switch account"}</p>
+                  </BaseMenu.Item>
+                );
+              })}
+              {workspacesList.length === 0 && (
+                <p className="px-3 py-2 text-12 text-secondary">No workspaces available.</p>
+              )}
+            </div>
+            {switching && (
+              <p role="status" className="px-2 text-12 text-secondary">
+                Switching workspace...
+              </p>
+            )}
+            {switchError && (
+              <p role="alert" className="px-2 text-12 text-danger-primary">
+                {switchError}
+              </p>
+            )}
+            {!config?.is_workspace_creation_disabled && (
+              <MenuItem label="+ Add account" render={<Link href="/create-workspace" />} />
+            )}
+            <MenuItem label={t("workspace_invites")} render={<Link href="/invitations" />} />
             <div>
               <MenuItem
                 icon={<Icon icon={SettingsOutline} />}
-                label="PMS Settings"
+                label="Profile & Preferences"
                 onClick={() =>
                   router.push(
                     currentWorkspace ? `/${currentWorkspace.slug}/pms-settings/account` : "/settings/profile/general"
                   )
-                }
-              />
-              <MenuItem
-                icon={<Icon icon={SettingsOutline} />}
-                label={t("preferences")}
-                onClick={() =>
-                  toggleProfileSettingsModal({
-                    activeTab: "preferences",
-                    isOpen: true,
-                  })
                 }
               />
             </div>

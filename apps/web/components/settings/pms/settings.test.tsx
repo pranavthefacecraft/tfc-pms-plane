@@ -36,7 +36,11 @@ const mocks = vi.hoisted(() => ({
   pathname: "/team/pms-settings/account",
   error: undefined as Error | undefined,
   updateUser: vi.fn(),
-  user: { first_name: "Test", last_name: "Person", email: "test@example.com" },
+  updateProfile: vi.fn(),
+  profile: { start_of_the_week: 1 },
+  profileLoading: false,
+  profileError: undefined as { status: string; message: string } | undefined,
+  user: { first_name: "Test", last_name: "Person", email: "test@example.com", user_timezone: "UTC" },
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("next/navigation", () => ({
@@ -59,17 +63,14 @@ vi.mock("@/components/global/timezone-select", () => ({
     value,
     onChange,
     disabled,
+    label,
   }: {
     value: string;
     onChange: (value: string) => void;
     disabled: boolean;
+    label: string;
   }) => (
-    <select
-      aria-label="Company time zone"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      disabled={disabled}
-    >
+    <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
       <option value="UTC">UTC</option>
       <option value="Asia/Makassar">Asia/Makassar</option>
     </select>
@@ -103,6 +104,12 @@ vi.mock("@/components/workspace/settings/members-list", () => ({
 }));
 vi.mock("@/hooks/store/user", () => ({
   useUser: () => ({ data: mocks.user, updateCurrentUser: mocks.updateUser }),
+  useUserProfile: () => ({
+    data: mocks.profile,
+    isLoading: mocks.profileLoading,
+    error: mocks.profileError,
+    updateUserProfile: mocks.updateProfile,
+  }),
   useUserPermissions: () => ({
     workspaceInfoBySlug: () => (mocks.infoLoaded ? { role: mocks.role } : undefined),
     allowPermissions: (roles: number[]) => roles.includes(mocks.role),
@@ -194,7 +201,14 @@ beforeEach(() => {
   mocks.invite.mockResolvedValue({});
   mocks.projectInvite.mockResolvedValue({ added: [], invited: ["test@example.com"] });
   mocks.refresh.mockResolvedValue([]);
-  mocks.user = { first_name: "Test", last_name: "Person", email: "test@example.com" };
+  mocks.user = { first_name: "Test", last_name: "Person", email: "test@example.com", user_timezone: "UTC" };
+  mocks.profile = { start_of_the_week: 1 };
+  mocks.profileLoading = false;
+  mocks.profileError = undefined;
+  mocks.updateProfile.mockImplementation(async (data) => {
+    mocks.profile = { ...mocks.profile, ...data };
+    return mocks.profile;
+  });
   mocks.updateUser.mockResolvedValue(mocks.user);
   host = document.createElement("div");
   document.body.append(host);
@@ -222,6 +236,101 @@ const submit = () =>
 const inviteDialog = () =>
   render(<InviteTeammateDialog workspaceSlug="team" onClose={mocks.onClose} onInvited={mocks.refresh} />);
 
+it.each([20, 15])("shows unavailable connections and existing API access for role %s", async (role) => {
+  mocks.role = role;
+  await render(<PMSSettings workspaceSlug="team" tab="integrations" />);
+  expect([...host.querySelectorAll("dt")].map((row) => row.textContent)).toEqual([
+    "Google Calendar",
+    "Microsoft Outlook",
+    "Google Drive",
+    "Microsoft OneDrive",
+    "API access",
+  ]);
+  expect(
+    [...host.querySelectorAll("dd")].slice(0, 4).every((row) => row.textContent === "Not available in this edition")
+  ).toBe(true);
+  expect(host.querySelector("button")).toBeNull();
+  expect(host.querySelector('a[href="/settings/profile/api-tokens/"]')).not.toBeNull();
+  expect(host.querySelector('a[href="/team/settings/integrations/"]') !== null).toBe(role === 20);
+});
+it("does not expose integrations to Guests and waits for workspace permissions", async () => {
+  mocks.infoLoaded = false;
+  await render(<PMSSettings workspaceSlug="team" tab="integrations" />);
+  expect(host.querySelector('[role="status"]')).not.toBeNull();
+  mocks.infoLoaded = true;
+  mocks.role = 5;
+  await render(<PMSSettings workspaceSlug="team" tab="integrations" />);
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Only workspace admins and members");
+  expect(host.querySelector("dl")).toBeNull();
+});
+it("shows real preferences and links to existing personal settings", async () => {
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  expect(host.textContent).toContain("Workspace-wide task defaults are not available");
+  expect(host.textContent).toContain("Monday");
+  expect(host.textContent).toContain("UTC");
+  expect(host.querySelector('a[href="/settings/profile/notifications/"]')).not.toBeNull();
+  expect(host.querySelector('a[href="/settings/profile/preferences/"]')).not.toBeNull();
+  expect(host.querySelectorAll("button")).toHaveLength(2);
+});
+it("saves week start through the existing user-profile API", async () => {
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Change Week starts on"]')!.click());
+  await enter('select[aria-label="Week starts on"]', "0");
+  await submit();
+  expect(mocks.updateProfile).toHaveBeenCalledWith({ start_of_the_week: 0 });
+  expect(mocks.updateUser).not.toHaveBeenCalled();
+  expect(host.querySelector("form")).toBeNull();
+  expect(host.textContent).toContain("Sunday");
+});
+it("saves personal time zone without changing the Company time zone", async () => {
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Change Time zone"]')!.click());
+  await enter('select[aria-label="Personal time zone"]', "Asia/Makassar");
+  await submit();
+  expect(mocks.updateUser).toHaveBeenCalledWith({ user_timezone: "Asia/Makassar" });
+  expect(mocks.updateWorkspace).not.toHaveBeenCalled();
+  expect(mocks.updateProfile).not.toHaveBeenCalled();
+});
+it("cancels preference changes without saving", async () => {
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Change Week starts on"]')!.click());
+  await enter("select", "0");
+  await act(() => button("Cancel")!.click());
+  expect(mocks.updateProfile).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("Monday");
+});
+it("retains the draft when the profile store silently returns an unsuccessful update", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  mocks.updateProfile.mockResolvedValueOnce(undefined);
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Change Week starts on"]')!.click());
+  await enter("select", "0");
+  await submit();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not save preferences");
+  expect(host.querySelector<HTMLSelectElement>("select")?.value).toBe("0");
+  await submit();
+  expect(host.querySelector("form")).toBeNull();
+  log.mockRestore();
+});
+it("reports time-zone save errors and loading failures", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  mocks.updateUser.mockRejectedValueOnce(new Error("offline"));
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Change Time zone"]')!.click());
+  await enter("select", "Asia/Makassar");
+  await submit();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not save preferences");
+  mocks.profileError = { status: "user-profile-fetch-error", message: "offline" };
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not load preferences");
+  log.mockRestore();
+});
+it("shows explicit preference loading state", async () => {
+  mocks.profileLoading = true;
+  await render(<PMSSettings workspaceSlug="team" tab="preferences" />);
+  expect(host.querySelector('[role="status"]')?.textContent).toBe("Loading preferences...");
+});
+
 it("renders full-page account settings with real profile and password surfaces and URL tabs", async () => {
   await render(<PMSSettings workspaceSlug="team" tab="account" />);
   expect(host.querySelector("h1")?.textContent).toBe("Settings");
@@ -245,7 +354,7 @@ it("saves the name and cancels unsaved changes without writing email", async () 
   expect(host.querySelector<HTMLInputElement>("#pms-account-name")?.value).toBe("Test Person");
 });
 it("preserves multi-word first names and exposes the existing security and verified email controls", async () => {
-  mocks.user = { first_name: "Test First", last_name: "Person", email: "test@example.com" };
+  mocks.user = { first_name: "Test First", last_name: "Person", email: "test@example.com", user_timezone: "UTC" };
   await render(<PMSSettings workspaceSlug="team" tab="account" />);
   await enter("#pms-account-name", "New First Person");
   await submit();
@@ -265,7 +374,7 @@ it("reports save failures and retains the unsaved name", async () => {
   expect(host.querySelector<HTMLInputElement>("#pms-account-name")?.value).toBe("Updated Person");
   log.mockRestore();
 });
-it.each(["account", "teammates", "billing", "company"])(
+it.each(["account", "teammates", "billing", "company", "integrations", "preferences"])(
   "links the sidebar to settings and highlights %s",
   async (tab) => {
     mocks.pathname = `/team/pms-settings/${tab}`;
@@ -277,6 +386,8 @@ it.each(["account", "teammates", "billing", "company"])(
 it.each([
   ["/team/pms-settings/billing", "Billing"],
   ["/team/pms-settings/company", "Company"],
+  ["/team/pms-settings/integrations", "Integrations"],
+  ["/team/pms-settings/preferences", "PMS Preferences"],
   ["/team/pms-settings", "Account"],
   ["/team/pms-settings/invalid", "Account"],
 ])("renders the settings route %s as %s", async (path, heading) => {

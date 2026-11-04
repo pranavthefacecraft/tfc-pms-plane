@@ -417,9 +417,9 @@ the updated app.
 
 ### PMS Settings
 
-The sidebar **PMS Settings** entry and the user-menu **PMS Settings** action open
+The sidebar **PMS Settings** entry and the user-menu **Profile & Preferences** action open
 `/<workspace>/pms-settings/account` as a full page inside the normal app shell,
-not the profile popup. The **Account**, **Teammates**, **Billing** and **Company** tabs have separate URLs
+not the profile popup. All six settings tabs have separate URLs
 and support direct links and browser history.
 
 - Account uses compact Name and Email rows with Cancel/Save actions and a separate
@@ -454,8 +454,24 @@ and support direct links and browser history.
   `0137_workspace_company_profile` must be applied before using this tab.
   Company name changes also rename the workspace. Billing contact and currency
   are profile metadata, not a payment integration.
-- Integrations and PMS Preferences tabs are not included.
-  Two-step verification and login history are marked unavailable
+- Integrations (`/<workspace>/pms-settings/integrations`) follows the connected-apps
+  and files/collaboration layout. Google Calendar, Outlook, Drive and OneDrive
+  connections are explicitly unavailable; no simulated connection buttons or OAuth
+  features are added. API access links to existing personal API-token management
+  (not a Pro-only feature). Admins also have a link to existing workspace integrations.
+- PMS Preferences (`/<workspace>/pms-settings/preferences`) reuses personal week-start
+  and time-zone APIs, with inline Save/Cancel and explicit save errors. Notification,
+  appearance and language actions open existing profile settings. Workspace-wide task
+  defaults and automations are not implemented. The existing task calendars/date
+  pickers use the week-start preference; custom PMS calendars remain Monday-first.
+  Personal time zone remains separate from the Company's workspace time zone.
+- The profile popup lists all accessible workspaces, current workspace first,
+  followed by alphabetically sorted alternatives. Selecting another workspace
+  persists `last_workspace_id` before navigation; failures keep the popup open and
+  show an error. **Add account** uses existing workspace creation (and respects
+  disabled creation), not multi-user login. Invitations and sign out remain available.
+  The original sidebar workspace dropdown remains hidden.
+- Two-step verification and login history are marked unavailable
   because they are not supported by the existing account settings.
 
 ### Project List
