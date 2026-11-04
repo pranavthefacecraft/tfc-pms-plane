@@ -488,6 +488,15 @@ permissions are unchanged. Whiteboards retain their existing list layout.
 Admins and Editors can choose **Link to task or project** in a notepad's row menu
 to open the same attachment popup used inside the editor. Attaching or replacing
 a link updates the list and cached detail immediately; Viewers cannot attach.
+Notepad detail uses the bordered writing panel, All pages breadcrumb, editable
+title and persistent formatting toolbar (text/headings, bold, italic and lists).
+**Link Task / Project** opens the existing attachment dialog. Autosave, rich-text
+uploads and slash commands remain unchanged. Existing attachment, detach and
+owner-only access controls are available under **Attachment and access settings**.
+Collaborator chips show only the real owner and latest editor; there are no live
+cursors or per-notepad invitations. Public/workspace and private/owner access
+remain unchanged, and Viewers cannot edit. Save failures show **Not saved**, not
+a draft or successful save status; this edition has no separate draft workflow.
 
 ### All Accounts Activity
 

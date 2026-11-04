@@ -5,19 +5,12 @@
  */
 
 import { Outlet } from "react-router";
-import { useParams } from "next/navigation";
-import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
-import { WorkspaceToolHeader } from "@/components/workspace-pages/tool-header";
 
 export default function WorkspaceToolPagesLayout() {
-  const { pageId } = useParams();
   return (
-    <>
-      {pageId && <AppHeader header={<WorkspaceToolHeader toolType="page" />} />}
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
+    <ContentWrapper>
+      <Outlet />
+    </ContentWrapper>
   );
 }

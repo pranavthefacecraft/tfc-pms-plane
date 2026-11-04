@@ -49,6 +49,7 @@ type Props = {
    * @description Editor ref, this will be used to imperatively attach editor related helper functions
    */
   editorRef?: React.RefObject<EditorRefApi | null>;
+  onEditorReady?: (ready: boolean) => void;
   /**
    * @description Entity ID, this will be used for file uploads and as the unique identifier for the entity
    */
@@ -111,6 +112,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
     disabled,
     disabledExtensions,
     editorRef,
+    onEditorReady,
     entityId,
     fileAssetType,
     initialValue,
@@ -233,6 +235,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
           key={entityId}
           editable={!disabled}
           ref={editorRef}
+          handleEditorReady={onEditorReady}
           id={entityId}
           issueSequenceId={issueSequenceId}
           disabledExtensions={disabledExtensions}

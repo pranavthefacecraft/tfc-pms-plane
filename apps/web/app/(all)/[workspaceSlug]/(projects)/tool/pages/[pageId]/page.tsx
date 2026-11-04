@@ -14,8 +14,12 @@ export default function WorkspaceToolPageDetailPage() {
 
   return (
     <>
-      <PageHead title="Page" />
-      <WorkspacePageDetailRoot workspaceSlug={workspaceSlug?.toString() ?? ""} pageId={pageId?.toString() ?? ""} />
+      <PageHead title="Notepad" />
+      <WorkspacePageDetailRoot
+        key={`${workspaceSlug}:${pageId}`}
+        workspaceSlug={workspaceSlug?.toString() ?? ""}
+        pageId={pageId?.toString() ?? ""}
+      />
     </>
   );
 }

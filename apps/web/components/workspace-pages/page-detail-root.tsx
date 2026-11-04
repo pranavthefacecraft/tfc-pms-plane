@@ -4,21 +4,24 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // plane imports
 import { EFileAssetType } from "@plane/types";
+import type { EditorRefApi } from "@plane/editor";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // components
 import { DescriptionInput } from "@/components/editor/rich-text/description-input/root";
 // hooks
-import { useUser } from "@/hooks/store/user";
+import { useUser, useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { AttachWorkspacePageModal } from "./attach-page-modal";
-import { getWorkspaceToolListHref } from "./helpers";
+import { getWorkspacePageName, getWorkspaceToolListHref } from "./helpers";
 import { WorkspaceToolPageMetaBar } from "./page-meta-bar";
 import { WorkspaceToolPageTitleInput } from "./page-title-input";
 import { useWorkspaceToolPage } from "./use-workspace-tool-page";
+import { NotepadToolbar } from "./notepad-toolbar";
 
 type Props = {
   workspaceSlug: string;
@@ -28,8 +31,17 @@ type Props = {
 export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot({ workspaceSlug, pageId }: Props) {
   // states
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
+  const [editorReady, setEditorReady] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const editorRef = useRef<EditorRefApi | null>(null);
   // store hooks
   const { data: currentUser } = useUser();
+  const { allowPermissions } = useUserPermissions();
+  const canEdit = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.WORKSPACE,
+    workspaceSlug
+  );
   const { page, error, isLoading, saveStatus, setSaveStatus, applyUpdate, updatePage, detach, toggleAccess } =
     useWorkspaceToolPage(workspaceSlug, pageId);
 
@@ -51,48 +63,116 @@ export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot
       </div>
     );
 
+  const save = async (data: Parameters<typeof updatePage>[0]) => {
+    try {
+      const updated = await updatePage(data);
+      setSaveError("");
+      return updated;
+    } catch (cause) {
+      setSaveError("Could not save your changes. Please try editing again.");
+      throw cause;
+    }
+  };
+  const collaborators = [
+    ...new Map([page.owner, page.updated_by].filter((user) => user !== null).map((user) => [user.id, user])).values(),
+  ];
+
   return (
-    <div className="h-full w-full overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-[880px] flex-col gap-4 px-page-x py-8">
-        <WorkspaceToolPageMetaBar
-          workspaceSlug={workspaceSlug}
-          page={page}
-          isOwner={page.owned_by === currentUser?.id}
-          saveStatus={saveStatus}
-          onAttachClick={() => setIsAttachModalOpen(true)}
-          onDetach={() => void detach()}
-          onToggleAccess={toggleAccess}
-        />
-
-        <WorkspaceToolPageTitleInput
-          page={page}
-          onSave={(name) => updatePage({ name })}
-          setSaveStatus={setSaveStatus}
-          className="text-[2rem]"
-        />
-
-        <DescriptionInput
-          key={page.id}
-          entityId={page.id}
-          workspaceSlug={workspaceSlug}
-          fileAssetType={EFileAssetType.PAGE_DESCRIPTION}
-          initialValue={initialDescription}
-          containerClassName="min-h-[400px] !pl-0 border-none"
-          placeholder="Start writing..."
-          setIsSubmitting={setSaveStatus}
-          onSubmit={async ({ description_html }) => {
-            await updatePage({ description_html });
-          }}
-        />
+    <div className="h-full w-full overflow-y-auto p-4 md:p-7">
+      <h1 className="text-24 font-semibold">Notepad</h1>
+      <div className="my-6 flex items-center justify-between gap-4 text-12">
+        <nav aria-label="Notepad breadcrumb" className="flex min-w-0 items-center gap-3">
+          <Link href={getWorkspaceToolListHref(workspaceSlug)} className="shrink-0 text-secondary hover:underline">
+            All pages
+          </Link>
+          <span aria-hidden="true" className="text-tertiary">
+            /
+          </span>
+          <span className="truncate font-medium">
+            {page.name?.trim() ? getWorkspacePageName(page) : "Untitled page"}
+          </span>
+        </nav>
+        <p role="status" className={`shrink-0 text-12 ${saveError ? "text-danger-primary" : "text-tertiary"}`}>
+          {saveError ? "Not saved" : saveStatus === "submitting" ? "Saving..." : "Saved"}
+        </p>
       </div>
+      <section
+        aria-label="Notepad editor"
+        className="min-h-[600px] rounded-lg border border-[#E2E6EF] bg-surface-1 p-5 md:px-8 md:py-7"
+      >
+        <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
+          <WorkspaceToolPageTitleInput
+            page={page}
+            onSave={(name) => save({ name })}
+            setSaveStatus={setSaveStatus}
+            className="text-24 !font-semibold"
+            placeholder="Untitled Page"
+            disabled={!canEdit}
+          />
+          <div className="flex flex-wrap items-center gap-2 text-12 text-secondary">
+            <span title="Owner and most recent editor">Collaborators:</span>
+            {collaborators.map((user) => (
+              <span key={user.id} className="rounded-full bg-layer-1 px-2 py-1">
+                {user.display_name || user.first_name}
+              </span>
+            ))}
+            <span className="text-tertiary">
+              {page.access === 1 ? "Private · Owner access" : "Public · Workspace access"}
+            </span>
+          </div>
+          <NotepadToolbar
+            editorRef={editorRef}
+            ready={editorReady}
+            disabled={!canEdit}
+            onAttach={() => setIsAttachModalOpen(true)}
+          />
+          {saveError && (
+            <p role="alert" className="text-12 text-danger-primary">
+              {saveError}
+            </p>
+          )}
+          <DescriptionInput
+            key={page.id}
+            entityId={page.id}
+            workspaceSlug={workspaceSlug}
+            fileAssetType={EFileAssetType.PAGE_DESCRIPTION}
+            initialValue={initialDescription}
+            editorRef={editorRef}
+            onEditorReady={setEditorReady}
+            disabled={!canEdit}
+            containerClassName="min-h-[400px] !pl-0 border-none"
+            placeholder="Start writing or type / for options"
+            setIsSubmitting={setSaveStatus}
+            onSubmit={async ({ description_html }) => {
+              await save({ description_html });
+            }}
+          />
+          <details className="border-t border-subtle pt-3 text-12 text-secondary">
+            <summary className="cursor-pointer">Attachment and access settings</summary>
+            <WorkspaceToolPageMetaBar
+              workspaceSlug={workspaceSlug}
+              page={page}
+              isOwner={page.owned_by === currentUser?.id}
+              saveStatus={saveStatus}
+              onAttachClick={() => setIsAttachModalOpen(true)}
+              onDetach={() => void detach()}
+              onToggleAccess={toggleAccess}
+              readOnly={!canEdit}
+              className="mt-3"
+            />
+          </details>
+        </div>
+      </section>
 
-      <AttachWorkspacePageModal
-        isOpen={isAttachModalOpen}
-        onClose={() => setIsAttachModalOpen(false)}
-        workspaceSlug={workspaceSlug}
-        page={page}
-        onAttached={(updatedPage) => void applyUpdate(updatedPage)}
-      />
+      {canEdit && (
+        <AttachWorkspacePageModal
+          isOpen={isAttachModalOpen}
+          onClose={() => setIsAttachModalOpen(false)}
+          workspaceSlug={workspaceSlug}
+          page={page}
+          onAttached={applyUpdate}
+        />
+      )}
     </div>
   );
 });

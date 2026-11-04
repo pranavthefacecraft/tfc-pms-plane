@@ -14,9 +14,18 @@ type Props = {
   onSave: (name: string) => Promise<unknown>;
   setSaveStatus: (status: TNameDescriptionLoader) => void;
   className?: string;
+  placeholder?: string;
+  disabled?: boolean;
 };
 
-export function WorkspaceToolPageTitleInput({ page, onSave, setSaveStatus, className = "" }: Props) {
+export function WorkspaceToolPageTitleInput({
+  page,
+  onSave,
+  setSaveStatus,
+  className = "",
+  placeholder = "Untitled",
+  disabled = false,
+}: Props) {
   const [title, setTitle] = useState(page.name);
   const lastSavedTitle = useRef(page.name);
 
@@ -51,7 +60,8 @@ export function WorkspaceToolPageTitleInput({ page, onSave, setSaveStatus, class
           event.currentTarget.blur();
         }
       }}
-      placeholder="Untitled"
+      placeholder={placeholder}
+      disabled={disabled}
       rows={1}
       maxLength={255}
       aria-label="Title"
