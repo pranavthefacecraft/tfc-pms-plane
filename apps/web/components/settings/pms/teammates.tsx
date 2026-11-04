@@ -43,7 +43,7 @@ export const PMSTeammates = observer(function PMSTeammates({ workspaceSlug }: { 
           <h3 className="text-14 font-semibold">People with access</h3>
           <p className="mt-1 text-12 text-secondary">Manage who can work on PMS projects.</p>
         </div>
-        {isAdmin && (
+        {canView && (
           <button
             type="button"
             className="rounded-full bg-[#135DDD] px-3 py-1.5 text-12 font-medium text-white hover:bg-[#0F4FC0]"
@@ -101,7 +101,7 @@ export const PMSTeammates = observer(function PMSTeammates({ workspaceSlug }: { 
           <WorkspaceMembersList searchQuery={search} isAdmin={isAdmin} />
         </div>
       </details>
-      {inviting && isAdmin && (
+      {inviting && canView && (
         <InviteTeammateDialog
           workspaceSlug={workspaceSlug}
           onClose={() => setInviting(false)}

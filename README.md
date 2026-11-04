@@ -429,10 +429,11 @@ and support direct links and browser history.
   **Advanced profile settings**. Preferences, notifications
   and developer settings remain available through the existing profile settings.
 - Teammates shows the Figma-style name/email rows with Admin, Editor or Viewer on
-  the right. **Invite Teammates** opens a compact email, role and project-access
-  popup. Existing member management, search and pending invitations remain in
+  the right. Admins and Editors can use **Invite Teammates** to open a compact
+  email, role and project-access popup, matching workspace invitation permissions.
+  Existing member management, search and pending invitations remain in
   the expandable **Manage members and pending invitations** section.
-  Workspace admins can invite a Teammate or Viewer, optionally granting access to
+  Workspace Admins and Editors can invite a Teammate or Viewer, optionally granting access to
   a project they administer. Existing members are added directly to a selected
   project; new users receive a workspace invitation with project access applied
   after acceptance. Guests cannot view the teammate list.

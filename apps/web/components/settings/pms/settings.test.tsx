@@ -178,7 +178,7 @@ it.each(["account", "teammates"])("links the sidebar to settings and highlights 
   expect(host.querySelector("a")?.getAttribute("href")).toBe("/team/pms-settings/account/");
   expect(host.querySelector("a")?.getAttribute("aria-current")).toBe("page");
 });
-it("shows teammates and opens the invite form for admins only", async () => {
+it("shows teammates and opens the invite form for admins", async () => {
   await render(<PMSSettings workspaceSlug="team" tab="teammates" />);
   expect(host.textContent).toContain("Existing teammate list");
   const list = host.querySelector('ul[aria-label="People with access"]');
@@ -192,12 +192,20 @@ it("shows teammates and opens the invite form for admins only", async () => {
   await act(() => button("Invite Teammates")!.click());
   expect(host.querySelector('[role="dialog"]')).not.toBeNull();
 });
-it("does not offer invitations to members or the teammate list to guests", async () => {
+it("lets editors open the invite popup and send workspace invitations", async () => {
   mocks.role = 15;
   await render(<PMSSettings workspaceSlug="team" tab="teammates" />);
-  expect(button("Invite Teammates")).toBeUndefined();
+  await act(() => button("Invite Teammates")!.click());
+  expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+  await enter('input[type="email"]', "test@example.com");
+  await submit();
+  expect(mocks.invite).toHaveBeenCalledWith("team", { emails: [{ email: "test@example.com", role: 15 }] });
+  expect(host.querySelector('[role="dialog"]')).toBeNull();
+});
+it("does not offer invitations or the teammate list to guests", async () => {
   mocks.role = 5;
   await render(<PMSSettings workspaceSlug="team" tab="teammates" />);
+  expect(button("Invite Teammates")).toBeUndefined();
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("Only workspace admins and members");
   expect(host.textContent).not.toContain("Existing teammate list");
 });
