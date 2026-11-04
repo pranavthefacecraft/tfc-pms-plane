@@ -57,6 +57,13 @@ vi.mock("@/hooks/store/use-member", () => ({
       inviteMembersToWorkspace: mocks.invite,
       fetchWorkspaceMembers: vi.fn(),
       fetchWorkspaceMemberInvitations: vi.fn(),
+      getWorkspaceMemberIds: () => ["admin", "editor", "viewer", "inactive"],
+      getWorkspaceMemberDetails: (id: string) => ({
+        id,
+        member: { first_name: id, last_name: "Person", email: `${id}@example.com` },
+        role: id === "admin" ? 20 : id === "editor" ? 15 : 5,
+        is_active: id !== "inactive",
+      }),
     },
   }),
 }));
@@ -174,13 +181,21 @@ it.each(["account", "teammates"])("links the sidebar to settings and highlights 
 it("shows teammates and opens the invite form for admins only", async () => {
   await render(<PMSSettings workspaceSlug="team" tab="teammates" />);
   expect(host.textContent).toContain("Existing teammate list");
-  await act(() => button("Invite Teammate")!.click());
+  const list = host.querySelector('ul[aria-label="People with access"]');
+  expect(list?.querySelectorAll("li")).toHaveLength(3);
+  expect(list?.textContent).toContain("admin@example.com");
+  expect(list?.textContent).toContain("Admin");
+  expect(list?.textContent).toContain("Editor");
+  expect(list?.textContent).toContain("Viewer");
+  expect(list?.textContent).not.toContain("inactive@example.com");
+  expect(host.querySelector('input[aria-label="Search teammates"]')?.closest("details")).not.toBeNull();
+  await act(() => button("Invite Teammates")!.click());
   expect(host.querySelector('[role="dialog"]')).not.toBeNull();
 });
 it("does not offer invitations to members or the teammate list to guests", async () => {
   mocks.role = 15;
   await render(<PMSSettings workspaceSlug="team" tab="teammates" />);
-  expect(button("Invite Teammate")).toBeUndefined();
+  expect(button("Invite Teammates")).toBeUndefined();
   mocks.role = 5;
   await render(<PMSSettings workspaceSlug="team" tab="teammates" />);
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("Only workspace admins and members");

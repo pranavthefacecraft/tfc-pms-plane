@@ -15,7 +15,8 @@ import { useProject } from "@/hooks/store/use-project";
 import { ProjectCollaboratorsService } from "@/services/project-collaborators.service";
 
 const collaborators = new ProjectCollaboratorsService();
-const fieldClass = "w-full rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13";
+const fieldClass =
+  "h-9 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 outline-none focus:border-[#135DDD] focus:ring-1 focus:ring-[#135DDD]";
 
 export const InviteTeammateDialog = observer(function InviteTeammateDialog({
   workspaceSlug,
@@ -74,7 +75,7 @@ export const InviteTeammateDialog = observer(function InviteTeammateDialog({
       }}
     >
       <DialogContent size="sm">
-        <form onSubmit={submit} className="flex flex-col gap-4 p-6">
+        <form onSubmit={submit} className="flex flex-col gap-4 p-5">
           <DialogTitle>Invite Teammate</DialogTitle>
           <label className="flex flex-col gap-1.5 text-12">
             Email address
@@ -116,9 +117,7 @@ export const InviteTeammateDialog = observer(function InviteTeammateDialog({
               ))}
             </select>
           </label>
-          <p className="text-12 text-secondary">
-            You can change access later in Settings. Only projects you administer can be selected.
-          </p>
+          <p className="text-12 text-secondary">You can change access later in Settings.</p>
           {error && (
             <p role="alert" className="text-12 text-danger-primary">
               {error}
