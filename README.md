@@ -479,8 +479,8 @@ and support direct links and browser history.
 Tools > Notepad (`/<workspace>/tool/pages/`) uses the compact Notepads list:
 full-width search, Create Notepad, and Name, Project, Collaborators and Updated
 columns. Project links follow accessible attachments; restricted attachments
-never expose project names or links. Collaborators displays the owner and most
-recent editor returned by the existing API, not a complete collaborator history.
+never expose project names or links. Collaborators displays the owner and accepted
+notepad collaborators, not an edit history.
 Dates show Today, Yesterday or a short date in the browser's local time zone.
 The row menu preserves visibility information, task attachment links and
 owner-only deletion with confirmation. Existing page URLs, editor, creation and
@@ -490,12 +490,22 @@ to open the same attachment popup used inside the editor. Attaching or replacing
 a link updates the list and cached detail immediately; Viewers cannot attach.
 Notepad detail uses the bordered writing panel, All pages breadcrumb, editable
 title and persistent formatting toolbar (text/headings, bold, italic and lists).
-**Link Task / Project** opens the existing attachment dialog. Autosave, rich-text
+**Link Task / Project** opens an anchored **Link Notepad** dropdown with combined
+task/project search. Autosave, rich-text
 uploads and slash commands remain unchanged. Existing attachment, detach and
 owner-only access controls are available under **Attachment and access settings**.
-Collaborator chips show only the real owner and latest editor; there are no live
-cursors or per-notepad invitations. Public/workspace and private/owner access
-remain unchanged, and Viewers cannot edit. Save failures show **Not saved**, not
+The owner's **Collaborator +** opens email invitations for Editor access to this
+notepad only. Recipients sign in or register with the invited email and accept a
+recipient-bound, single-use link valid for seven days. No workspace/project
+membership is created. Accepted collaborators can edit text and use this notepad's
+image assets, but cannot change sharing, delete the notepad, or access linked
+projects. Owners can remove individual collaborators or pending invitations.
+**Only Me** requires confirmation, makes the notepad private, and revokes all
+collaborators and invitations. Email delivery uses the configured instance SMTP
+and Celery worker; the UI reports invitations as queued, not delivered.
+There are no live collaboration cursors; edits use the existing autosave flow.
+Public access still grants existing workspace access, and Viewers cannot edit
+unless explicitly invited as notepad collaborators. Save failures show **Not saved**, not
 a draft or successful save status; this edition has no separate draft workflow.
 
 ### All Accounts Activity

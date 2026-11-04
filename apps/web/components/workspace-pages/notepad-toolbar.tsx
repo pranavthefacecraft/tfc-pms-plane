@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { RefObject } from "react";
+import type { RefObject, ReactNode } from "react";
 import type { EditorRefApi } from "@plane/editor";
 import { Bold, Italic, Link2, List } from "lucide-react";
 
@@ -15,11 +15,13 @@ export function NotepadToolbar({
   ready,
   disabled,
   onAttach,
+  attachmentControl,
 }: {
   editorRef: RefObject<Pick<EditorRefApi, "isMenuItemActive" | "onStateChange" | "executeMenuItemCommand"> | null>;
   ready: boolean;
   disabled: boolean;
   onAttach: () => void;
+  attachmentControl?: ReactNode;
 }) {
   const [formatting, setFormatting] = useState({ bold: false, italic: false, list: false, style: "text" });
   useEffect(() => {
@@ -40,7 +42,7 @@ export function NotepadToolbar({
     <div
       role="toolbar"
       aria-label="Notepad formatting"
-      className="flex flex-wrap items-center gap-2 border-y border-subtle py-3 text-12 text-secondary"
+      className="flex min-h-12 flex-wrap items-center gap-3 rounded-md border border-[#E2E6EF] bg-[#F8FAFC] px-3 py-2 text-13 text-[#405574] dark:border-subtle dark:bg-layer-1 dark:text-secondary"
     >
       <select
         aria-label="Text style"
@@ -89,16 +91,18 @@ export function NotepadToolbar({
         onClick={() => editorRef.current?.executeMenuItemCommand({ itemKey: "bulleted-list" })}
         className="flex items-center gap-1 rounded px-2 py-1 hover:bg-layer-1 disabled:opacity-50 aria-pressed:bg-layer-1"
       >
-        <List size={14} /> List
+        <List size={14} className="text-[#135DDD]" /> List
       </button>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onAttach}
-        className="flex items-center gap-1 rounded px-2 py-1 hover:bg-layer-1 disabled:opacity-50"
-      >
-        <Link2 size={14} /> Link Task / Project
-      </button>
+      {attachmentControl ?? (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onAttach}
+          className="flex items-center gap-1 rounded px-2 py-1 hover:bg-layer-1 disabled:opacity-50"
+        >
+          <Link2 size={16} className="text-[#135DDD]" /> Link Task / Project
+        </button>
+      )}
     </div>
   );
 }

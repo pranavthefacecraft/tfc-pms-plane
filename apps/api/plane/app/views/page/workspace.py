@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import Issue, Page, PageEntityLink, ProjectMember, Workspace, WorkspaceMember
+from plane.db.models import Issue, Page, PageEntityLink, ProjectMember, User, Workspace, WorkspaceMember
 
 from ..base import BaseAPIView
 
@@ -31,6 +31,20 @@ def allow_board_guest(func):
 
     @wraps(func)
     def wrapped(self, request, slug, page_id, *args, **kwargs):
+        if (
+            request.user.is_authenticated
+            and not request.user.is_bot
+            and Page.objects.filter(
+                pk=page_id,
+                workspace__slug=slug,
+                is_global=True,
+                parent__isnull=True,
+                archived_at__isnull=True,
+                tool_type=Page.TOOL_TYPE_PAGE,
+                notepad_collaborators__contains=[str(request.user.id)],
+            ).exists()
+        ):
+            return func(self, request, slug, page_id, *args, **kwargs)
         if (
             request.user.is_authenticated
             and not request.user.is_bot
@@ -119,6 +133,11 @@ def serialize_workspace_page(page, member_project_ids, include_description=False
         "updated_at": page.updated_at,
         "attachment": _serialize_attachment(links[0] if links else None, member_project_ids),
     }
+    if page.tool_type == Page.TOOL_TYPE_PAGE:
+        data["collaborators"] = [
+            _serialize_user(user)
+            for user in User.objects.filter(pk__in=page.notepad_collaborators, is_active=True, is_bot=False)
+        ]
     if include_description:
         if page.tool_type == Page.TOOL_TYPE_WHITEBOARD:
             data["description_json"] = page.description_json
@@ -139,9 +158,12 @@ class WorkspacePageMixin:
             from .collaboration import require_board_editor
 
             require_board_editor(page, user)
-        elif not WorkspaceMember.objects.filter(
-            workspace_id=page.workspace_id, member=user, role__gte=ROLE.MEMBER.value, is_active=True
-        ).exists():
+        elif (
+            str(user.id) not in page.notepad_collaborators
+            and not WorkspaceMember.objects.filter(
+                workspace_id=page.workspace_id, member=user, role__gte=ROLE.MEMBER.value, is_active=True
+            ).exists()
+        ):
             raise PermissionDenied("Only workspace members and admins can edit pages.")
 
     def get_pages(self, request, slug):
@@ -159,6 +181,8 @@ class WorkspacePageMixin:
                 whiteboard_guest_ids__contains=[str(request.user.id)],
             )
         )
+        if not request.user.is_bot:
+            access |= Q(tool_type=Page.TOOL_TYPE_PAGE, notepad_collaborators__contains=[str(request.user.id)])
         return (
             Page.objects.filter(
                 workspace__slug=slug,
@@ -247,6 +271,10 @@ class WorkspacePageEndpoint(WorkspacePageMixin, BaseAPIView):
 class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
     def serialize_for_user(self, page, user, slug):
         data = serialize_workspace_page(page, _user_project_ids(user, slug), include_description=True)
+        if page.tool_type == Page.TOOL_TYPE_PAGE:
+            data["can_edit"] = str(user.id) in page.notepad_collaborators or WorkspaceMember.objects.filter(
+                workspace_id=page.workspace_id, member=user, is_active=True, role__gte=ROLE.MEMBER.value
+            ).exists()
         if not WorkspaceMember.objects.filter(workspace_id=page.workspace_id, member=user, is_active=True).exists():
             data["attachment"] = None
         return data
@@ -288,17 +316,14 @@ class WorkspacePageDetailEndpoint(WorkspacePageMixin, BaseAPIView):
         for field in EDITABLE_FIELDS:
             if field in request.data:
                 setattr(page, field, request.data[field] if request.data[field] is not None else "")
-        if page.tool_type == Page.TOOL_TYPE_WHITEBOARD:
-            # Metadata updates must not write back a stale scene or session.
-            fields = [field for field in EDITABLE_FIELDS if field in request.data]
-            if "access" in request.data:
-                fields.append("access")
-            if "description_html" in fields:
-                fields.append("description_stripped")
-            if fields:
-                page.save(update_fields=fields + ["updated_at", "updated_by"])
-        else:
-            page.save()
+        # Autosave must not overwrite concurrent sharing or whiteboard session changes.
+        fields = [field for field in EDITABLE_FIELDS if field in request.data]
+        if "access" in request.data:
+            fields.append("access")
+        if "description_html" in fields:
+            fields.append("description_stripped")
+        if fields:
+            page.save(update_fields=fields + ["updated_at", "updated_by"])
 
         page = self.get_pages(request, slug).get(pk=page.id)
         return Response(

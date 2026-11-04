@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { Button } from "@makeplane/propel/components/button";
@@ -21,19 +21,16 @@ import {
 import { Input, InputGroup } from "@makeplane/propel/components/input";
 import { ProjectsOutline, WorkItemsOutline } from "@makeplane/propel/icons";
 import { setToast } from "@plane/blocks/toast";
-import type { TIssueSearchResponse } from "@plane/types";
 import { cn } from "@plane/utils";
 // hooks
-import { useProject } from "@/hooks/store/use-project";
 // services
 import type { TWorkspacePage, TWorkspacePageEntityType } from "@/services/page/workspace-page.service";
 import { WorkspacePageService } from "@/services/page/workspace-page.service";
-import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import { TOOL_TYPE_LABELS } from "./helpers";
+import { useAttachmentSearch } from "./use-attachment-search";
 
 const workspacePageService = new WorkspacePageService();
-const workspaceService = new WorkspaceService();
 
 type Props = {
   isOpen: boolean;
@@ -55,12 +52,16 @@ export const AttachWorkspacePageModal = observer(function AttachWorkspacePageMod
   // states
   const [activeTab, setActiveTab] = useState<TWorkspacePageEntityType>("issue");
   const [query, setQuery] = useState("");
-  const [issues, setIssues] = useState<TIssueSearchResponse[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [selection, setSelection] = useState<TSelection>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // store hooks
-  const { joinedProjectIds, getPartialProjectById } = useProject();
+  const {
+    issues,
+    projects,
+    loading: isSearching,
+    error: searchError,
+    retry,
+  } = useAttachmentSearch(workspaceSlug, query, isOpen && activeTab === "issue");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,40 +69,6 @@ export const AttachWorkspacePageModal = observer(function AttachWorkspacePageMod
     setSelection(null);
     setActiveTab(page.attachment?.entity_type ?? "issue");
   }, [isOpen, page.attachment?.entity_type]);
-
-  useEffect(() => {
-    if (!isOpen || activeTab !== "issue") return;
-    let isCancelled = false;
-    setIsSearching(true);
-    const timer = setTimeout(() => {
-      workspaceService
-        .searchEntity(workspaceSlug, { count: 20, query_type: ["issue"], query })
-        .then((response) => {
-          if (!isCancelled) setIssues(response.issue ?? []);
-        })
-        .catch(() => {
-          if (!isCancelled) setIssues([]);
-        })
-        .finally(() => {
-          if (!isCancelled) setIsSearching(false);
-        });
-    }, 300);
-    return () => {
-      isCancelled = true;
-      clearTimeout(timer);
-    };
-  }, [activeTab, isOpen, query, workspaceSlug]);
-
-  const projects = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return joinedProjectIds
-      .map((projectId) => getPartialProjectById(projectId))
-      .filter((project): project is NonNullable<typeof project> => !!project)
-      .filter(
-        (project) =>
-          !search || project.name.toLowerCase().includes(search) || project.identifier.toLowerCase().includes(search)
-      );
-  }, [getPartialProjectById, joinedProjectIds, query]);
 
   const handleAttach = async () => {
     if (!selection) return;
@@ -186,6 +153,14 @@ export const AttachWorkspacePageModal = observer(function AttachWorkspacePageMod
                 />
               </InputGroup>
               <div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+                {activeTab === "issue" && searchError && (
+                  <p role="alert" className="text-12 text-danger-primary">
+                    {searchError}{" "}
+                    <button type="button" className="underline" onClick={retry}>
+                      Retry
+                    </button>
+                  </p>
+                )}
                 {activeTab === "issue" &&
                   (isSearching && issues.length === 0 ? (
                     <p className="px-2 py-3 text-13 text-placeholder">Searching...</p>

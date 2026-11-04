@@ -1,4 +1,4 @@
-import { act, useEffect } from "react";
+import { act, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -87,6 +87,39 @@ vi.mock("./attach-page-modal", () => ({
       </div>
     ) : null,
 }));
+vi.mock("./notepad-collaborators", () => ({
+  NotepadCollaborators: ({ canManage }: { canManage: boolean }) => (
+    <div>
+      Ima
+      {canManage && (
+        <button type="button" aria-label="Add collaborator">
+          +
+        </button>
+      )}
+    </div>
+  ),
+}));
+vi.mock("./link-notepad-popover", () => ({
+  LinkNotepadPopover: () => {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          <svg className="text-[#135DDD]" />
+          Link Task / Project
+        </button>
+        {open && (
+          <div role="dialog">
+            Link Notepad
+            <button type="button" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        )}
+      </>
+    );
+  },
+}));
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
@@ -127,11 +160,16 @@ it("renders the bordered Notepad panel, breadcrumb, real collaborators and slash
   expect(host.textContent).toContain("Ima");
   expect(host.textContent).toContain("Start writing or type / for options");
   expect(host.textContent).not.toContain("Saved as draft");
+  const toolbar = host.querySelector('[role="toolbar"]');
+  expect(toolbar?.classList.contains("bg-[#F8FAFC]")).toBe(true);
+  expect(toolbar?.classList.contains("border-[#E2E6EF]")).toBe(true);
+  expect(toolbar?.classList.contains("border-y")).toBe(false);
+  expect(toolbar?.querySelectorAll("svg.text-\\[\\#135DDD\\]")).toHaveLength(2);
 });
-it("opens and closes the same attachment popup from the persistent toolbar", async () => {
+it("opens and closes the anchored linker from the persistent toolbar", async () => {
   await render();
   await click("Link Task / Project");
-  expect(host.querySelector('[role="dialog"]')?.textContent).toContain("Attach page");
+  expect(host.querySelector('[role="dialog"]')?.textContent).toContain("Link Notepad");
   await click("Cancel");
   expect(host.querySelector('[role="dialog"]')).toBeNull();
 });

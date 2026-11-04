@@ -48,6 +48,7 @@ export const coreRoutes: RouteConfigEntry[] = [
   // ALL APP ROUTES
   // ========================================================================
   layout("./(all)/layout.tsx", [
+    route("shared/notepads/:workspaceSlug/:pageId", "./shared-notepad.tsx"),
     route(
       ":workspaceSlug/tool/shared-whiteboards/:sharedWorkspaceSlug/:pageId",
       "./(all)/[workspaceSlug]/(projects)/tool/shared-whiteboards/page.tsx"

@@ -337,6 +337,7 @@ CELERY_ACCEPT_CONTENT = ["application/json"]
 
 CELERY_IMPORTS = (
     "plane.bgtasks.workspace_message_task",
+    "plane.bgtasks.notepad_invitation_task",
     # scheduled tasks
     "plane.bgtasks.issue_automation_task",
     "plane.bgtasks.exporter_expired_task",

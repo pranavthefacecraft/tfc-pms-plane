@@ -86,7 +86,9 @@ export function notepadUpdatedLabel(value: string): string {
 
 export function notepadCollaborators(page: TWorkspacePage): string {
   return [
-    ...new Map([page.owner, page.updated_by].filter((user) => user !== null).map((user) => [user.id, user])).values(),
+    ...new Map(
+      [page.owner, ...(page.collaborators ?? [])].filter((user) => user !== null).map((user) => [user.id, user])
+    ).values(),
   ]
     .map((user) => user.display_name || [user.first_name, user.last_name].filter(Boolean).join(" "))
     .join(", ");
@@ -472,7 +474,7 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
       </div>
       {isNotepad && (
         <p className="text-11 text-tertiary">
-          Collaborators shows the owner and most recent editor, not everyone with workspace access.
+          Collaborators shows the owner and invited collaborators, not everyone with workspace access.
         </p>
       )}
     </div>

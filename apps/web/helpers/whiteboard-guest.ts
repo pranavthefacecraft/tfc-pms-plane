@@ -9,3 +9,6 @@ export const isWhiteboardGuestPath = (path: string | null) =>
   /^\/[\w-]+\/tool\/(?:whiteboards|shared-whiteboards\/[\w-]+)\/[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}\/?(?:\?[^#]*)?$/i.test(
     path
   );
+
+export const isNotepadGuestPath = (path: string | null) =>
+  !!path && /^\/shared\/notepads\/[\w-]+\/[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}\/?(?:\?[^#]*)?$/i.test(path);

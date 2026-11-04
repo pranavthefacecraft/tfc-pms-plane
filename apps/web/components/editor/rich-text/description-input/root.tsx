@@ -96,6 +96,7 @@ type Props = {
    * @description Workspace slug, this will be used to get the workspace details
    */
   workspaceSlug: string;
+  workspaceId?: string;
   /**
    * @description Issue sequence id, this will be used to get the issue sequence id
    */
@@ -123,6 +124,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
     setIsSubmitting,
     swrDescription,
     workspaceSlug,
+    workspaceId,
   } = props;
   // states
   const [localDescription, setLocalDescription] = useState<TFormData>({
@@ -222,7 +224,8 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
     []
   );
 
-  if (!workspaceDetails) return null;
+  const resolvedWorkspaceId = workspaceId ?? workspaceDetails?.id;
+  if (!resolvedWorkspaceId) return null;
 
   if (!localDescription.description_html) return <DescriptionInputLoader />;
 
@@ -242,7 +245,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
           initialValue={localDescription.description_html ?? "<p></p>"}
           value={swrDescription ?? null}
           workspaceSlug={workspaceSlug}
-          workspaceId={workspaceDetails.id}
+          workspaceId={resolvedWorkspaceId}
           projectId={projectId}
           dragDropEnabled
           onChange={(description_json, description_html, options) => {
@@ -284,6 +287,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
             try {
               const { asset_id } = await duplicateEditorAsset({
                 assetId,
+                entityId,
                 entityType: fileAssetType,
                 projectId,
                 workspaceSlug,

@@ -13,7 +13,7 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 // helpers
 import { isValidNextPath } from "@plane/utils";
 import { EPageTypes } from "@/helpers/authentication.helper";
-import { isWhiteboardGuestPath } from "@/helpers/whiteboard-guest";
+import { isWhiteboardGuestPath, isNotepadGuestPath } from "@/helpers/whiteboard-guest";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
@@ -101,7 +101,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
   if (pageType === EPageTypes.NON_AUTHENTICATED) {
     if (!currentUser?.id) return <>{children}</>;
     else {
-      if (nextPath && isWhiteboardGuestPath(nextPath) && isValidURL(nextPath)) {
+      if (nextPath && (isWhiteboardGuestPath(nextPath) || isNotepadGuestPath(nextPath)) && isValidURL(nextPath)) {
         router.replace(nextPath);
         return <></>;
       }
@@ -144,14 +144,22 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   if (pageType === EPageTypes.AUTHENTICATED) {
     if (currentUser?.id) {
-      if (isWhiteboardGuestPath(pathname) || (currentUserProfile && currentUserProfile?.id && isUserOnboard))
+      if (
+        isWhiteboardGuestPath(pathname) ||
+        isNotepadGuestPath(pathname) ||
+        (currentUserProfile && currentUserProfile?.id && isUserOnboard)
+      )
         return <>{children}</>;
       else {
         router.push(`/onboarding`);
         return <></>;
       }
     } else {
-      router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
+      const returnPath =
+        isNotepadGuestPath(pathname) && searchParams.size ? `${pathname}?${searchParams.toString()}` : pathname;
+      router.push(
+        `/${returnPath ? `?next_path=${isNotepadGuestPath(pathname) ? encodeURIComponent(returnPath) : returnPath}` : ``}`
+      );
       return <></>;
     }
   }

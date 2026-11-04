@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 from django.urls import path
+from plane.app.views.page.notepad_sharing import NotepadSharingEndpoint, NotepadInvitationEndpoint
 from plane.app.views.page.documents import WhiteboardDocumentEndpoint
 from plane.app.views.page.whiteboard_comments import WhiteboardThreadEndpoint, WhiteboardCommentAttachmentEndpoint
 from plane.app.views.page.collaboration import (
@@ -25,6 +26,16 @@ from plane.app.views import (
 )
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/collaborators/",
+        NotepadSharingEndpoint.as_view(),
+        name="notepad-collaborators",
+    ),
+    path(
+        "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/accept-invitation/",
+        NotepadInvitationEndpoint.as_view(),
+        name="notepad-accept-invitation",
+    ),
     path(
         "workspaces/<str:slug>/workspace-pages/<uuid:page_id>/guest-workspace/",
         WhiteboardGuestWorkspaceEndpoint.as_view(http_method_names=["post", "options"]),

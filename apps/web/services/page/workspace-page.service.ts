@@ -45,6 +45,14 @@ export type TWorkspacePage = {
   attachment: TWorkspacePageAttachment | null;
   description_html?: string;
   description_json?: Record<string, unknown>;
+  can_edit?: boolean;
+  collaborators?: TWorkspacePageUser[];
+};
+
+export type TNotepadSharing = {
+  access: 0 | 1;
+  collaborators: { id: string; name: string; email: string }[];
+  pending: string[];
 };
 
 export type TWorkspacePageListParams = {
@@ -66,6 +74,26 @@ export class WorkspacePageService extends APIService {
 
   private baseUrl(workspaceSlug: string) {
     return `/api/workspaces/${workspaceSlug}/workspace-pages/`;
+  }
+
+  async sharing(workspaceSlug: string, pageId: string): Promise<TNotepadSharing> {
+    return (await this.get(`${this.baseUrl(workspaceSlug)}${pageId}/collaborators/`)).data;
+  }
+
+  async invite(workspaceSlug: string, pageId: string, email: string): Promise<TNotepadSharing> {
+    return (await this.post(`${this.baseUrl(workspaceSlug)}${pageId}/collaborators/`, { email })).data;
+  }
+
+  async revoke(
+    workspaceSlug: string,
+    pageId: string,
+    data: { email: string } | { only_me: true }
+  ): Promise<TNotepadSharing> {
+    return (await this.delete(`${this.baseUrl(workspaceSlug)}${pageId}/collaborators/`, { data })).data;
+  }
+
+  async acceptInvitation(workspaceSlug: string, pageId: string, token: string): Promise<void> {
+    await this.post(`${this.baseUrl(workspaceSlug)}${pageId}/accept-invitation/`, { token });
   }
 
   async list(workspaceSlug: string, params: TWorkspacePageListParams = {}): Promise<TWorkspacePage[]> {

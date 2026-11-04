@@ -22,13 +22,60 @@ import { WorkspaceToolPageMetaBar } from "./page-meta-bar";
 import { WorkspaceToolPageTitleInput } from "./page-title-input";
 import { useWorkspaceToolPage } from "./use-workspace-tool-page";
 import { NotepadToolbar } from "./notepad-toolbar";
+import { NotepadCollaborators } from "./notepad-collaborators";
+import { LinkNotepadPopover } from "./link-notepad-popover";
+import { WorkspacePageService } from "@/services/page/workspace-page.service";
+import type { TWorkspacePage } from "@/services/page/workspace-page.service";
+import type { TNameDescriptionLoader } from "@plane/types";
+
+const service = new WorkspacePageService();
 
 type Props = {
   workspaceSlug: string;
   pageId: string;
+  shared?: boolean;
 };
 
-export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot({ workspaceSlug, pageId }: Props) {
+function NotepadBreadcrumb({
+  workspaceSlug,
+  page,
+  shared,
+  saveError,
+  saveStatus,
+}: {
+  workspaceSlug: string;
+  page: TWorkspacePage;
+  shared: boolean;
+  saveError: string;
+  saveStatus: TNameDescriptionLoader;
+}) {
+  return (
+    <div className="my-6 flex items-center justify-between gap-4 text-12">
+      <nav aria-label="Notepad breadcrumb" className="flex min-w-0 items-center gap-3">
+        {shared ? (
+          <span>Shared notepad</span>
+        ) : (
+          <Link href={getWorkspaceToolListHref(workspaceSlug)} className="shrink-0 text-secondary hover:underline">
+            All pages
+          </Link>
+        )}
+        <span aria-hidden="true" className="text-tertiary">
+          /
+        </span>
+        <span className="truncate font-medium">{page.name?.trim() ? getWorkspacePageName(page) : "Untitled page"}</span>
+      </nav>
+      <p role="status" className={`shrink-0 text-12 ${saveError ? "text-danger-primary" : "text-tertiary"}`}>
+        {saveError ? "Not saved" : saveStatus === "submitting" ? "Saving..." : "Saved"}
+      </p>
+    </div>
+  );
+}
+
+export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot({
+  workspaceSlug,
+  pageId,
+  shared = false,
+}: Props) {
   // states
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [editorReady, setEditorReady] = useState(false);
@@ -37,13 +84,12 @@ export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot
   // store hooks
   const { data: currentUser } = useUser();
   const { allowPermissions } = useUserPermissions();
-  const canEdit = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.WORKSPACE,
-    workspaceSlug
-  );
+  const canLink =
+    !shared &&
+    allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.WORKSPACE, workspaceSlug);
   const { page, error, isLoading, saveStatus, setSaveStatus, applyUpdate, updatePage, detach, toggleAccess } =
     useWorkspaceToolPage(workspaceSlug, pageId);
+  const canEdit = page?.can_edit ?? canLink;
 
   // Freeze the editor's initial content per page so autosave responses don't reset it mid-typing.
   const initialDescription = useMemo(
@@ -73,29 +119,17 @@ export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot
       throw cause;
     }
   };
-  const collaborators = [
-    ...new Map([page.owner, page.updated_by].filter((user) => user !== null).map((user) => [user.id, user])).values(),
-  ];
 
   return (
     <div className="h-full w-full overflow-y-auto p-4 md:p-7">
       <h1 className="text-24 font-semibold">Notepad</h1>
-      <div className="my-6 flex items-center justify-between gap-4 text-12">
-        <nav aria-label="Notepad breadcrumb" className="flex min-w-0 items-center gap-3">
-          <Link href={getWorkspaceToolListHref(workspaceSlug)} className="shrink-0 text-secondary hover:underline">
-            All pages
-          </Link>
-          <span aria-hidden="true" className="text-tertiary">
-            /
-          </span>
-          <span className="truncate font-medium">
-            {page.name?.trim() ? getWorkspacePageName(page) : "Untitled page"}
-          </span>
-        </nav>
-        <p role="status" className={`shrink-0 text-12 ${saveError ? "text-danger-primary" : "text-tertiary"}`}>
-          {saveError ? "Not saved" : saveStatus === "submitting" ? "Saving..." : "Saved"}
-        </p>
-      </div>
+      <NotepadBreadcrumb
+        workspaceSlug={workspaceSlug}
+        page={page}
+        shared={shared}
+        saveError={saveError}
+        saveStatus={saveStatus}
+      />
       <section
         aria-label="Notepad editor"
         className="min-h-[600px] rounded-lg border border-[#E2E6EF] bg-surface-1 p-5 md:px-8 md:py-7"
@@ -109,22 +143,24 @@ export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot
             placeholder="Untitled Page"
             disabled={!canEdit}
           />
-          <div className="flex flex-wrap items-center gap-2 text-12 text-secondary">
-            <span title="Owner and most recent editor">Collaborators:</span>
-            {collaborators.map((user) => (
-              <span key={user.id} className="rounded-full bg-layer-1 px-2 py-1">
-                {user.display_name || user.first_name}
-              </span>
-            ))}
-            <span className="text-tertiary">
-              {page.access === 1 ? "Private · Owner access" : "Public · Workspace access"}
-            </span>
-          </div>
+          <NotepadCollaborators
+            workspaceSlug={workspaceSlug}
+            page={page}
+            canManage={!shared && canEdit && page.owned_by === currentUser?.id}
+            onChange={async () => applyUpdate(await service.retrieve(workspaceSlug, pageId))}
+          />
           <NotepadToolbar
             editorRef={editorRef}
             ready={editorReady}
             disabled={!canEdit}
             onAttach={() => setIsAttachModalOpen(true)}
+            attachmentControl={
+              canLink ? (
+                <LinkNotepadPopover workspaceSlug={workspaceSlug} page={page} onAttached={applyUpdate} />
+              ) : shared ? (
+                <span className="text-11 text-tertiary">Notepad-only access</span>
+              ) : undefined
+            }
           />
           {saveError && (
             <p role="alert" className="text-12 text-danger-primary">
@@ -135,6 +171,7 @@ export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot
             key={page.id}
             entityId={page.id}
             workspaceSlug={workspaceSlug}
+            workspaceId={shared ? page.workspace : undefined}
             fileAssetType={EFileAssetType.PAGE_DESCRIPTION}
             initialValue={initialDescription}
             editorRef={editorRef}
@@ -147,24 +184,26 @@ export const WorkspacePageDetailRoot = observer(function WorkspacePageDetailRoot
               await save({ description_html });
             }}
           />
-          <details className="border-t border-subtle pt-3 text-12 text-secondary">
-            <summary className="cursor-pointer">Attachment and access settings</summary>
-            <WorkspaceToolPageMetaBar
-              workspaceSlug={workspaceSlug}
-              page={page}
-              isOwner={page.owned_by === currentUser?.id}
-              saveStatus={saveStatus}
-              onAttachClick={() => setIsAttachModalOpen(true)}
-              onDetach={() => void detach()}
-              onToggleAccess={toggleAccess}
-              readOnly={!canEdit}
-              className="mt-3"
-            />
-          </details>
+          {!shared && (
+            <details className="border-t border-subtle pt-3 text-12 text-secondary">
+              <summary className="cursor-pointer">Attachment and access settings</summary>
+              <WorkspaceToolPageMetaBar
+                workspaceSlug={workspaceSlug}
+                page={page}
+                isOwner={page.owned_by === currentUser?.id}
+                saveStatus={saveStatus}
+                onAttachClick={() => setIsAttachModalOpen(true)}
+                onDetach={() => void detach()}
+                onToggleAccess={toggleAccess}
+                readOnly={!canLink}
+                className="mt-3"
+              />
+            </details>
+          )}
         </div>
       </section>
 
-      {canEdit && (
+      {canLink && (
         <AttachWorkspacePageModal
           isOpen={isAttachModalOpen}
           onClose={() => setIsAttachModalOpen(false)}

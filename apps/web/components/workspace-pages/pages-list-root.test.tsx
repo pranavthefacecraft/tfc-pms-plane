@@ -155,7 +155,8 @@ it("matches Notepads columns and uses actual project and editor data", async () 
   ]);
   expect(host.querySelector('a[href="/team/tool/pages/note/"]')?.textContent).toBe("Project Brief");
   expect(host.querySelector('a[href="/team/projects/project/overview/"]')?.textContent).toBe("Website Redesign");
-  expect(host.textContent).toContain("Ima, Pranav");
+  expect(host.textContent).toContain("Ima");
+  expect(host.textContent).not.toContain("Pranav");
   expect(host.textContent).toContain("WEB-8 Draft brief");
   expect(host.querySelector('[aria-label="Actions for Project Brief"]')).not.toBeNull();
   await click("Create Notepad");
@@ -246,6 +247,9 @@ it("deduplicates owner and latest editor and formats Today/Yesterday and older y
   expect(notepadUpdatedLabel(new Date(2026, 9, 26, 10).toISOString())).toBe("Oct 26");
   expect(notepadUpdatedLabel(new Date(2025, 9, 26, 10).toISOString())).toBe("Oct 26, 2025");
   expect(notepadCollaborators({ ...page, updated_by: owner })).toBe("Ima");
+  expect(
+    notepadCollaborators({ ...page, collaborators: [owner, { ...owner, id: "invited", display_name: "Guest" }] })
+  ).toBe("Ima, Guest");
   expect(notepadCollaborators({ ...page, updated_by: null, owner: null })).toBe("");
 });
 

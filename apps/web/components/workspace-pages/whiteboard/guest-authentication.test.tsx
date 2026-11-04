@@ -2,13 +2,14 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { EPageTypes } from "@/helpers/authentication.helper";
-import { isWhiteboardGuestPath } from "@/helpers/whiteboard-guest";
+import { isWhiteboardGuestPath, isNotepadGuestPath } from "@/helpers/whiteboard-guest";
 import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
 
 const path = "/team/tool/whiteboards/e0aaabda-bedc-4447-b22c-fdaa813ef438/";
 const mocks = vi.hoisted(() => ({
   pathname: "",
   nextPath: null as string | null,
+  query: "",
   user: { id: "user" } as { id: string } | undefined,
   push: vi.fn(),
   replace: vi.fn(),
@@ -16,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("next/navigation", () => ({
   usePathname: () => mocks.pathname,
-  useSearchParams: () => new URLSearchParams(mocks.nextPath ? { next_path: mocks.nextPath } : {}),
+  useSearchParams: () => new URLSearchParams(mocks.nextPath ? { next_path: mocks.nextPath } : mocks.query),
 }));
 vi.mock("swr", () => ({ default: () => ({ isLoading: false }) }));
 vi.mock("@/components/common/logo-spinner", () => ({ LogoSpinner: () => <div>Loading</div> }));
@@ -36,6 +37,7 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   mocks.pathname = path;
   mocks.nextPath = null;
+  mocks.query = "";
   mocks.user = { id: "user" };
   mocks.push.mockReset();
   mocks.replace.mockReset();
@@ -90,6 +92,23 @@ it("preserves shared-board return paths in a visitor's own workspace", async () 
   mocks.nextPath = sharedPath;
   await render(EPageTypes.NON_AUTHENTICATED);
   expect(mocks.replace).toHaveBeenCalledWith(sharedPath);
+});
+it("keeps the notepad invitation through sign-in without granting workspace onboarding", async () => {
+  const sharedPath = "/shared/notepads/team/e0aaabda-bedc-4447-b22c-fdaa813ef438/";
+  mocks.pathname = sharedPath;
+  await render();
+  expect(mocks.push).not.toHaveBeenCalled();
+  mocks.user = undefined;
+  mocks.query = "invitation=signed-token";
+  await render();
+  expect(mocks.push).toHaveBeenCalledWith(`/?next_path=${encodeURIComponent(`${sharedPath}?invitation=signed-token`)}`);
+  mocks.pathname = "/";
+  mocks.user = { id: "user" };
+  mocks.nextPath = `${sharedPath}?invitation=signed-token`;
+  await render(EPageTypes.NON_AUTHENTICATED);
+  expect(mocks.replace).toHaveBeenCalledWith(`${sharedPath}?invitation=signed-token`);
+  expect(isNotepadGuestPath(`//evil.test${sharedPath}`)).toBe(false);
+  expect(isNotepadGuestPath("/shared/notepads/team/not-an-id")).toBe(false);
 });
 it.each([
   "//evil.test/team/tool/whiteboards/e0aaabda-bedc-4447-b22c-fdaa813ef438",
