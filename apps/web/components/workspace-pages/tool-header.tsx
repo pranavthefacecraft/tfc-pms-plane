@@ -44,6 +44,8 @@ export const WorkspaceToolHeader = observer(function WorkspaceToolHeader({ toolT
     null
   );
 
+  if (toolType === "page" && !currentPageId) return null;
+
   return (
     <Header>
       <Header.LeftItem>
@@ -54,7 +56,7 @@ export const WorkspaceToolHeader = observer(function WorkspaceToolHeader({ toolT
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
-                label={labels.plural}
+                label={toolType === "page" ? "Notepads" : labels.plural}
                 href={currentPageId ? getWorkspaceToolListHref(slug, toolType) : undefined}
                 icon={<ToolIcon className="size-4 text-tertiary" />}
               />

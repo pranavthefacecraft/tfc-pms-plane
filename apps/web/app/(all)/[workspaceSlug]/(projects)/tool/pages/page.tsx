@@ -14,7 +14,7 @@ export default function WorkspaceToolPagesListPage() {
 
   return (
     <>
-      <PageHead title="Pages" />
+      <PageHead title="Notepads" />
       <WorkspacePagesListRoot workspaceSlug={workspaceSlug?.toString() ?? ""} />
     </>
   );

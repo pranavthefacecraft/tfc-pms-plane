@@ -8,10 +8,13 @@ import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import useSWR from "swr";
+import { format, isToday, isYesterday } from "date-fns";
+import { MoreHorizontal, Plus, Search } from "lucide-react";
 // plane imports
 import { Avatar } from "@makeplane/propel/components/avatar";
 import { Button } from "@makeplane/propel/components/button";
 import { Input, InputGroup } from "@makeplane/propel/components/input";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/components/menu";
 import { DeleteOutline, GlobeOutline, LockOutline } from "@makeplane/propel/icons";
 import { setToast } from "@plane/blocks/toast";
 import { calculateTimeAgo, getFileURL } from "@plane/utils";
@@ -34,6 +37,23 @@ import { useCreateWorkspacePage } from "./use-create-page";
 
 const workspacePageService = new WorkspacePageService();
 
+const listStyles = {
+  page: {
+    root: "gap-6 p-4 md:p-7",
+    search: "w-full",
+    tableWrapper: "min-h-0 overflow-auto border border-subtle",
+    table: "min-w-[700px]",
+    header: "bg-surface-1",
+  },
+  whiteboard: {
+    root: "gap-4 px-page-x py-5",
+    search: "w-full max-w-xs",
+    tableWrapper: "flex-1 overflow-auto rounded-md border border-subtle",
+    table: "min-w-[860px]",
+    header: "bg-layer-1",
+  },
+};
+
 type Props = {
   workspaceSlug: string;
   toolType?: TWorkspaceToolType;
@@ -54,12 +74,227 @@ const UserCell = ({ user }: { user: TWorkspacePageUser | null }) => {
   );
 };
 
+export function notepadUpdatedLabel(value: string): string {
+  const date = new Date(value);
+  if (isToday(date)) return "Today";
+  if (isYesterday(date)) return "Yesterday";
+  return format(date, date.getFullYear() === new Date().getFullYear() ? "MMM d" : "MMM d, yyyy");
+}
+
+export function notepadCollaborators(page: TWorkspacePage): string {
+  return [
+    ...new Map([page.owner, page.updated_by].filter((user) => user !== null).map((user) => [user.id, user])).values(),
+  ]
+    .map((user) => user.display_name || [user.first_name, user.last_name].filter(Boolean).join(" "))
+    .join(", ");
+}
+
+function NotepadRow({
+  page,
+  workspaceSlug,
+  canDelete,
+  onDelete,
+}: {
+  page: TWorkspacePage;
+  workspaceSlug: string;
+  canDelete: boolean;
+  onDelete: (page: TWorkspacePage) => Promise<void>;
+}) {
+  const attachment = page.attachment;
+  const attachmentLabel = getAttachmentLabel(attachment);
+  const attachmentHref = getAttachmentHref(workspaceSlug, attachment);
+  const projectLabel = attachment
+    ? attachment.is_accessible
+      ? attachment.project_name || "Attached project"
+      : "Restricted project"
+    : "—";
+  const projectHref = attachment?.is_accessible
+    ? `/${workspaceSlug}/projects/${attachment.project_id}/overview`
+    : undefined;
+  const href = getWorkspacePageHref(workspaceSlug, page.id);
+  return (
+    <tr className="border-t border-subtle hover:bg-layer-1-hover">
+      <td className="px-4 py-6">
+        <Link href={href} className="block truncate font-medium text-primary hover:underline">
+          {getWorkspacePageName(page)}
+        </Link>
+      </td>
+      <td className="px-4 py-6 text-secondary">
+        {projectHref ? (
+          <Link href={projectHref} className="block truncate hover:underline">
+            {projectLabel}
+          </Link>
+        ) : (
+          <span className="block truncate">{projectLabel}</span>
+        )}
+      </td>
+      <td className="px-4 py-6 text-secondary">
+        <span className="block truncate" title="Owner and most recent editor">
+          {notepadCollaborators(page) || "—"}
+        </span>
+      </td>
+      <td className="px-4 py-6 text-secondary">
+        <time dateTime={page.updated_at} title={page.updated_at}>
+          {notepadUpdatedLabel(page.updated_at)}
+        </time>
+      </td>
+      <td className="px-2 py-6">
+        <Menu>
+          <MenuTrigger
+            render={
+              <button
+                type="button"
+                aria-label={`Actions for ${getWorkspacePageName(page)}`}
+                className="rounded p-1 text-secondary hover:bg-layer-1"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            }
+          />
+          <MenuContent align="end">
+            <MenuItem label="Open notepad" render={<Link href={href} />} />
+            <div className="px-3 py-2 text-12 text-secondary">
+              {page.access === WORKSPACE_PAGE_ACCESS.PRIVATE ? "Private · Owner only" : "Public · Workspace access"}
+            </div>
+            {attachmentLabel && (
+              <div className="max-w-64 px-3 py-2 text-12 text-secondary">
+                {attachmentHref ? (
+                  <Link href={attachmentHref} className="hover:underline">
+                    {attachmentLabel}
+                  </Link>
+                ) : (
+                  attachmentLabel
+                )}
+              </div>
+            )}
+            {canDelete && <MenuItem label="Delete notepad" onClick={() => void onDelete(page)} />}
+          </MenuContent>
+        </Menu>
+      </td>
+    </tr>
+  );
+}
+
+function WhiteboardRow({
+  page,
+  workspaceSlug,
+  canDelete,
+  onDelete,
+}: {
+  page: TWorkspacePage;
+  workspaceSlug: string;
+  canDelete: boolean;
+  onDelete: (page: TWorkspacePage) => Promise<void>;
+}) {
+  const attachmentLabel = getAttachmentLabel(page.attachment);
+  const attachmentHref = getAttachmentHref(workspaceSlug, page.attachment);
+  const isPrivate = page.access === WORKSPACE_PAGE_ACCESS.PRIVATE;
+  const ToolIcon = getToolTypeIcon("whiteboard");
+  return (
+    <tr className="group border-t border-subtle hover:bg-layer-1-hover">
+      <td className="px-4 py-2.5">
+        <Link
+          href={getWorkspacePageHref(workspaceSlug, page.id, "whiteboard")}
+          className="flex min-w-0 items-center gap-2 font-medium text-primary"
+        >
+          <ToolIcon className="size-4 flex-shrink-0 text-tertiary" />
+          <span className="truncate">{getWorkspacePageName(page)}</span>
+        </Link>
+      </td>
+      <td className="px-4 py-2.5 text-secondary">
+        <UserCell user={page.owner} />
+      </td>
+      <td className="px-4 py-2.5 text-secondary">
+        {!attachmentLabel ? (
+          <span className="text-placeholder">—</span>
+        ) : attachmentHref ? (
+          <Link href={attachmentHref} className="block truncate hover:underline">
+            {attachmentLabel}
+          </Link>
+        ) : (
+          <span className="block truncate text-placeholder">{attachmentLabel}</span>
+        )}
+      </td>
+      <td className="px-4 py-2.5 text-secondary">{calculateTimeAgo(page.updated_at)}</td>
+      <td className="px-4 py-2.5 text-secondary">
+        <span className="flex items-center gap-1.5">
+          {isPrivate ? <LockOutline className="size-3.5" /> : <GlobeOutline className="size-3.5" />}
+          {isPrivate ? "Private" : "Public"}
+        </span>
+      </td>
+      <td className="px-4 py-2.5 text-secondary">
+        {isPrivate ? <UserCell user={page.owner} /> : <span>Workspace</span>}
+      </td>
+      <td className="px-2 py-2.5 text-right">
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => void onDelete(page)}
+            className="rounded p-1 text-tertiary opacity-0 group-hover:opacity-100 hover:bg-layer-1 hover:text-danger-primary focus:opacity-100"
+            aria-label={`Delete ${getWorkspacePageName(page)}`}
+          >
+            <DeleteOutline className="size-4" />
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function EmptyPagesRow({
+  toolType,
+  search,
+  isCreating,
+  onCreate,
+}: {
+  toolType: TWorkspaceToolType;
+  search: string;
+  isCreating: boolean;
+  onCreate: () => Promise<void>;
+}) {
+  const isNotepad = toolType === "page";
+  const plural = isNotepad ? "notepads" : "whiteboards";
+  const ToolIcon = getToolTypeIcon(toolType);
+  return (
+    <tr>
+      <td colSpan={isNotepad ? 5 : 7} className="px-4 py-12">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <ToolIcon className="size-8 text-placeholder" />
+          <p className="text-14 font-medium text-primary">
+            {search ? `No ${plural} match your search` : `No ${plural} yet`}
+          </p>
+          {!search && (
+            <>
+              <p className="max-w-sm text-13 text-tertiary">
+                {isNotepad
+                  ? "Create a notepad to write docs, specs or notes, then attach it to a task or project."
+                  : "Create a whiteboard to sketch ideas, diagrams or flows, then attach it to a task or project."}
+              </p>
+              <Button
+                variant="primary"
+                size="md"
+                stretch="auto"
+                label={isNotepad ? "Create notepad" : "Create whiteboard"}
+                loading={isCreating}
+                onClick={() => void onCreate()}
+              />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
   workspaceSlug,
   toolType = "page",
 }: Props) {
   const labels = TOOL_TYPE_LABELS[toolType];
-  const ToolIcon = getToolTypeIcon(toolType);
+  const styles = listStyles[toolType];
+  const isNotepad = toolType === "page";
+  const plural = isNotepad ? "Notepads" : labels.plural;
+  const columnCount = isNotepad ? 5 : 7;
   // states
   const [search, setSearch] = useState("");
   // store hooks
@@ -69,6 +304,7 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
   const {
     data: pages,
     isLoading,
+    error,
     mutate,
   } = useSWR(
     workspaceSlug ? WORKSPACE_PAGES_SWR_KEY(workspaceSlug, toolType) : null,
@@ -95,132 +331,114 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
   };
 
   return (
-    <div className="flex h-full w-full flex-col gap-4 overflow-hidden px-page-x py-5">
+    <div className={`flex h-full w-full flex-col overflow-hidden ${styles.root}`}>
+      {isNotepad && (
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-24 font-semibold text-primary">Notepads</h1>
+          <button
+            type="button"
+            disabled={isCreating}
+            onClick={() => void createPage()}
+            className="flex shrink-0 items-center gap-2 rounded-full bg-[#135DDD] px-5 py-2.5 text-12 font-medium text-white hover:bg-[#104FC0] disabled:opacity-50"
+          >
+            <Plus size={14} aria-hidden="true" />
+            {isCreating ? "Creating..." : "Create Notepad"}
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
-        <div className="w-full max-w-xs">
+        <div className={styles.search}>
           <InputGroup size="lg">
+            {isNotepad && <Search size={14} aria-hidden="true" className="ml-3 shrink-0 text-secondary" />}
             <Input
               size="lg"
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={`Search ${labels.plural.toLowerCase()}`}
-              aria-label={`Search ${labels.plural.toLowerCase()}`}
+              placeholder={`Search ${plural.toLowerCase()}`}
+              aria-label={`Search ${plural.toLowerCase()}`}
             />
           </InputGroup>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-md border border-subtle">
-        <table className="w-full min-w-[860px] table-fixed border-collapse text-13">
-          <thead className="sticky top-0 z-[1] bg-layer-1">
-            <tr className="text-left text-12 font-medium text-tertiary">
-              <th className="w-[30%] px-4 py-2 font-medium">Name</th>
-              <th className="w-[15%] px-4 py-2 font-medium">Created by</th>
-              <th className="w-[20%] px-4 py-2 font-medium">Attached to</th>
-              <th className="w-[13%] px-4 py-2 font-medium">Last modified</th>
-              <th className="w-[10%] px-4 py-2 font-medium">Access</th>
-              <th className="w-[12%] px-4 py-2 font-medium">Members</th>
-              <th className="w-12 px-2 py-2" aria-label="Actions" />
-            </tr>
+      <div className={styles.tableWrapper}>
+        <table className={`w-full table-fixed border-collapse text-13 ${styles.table}`}>
+          <thead className={`sticky top-0 z-[1] ${styles.header}`}>
+            {isNotepad ? (
+              <tr className="text-left text-11 text-secondary">
+                <th className="w-[38%] px-4 py-4 font-medium">NAME</th>
+                <th className="w-[24%] px-4 py-4 font-medium">PROJECT</th>
+                <th className="w-[21%] px-4 py-4 font-medium">COLLABORATORS</th>
+                <th className="w-[13%] px-4 py-4 font-medium">UPDATED</th>
+                <th className="w-12 px-2 py-4" aria-label="Actions" />
+              </tr>
+            ) : (
+              <tr className="text-left text-12 font-medium text-tertiary">
+                <th className="w-[30%] px-4 py-2 font-medium">Name</th>
+                <th className="w-[15%] px-4 py-2 font-medium">Created by</th>
+                <th className="w-[20%] px-4 py-2 font-medium">Attached to</th>
+                <th className="w-[13%] px-4 py-2 font-medium">Last modified</th>
+                <th className="w-[10%] px-4 py-2 font-medium">Access</th>
+                <th className="w-[12%] px-4 py-2 font-medium">Members</th>
+                <th className="w-12 px-2 py-2" aria-label="Actions" />
+              </tr>
+            )}
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-placeholder">
-                  Loading {labels.plural.toLowerCase()}...
+                <td colSpan={columnCount} className="px-4 py-6 text-center text-placeholder">
+                  Loading {plural.toLowerCase()}...
                 </td>
               </tr>
             )}
-            {!isLoading && filteredPages.length === 0 && (
+            {error && (
               <tr>
-                <td colSpan={7} className="px-4 py-12">
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <ToolIcon className="size-8 text-placeholder" />
-                    <p className="text-14 font-medium text-primary">
-                      {search
-                        ? `No ${labels.plural.toLowerCase()} match your search`
-                        : `No ${labels.plural.toLowerCase()} yet`}
-                    </p>
-                    {!search && (
-                      <>
-                        <p className="max-w-sm text-13 text-tertiary">
-                          {toolType === "whiteboard"
-                            ? "Create a whiteboard to sketch ideas, diagrams or flows, then attach it to a task or project."
-                            : "Create a page to write docs, specs or notes, then attach it to a task or project."}
-                        </p>
-                        <Button
-                          variant="primary"
-                          size="md"
-                          stretch="auto"
-                          label={`Create ${labels.singular}`}
-                          loading={isCreating}
-                          onClick={() => void createPage()}
-                        />
-                      </>
-                    )}
+                <td colSpan={columnCount} className="px-4 py-6">
+                  <div role="alert" className="text-center text-13">
+                    <p>Could not load {plural.toLowerCase()}. Please try again.</p>
+                    <button type="button" className="mt-2 text-[#135DDD]" onClick={() => void mutate()}>
+                      Retry
+                    </button>
                   </div>
                 </td>
               </tr>
             )}
+            {!isLoading && !error && filteredPages.length === 0 && (
+              <EmptyPagesRow toolType={toolType} search={search} isCreating={isCreating} onCreate={createPage} />
+            )}
             {filteredPages.map((page) => {
-              const attachmentLabel = getAttachmentLabel(page.attachment);
-              const attachmentHref = getAttachmentHref(workspaceSlug, page.attachment);
-              const isPrivate = page.access === WORKSPACE_PAGE_ACCESS.PRIVATE;
               const canDelete = page.owned_by === currentUser?.id;
+              if (isNotepad) {
+                return (
+                  <NotepadRow
+                    key={page.id}
+                    page={page}
+                    workspaceSlug={workspaceSlug}
+                    canDelete={canDelete}
+                    onDelete={handleDelete}
+                  />
+                );
+              }
               return (
-                <tr key={page.id} className="group border-t border-subtle hover:bg-layer-1-hover">
-                  <td className="px-4 py-2.5">
-                    <Link
-                      href={getWorkspacePageHref(workspaceSlug, page.id, toolType)}
-                      className="flex min-w-0 items-center gap-2 font-medium text-primary"
-                    >
-                      <ToolIcon className="size-4 flex-shrink-0 text-tertiary" />
-                      <span className="truncate">{getWorkspacePageName(page)}</span>
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2.5 text-secondary">
-                    <UserCell user={page.owner} />
-                  </td>
-                  <td className="px-4 py-2.5 text-secondary">
-                    {!attachmentLabel ? (
-                      <span className="text-placeholder">—</span>
-                    ) : attachmentHref ? (
-                      <Link href={attachmentHref} className="block truncate hover:underline">
-                        {attachmentLabel}
-                      </Link>
-                    ) : (
-                      <span className="block truncate text-placeholder">{attachmentLabel}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-secondary">{calculateTimeAgo(page.updated_at)}</td>
-                  <td className="px-4 py-2.5 text-secondary">
-                    <span className="flex items-center gap-1.5">
-                      {isPrivate ? <LockOutline className="size-3.5" /> : <GlobeOutline className="size-3.5" />}
-                      {isPrivate ? "Private" : "Public"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-secondary">
-                    {isPrivate ? <UserCell user={page.owner} /> : <span>Workspace</span>}
-                  </td>
-                  <td className="px-2 py-2.5 text-right">
-                    {canDelete && (
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(page)}
-                        className="rounded p-1 text-tertiary opacity-0 group-hover:opacity-100 hover:bg-layer-1 hover:text-danger-primary focus:opacity-100"
-                        aria-label={`Delete ${getWorkspacePageName(page)}`}
-                      >
-                        <DeleteOutline className="size-4" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                <WhiteboardRow
+                  key={page.id}
+                  page={page}
+                  workspaceSlug={workspaceSlug}
+                  canDelete={canDelete}
+                  onDelete={handleDelete}
+                />
               );
             })}
           </tbody>
         </table>
       </div>
+      {isNotepad && (
+        <p className="text-11 text-tertiary">
+          Collaborators shows the owner and most recent editor, not everyone with workspace access.
+        </p>
+      )}
     </div>
   );
 });

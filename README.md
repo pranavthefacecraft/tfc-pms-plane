@@ -474,6 +474,18 @@ and support direct links and browser history.
 - Two-step verification and login history are marked unavailable
   because they are not supported by the existing account settings.
 
+### Notepads
+
+Tools > Notepad (`/<workspace>/tool/pages/`) uses the compact Notepads list:
+full-width search, Create Notepad, and Name, Project, Collaborators and Updated
+columns. Project links follow accessible attachments; restricted attachments
+never expose project names or links. Collaborators displays the owner and most
+recent editor returned by the existing API, not a complete collaborator history.
+Dates show Today, Yesterday or a short date in the browser's local time zone.
+The row menu preserves visibility information, task attachment links and
+owner-only deletion with confirmation. Existing page URLs, editor, creation and
+permissions are unchanged. Whiteboards retain their existing list layout.
+
 ### All Accounts Activity
 
 The profile popup's **All accounts activity** link opens
