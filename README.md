@@ -485,6 +485,9 @@ Dates show Today, Yesterday or a short date in the browser's local time zone.
 The row menu preserves visibility information, task attachment links and
 owner-only deletion with confirmation. Existing page URLs, editor, creation and
 permissions are unchanged. Whiteboards retain their existing list layout.
+Admins and Editors can choose **Link to task or project** in a notepad's row menu
+to open the same attachment popup used inside the editor. Attaching or replacing
+a link updates the list and cached detail immediately; Viewers cannot attach.
 
 ### All Accounts Activity
 

@@ -14,12 +14,51 @@ const state = vi.hoisted(() => ({
   destroy: vi.fn(),
   create: vi.fn(),
   creating: false,
+  canAttach: true,
+  globalMutate: vi.fn(),
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("swr", () => ({
   default: () => ({ data: state.pages, isLoading: state.loading, error: state.error, mutate: state.mutate }),
+  mutate: state.globalMutate,
 }));
-vi.mock("@/hooks/store/user", () => ({ useUser: () => ({ data: { id: "owner" } }) }));
+vi.mock("@/hooks/store/user", () => ({
+  useUser: () => ({ data: { id: "owner" } }),
+  useUserPermissions: () => ({ allowPermissions: () => state.canAttach }),
+}));
+vi.mock("./attach-page-modal", () => ({
+  AttachWorkspacePageModal: ({
+    page,
+    onClose,
+    onAttached,
+  }: {
+    page: TWorkspacePage;
+    onClose: () => void;
+    onAttached: (page: TWorkspacePage) => Promise<void>;
+  }) => (
+    <div role="dialog" aria-label="Attach page">
+      <p>{page.id}</p>
+      <button onClick={onClose}>Cancel attachment</button>
+      <button
+        onClick={async () => {
+          await onAttached({
+            ...page,
+            attachment: {
+              entity_type: "project",
+              project_id: "new-project",
+              issue_id: null,
+              is_accessible: true,
+              project_name: "New project",
+            },
+          });
+          onClose();
+        }}
+      >
+        Attach selected project
+      </button>
+    </div>
+  ),
+}));
 vi.mock("./use-create-page", () => ({
   useCreateWorkspacePage: () => ({ createPage: state.create, isCreating: state.creating }),
 }));
@@ -75,6 +114,11 @@ beforeEach(() => {
   state.loading = false;
   state.error = undefined;
   state.creating = false;
+  state.canAttach = true;
+  state.mutate.mockImplementation(async (updater: unknown) => {
+    if (typeof updater === "function") state.pages = updater(state.pages);
+  });
+  state.globalMutate.mockResolvedValue(undefined);
   state.destroy.mockResolvedValue(undefined);
   host = document.createElement("div");
   document.body.append(host);
@@ -203,4 +247,37 @@ it("deduplicates owner and latest editor and formats Today/Yesterday and older y
   expect(notepadUpdatedLabel(new Date(2025, 9, 26, 10).toISOString())).toBe("Oct 26, 2025");
   expect(notepadCollaborators({ ...page, updated_by: owner })).toBe("Ima");
   expect(notepadCollaborators({ ...page, updated_by: null, owner: null })).toBe("");
+});
+
+it.each([true, false])(
+  "opens the existing attachment dialog for attached/unattached notepads (%s)",
+  async (attached) => {
+    state.pages = [{ ...page, attachment: attached ? page.attachment : null }];
+    await render();
+    await click("Link to task or project");
+    expect(host.querySelector('[role="dialog"]')?.textContent).toContain("note");
+    await click("Cancel attachment");
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(state.mutate).not.toHaveBeenCalled();
+    await click("Link to task or project");
+    await click("Attach selected project");
+    await render();
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(host.querySelector('a[href="/team/projects/new-project/overview/"]')?.textContent).toBe("New project");
+    expect(state.globalMutate).toHaveBeenCalledWith(
+      "WORKSPACE_TOOL_PAGE_DETAIL_team_note",
+      expect.objectContaining({ id: "note" }),
+      { revalidate: false }
+    );
+  }
+);
+it("allows non-owner Editors to attach but hides the action from Viewers", async () => {
+  state.pages = [{ ...page, owned_by: "other" }];
+  await render();
+  expect(host.textContent).toContain("Link to task or project");
+  expect(host.textContent).not.toContain("Delete notepad");
+  state.canAttach = false;
+  await render();
+  expect(host.textContent).not.toContain("Link to task or project");
+  expect(host.querySelector('[role="dialog"]')).toBeNull();
 });

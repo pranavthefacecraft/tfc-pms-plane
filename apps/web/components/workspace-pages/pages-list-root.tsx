@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import { format, isToday, isYesterday } from "date-fns";
 import { MoreHorizontal, Plus, Search } from "lucide-react";
 // plane imports
@@ -18,8 +18,9 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/comp
 import { DeleteOutline, GlobeOutline, LockOutline } from "@makeplane/propel/icons";
 import { setToast } from "@plane/blocks/toast";
 import { calculateTimeAgo, getFileURL } from "@plane/utils";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // hooks
-import { useUser } from "@/hooks/store/user";
+import { useUser, useUserPermissions } from "@/hooks/store/user";
 // services
 import type { TWorkspacePage, TWorkspacePageUser, TWorkspaceToolType } from "@/services/page/workspace-page.service";
 import { WORKSPACE_PAGE_ACCESS, WorkspacePageService } from "@/services/page/workspace-page.service";
@@ -27,6 +28,7 @@ import { WORKSPACE_PAGE_ACCESS, WorkspacePageService } from "@/services/page/wor
 import {
   TOOL_TYPE_LABELS,
   WORKSPACE_PAGES_SWR_KEY,
+  WORKSPACE_PAGE_DETAIL_SWR_KEY,
   getAttachmentHref,
   getAttachmentLabel,
   getToolTypeIcon,
@@ -34,6 +36,7 @@ import {
   getWorkspacePageName,
 } from "./helpers";
 import { useCreateWorkspacePage } from "./use-create-page";
+import { AttachWorkspacePageModal } from "./attach-page-modal";
 
 const workspacePageService = new WorkspacePageService();
 
@@ -94,12 +97,17 @@ function NotepadRow({
   workspaceSlug,
   canDelete,
   onDelete,
+  canAttach,
+  onAttached,
 }: {
   page: TWorkspacePage;
   workspaceSlug: string;
   canDelete: boolean;
   onDelete: (page: TWorkspacePage) => Promise<void>;
+  canAttach: boolean;
+  onAttached: (page: TWorkspacePage) => Promise<void>;
 }) {
+  const [isAttachOpen, setIsAttachOpen] = useState(false);
   const attachment = page.attachment;
   const attachmentLabel = getAttachmentLabel(attachment);
   const attachmentHref = getAttachmentHref(workspaceSlug, attachment);
@@ -153,6 +161,7 @@ function NotepadRow({
           />
           <MenuContent align="end">
             <MenuItem label="Open notepad" render={<Link href={href} />} />
+            {canAttach && <MenuItem label="Link to task or project" onClick={() => setIsAttachOpen(true)} />}
             <div className="px-3 py-2 text-12 text-secondary">
               {page.access === WORKSPACE_PAGE_ACCESS.PRIVATE ? "Private · Owner only" : "Public · Workspace access"}
             </div>
@@ -170,6 +179,16 @@ function NotepadRow({
             {canDelete && <MenuItem label="Delete notepad" onClick={() => void onDelete(page)} />}
           </MenuContent>
         </Menu>
+        {isAttachOpen && canAttach && (
+          <AttachWorkspacePageModal
+            key={`${workspaceSlug}:${page.id}`}
+            isOpen={isAttachOpen}
+            onClose={() => setIsAttachOpen(false)}
+            workspaceSlug={workspaceSlug}
+            page={page}
+            onAttached={onAttached}
+          />
+        )}
       </td>
     </tr>
   );
@@ -299,6 +318,12 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
   const [search, setSearch] = useState("");
   // store hooks
   const { data: currentUser } = useUser();
+  const { allowPermissions } = useUserPermissions();
+  const canAttach = allowPermissions(
+    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+    EUserPermissionsLevel.WORKSPACE,
+    workspaceSlug
+  );
   const { createPage, isCreating } = useCreateWorkspacePage(workspaceSlug, toolType);
   // fetch
   const {
@@ -328,6 +353,15 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
       const message = (error as { error?: string } | undefined)?.error ?? `Could not delete the ${labels.singular}.`;
       setToast({ type: "error", title: "Error", message });
     }
+  };
+
+  const handleAttached = async (updatedPage: TWorkspacePage) => {
+    await mutate((current) => current?.map((page) => (page.id === updatedPage.id ? updatedPage : page)), {
+      revalidate: false,
+    });
+    await globalMutate(WORKSPACE_PAGE_DETAIL_SWR_KEY(workspaceSlug, updatedPage.id), updatedPage, {
+      revalidate: false,
+    });
   };
 
   return (
@@ -418,6 +452,8 @@ export const WorkspacePagesListRoot = observer(function WorkspacePagesListRoot({
                     workspaceSlug={workspaceSlug}
                     canDelete={canDelete}
                     onDelete={handleDelete}
+                    canAttach={canAttach}
+                    onAttached={handleAttached}
                   />
                 );
               }

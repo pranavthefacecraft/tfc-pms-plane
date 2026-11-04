@@ -40,7 +40,7 @@ type Props = {
   onClose: () => void;
   workspaceSlug: string;
   page: TWorkspacePage;
-  onAttached: (page: TWorkspacePage) => void;
+  onAttached: (page: TWorkspacePage) => void | Promise<void>;
 };
 
 type TSelection = { entityType: TWorkspacePageEntityType; id: string } | null;
@@ -111,7 +111,7 @@ export const AttachWorkspacePageModal = observer(function AttachWorkspacePageMod
         entity_type: selection.entityType,
         entity_id: selection.id,
       });
-      onAttached(updatedPage);
+      await onAttached(updatedPage);
       setToast({
         type: "success",
         title: "Attached",
