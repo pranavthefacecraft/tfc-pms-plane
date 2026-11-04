@@ -6,8 +6,7 @@
 
 import Link from "next/link";
 import { PageHead } from "@/components/core/page-title";
-import { GeneralProfileSettings } from "@/components/settings/profile/content/pages/general";
-import { SecurityProfileSettings } from "@/components/settings/profile/content/pages/security";
+import { PMSAccount } from "./account";
 import { PMSTeammates } from "./teammates";
 
 export function PMSSettings({ workspaceSlug, tab }: { workspaceSlug: string; tab: "account" | "teammates" }) {
@@ -15,7 +14,7 @@ export function PMSSettings({ workspaceSlug, tab }: { workspaceSlug: string; tab
   return (
     <div className="p-4 md:p-7">
       <PageHead title="PMS Settings" />
-      <h1 className="mb-5 text-20 font-semibold">PMS Settings</h1>
+      <h1 className="mb-5 text-20 font-semibold">Settings</h1>
       <section className="max-w-5xl rounded-lg border border-[#E2E6EF] bg-surface-1 p-4 md:p-6">
         <h2 className="text-18 font-semibold">{account ? "Account" : "Teammates"}</h2>
         <p className="mt-1 text-13 text-secondary">
@@ -33,23 +32,7 @@ export function PMSSettings({ workspaceSlug, tab }: { workspaceSlug: string; tab
             </Link>
           ))}
         </nav>
-        {account ? (
-          <>
-            <h3 className="mb-5 text-14 font-semibold">Personal information</h3>
-            <GeneralProfileSettings />
-            <div className="mt-8 border-t border-subtle pt-6">
-              <h3 className="mb-4 text-14 font-semibold">Sign-in &amp; security</h3>
-              <details>
-                <summary className="cursor-pointer text-13 text-[#135DDD]">Change password</summary>
-                <div className="mt-5 max-w-xl">
-                  <SecurityProfileSettings />
-                </div>
-              </details>
-            </div>
-          </>
-        ) : (
-          <PMSTeammates workspaceSlug={workspaceSlug} />
-        )}
+        {account ? <PMSAccount /> : <PMSTeammates workspaceSlug={workspaceSlug} />}
       </section>
     </div>
   );

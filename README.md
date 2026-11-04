@@ -422,8 +422,11 @@ The sidebar **PMS Settings** entry and the user-menu **PMS Settings** action ope
 not the profile popup. The **Account** and **Teammates** tabs have separate URLs
 and support direct links and browser history.
 
-- Account reuses the existing profile, photo, cover, verified email-change,
-  account-deactivation and password-change controls. Preferences, notifications
+- Account uses compact Name and Email rows with Cancel/Save actions and a separate
+  security section. Email changes use the existing verification flow; the email
+  field is read-only. Password changes expand the existing password form.
+  Photo, cover, display name and account deactivation remain available through
+  **Advanced profile settings**. Preferences, notifications
   and developer settings remain available through the existing profile settings.
 - Teammates reuses workspace member management, search and pending invitations.
   Workspace admins can invite a Teammate or Viewer, optionally granting access to
@@ -431,8 +434,8 @@ and support direct links and browser history.
   project; new users receive a workspace invitation with project access applied
   after acceptance. Guests cannot view the teammate list.
 - Billing, Company, Integrations and PMS Preferences tabs are not included in this
-  first version. Two-step verification and login history are not shown because
-  they are not supported by the existing account settings.
+  first version. Two-step verification and login history are marked unavailable
+  because they are not supported by the existing account settings.
 
 ### Project List
 

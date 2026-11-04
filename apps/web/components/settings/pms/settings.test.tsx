@@ -21,6 +21,8 @@ const mocks = vi.hoisted(() => ({
   onClose: vi.fn(),
   pathname: "/team/pms-settings/account",
   error: undefined as Error | undefined,
+  updateUser: vi.fn(),
+  user: { first_name: "Test", last_name: "Person", email: "test@example.com" },
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("next/navigation", () => ({
@@ -39,10 +41,15 @@ vi.mock("@/components/workspace/settings/members-list", () => ({
   WorkspaceMembersList: () => <div>Existing teammate list</div>,
 }));
 vi.mock("@/hooks/store/user", () => ({
+  useUser: () => ({ data: mocks.user, updateCurrentUser: mocks.updateUser }),
   useUserPermissions: () => ({
     workspaceInfoBySlug: () => ({ role: mocks.role }),
     allowPermissions: (roles: number[]) => roles.includes(mocks.role),
   }),
+}));
+vi.mock("@/hooks/store/use-instance", () => ({ useInstance: () => ({ config: { is_smtp_configured: true } }) }));
+vi.mock("@/components/core/modals/change-email-modal", () => ({
+  ChangeEmailModal: () => <div role="dialog">Verified email change</div>,
 }));
 vi.mock("@/hooks/store/use-member", () => ({
   useMember: () => ({
@@ -88,6 +95,8 @@ beforeEach(() => {
   mocks.invite.mockResolvedValue({});
   mocks.projectInvite.mockResolvedValue({ added: [], invited: ["test@example.com"] });
   mocks.refresh.mockResolvedValue([]);
+  mocks.user = { first_name: "Test", last_name: "Person", email: "test@example.com" };
+  mocks.updateUser.mockResolvedValue(mocks.user);
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -116,12 +125,45 @@ const inviteDialog = () =>
 
 it("renders full-page account settings with real profile and password surfaces and URL tabs", async () => {
   await render(<PMSSettings workspaceSlug="team" tab="account" />);
-  expect(host.querySelector("h1")?.textContent).toBe("PMS Settings");
-  expect(host.textContent).toContain("Existing profile form");
-  expect(host.textContent).toContain("Existing password form");
+  expect(host.querySelector("h1")?.textContent).toBe("Settings");
+  expect(host.querySelector<HTMLInputElement>("#pms-account-name")?.value).toBe("Test Person");
+  expect(host.querySelector<HTMLInputElement>("#pms-account-email")?.readOnly).toBe(true);
+  expect(host.textContent).not.toContain("Existing profile form");
+  expect(host.textContent).toContain("Two-step verification");
+  expect(host.textContent).toContain("Login history unavailable");
   expect(host.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/team/pms-settings/account/");
   expect(host.querySelector('a[href="/team/pms-settings/teammates/"]')).not.toBeNull();
   expect(host.querySelector('[role="dialog"]')).toBeNull();
+});
+it("saves the name and cancels unsaved changes without writing email", async () => {
+  await render(<PMSSettings workspaceSlug="team" tab="account" />);
+  await enter("#pms-account-name", "Updated Person");
+  await submit();
+  expect(mocks.updateUser).toHaveBeenCalledWith({ first_name: "Updated", last_name: "Person" });
+  await enter("#pms-account-name", "Discard This");
+  await act(() => button("Cancel")!.click());
+  expect(host.querySelector<HTMLInputElement>("#pms-account-name")?.value).toBe("Test Person");
+});
+it("preserves multi-word first names and exposes the existing security and verified email controls", async () => {
+  mocks.user = { first_name: "Test First", last_name: "Person", email: "test@example.com" };
+  await render(<PMSSettings workspaceSlug="team" tab="account" />);
+  await enter("#pms-account-name", "New First Person");
+  await submit();
+  expect(mocks.updateUser).toHaveBeenCalledWith({ first_name: "New First", last_name: "Person" });
+  await act(() => button("Change Password")!.click());
+  expect(host.textContent).toContain("Existing password form");
+  await act(() => button("Change email")!.click());
+  expect(host.querySelector('[role="dialog"]')?.textContent).toBe("Verified email change");
+});
+it("reports save failures and retains the unsaved name", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  mocks.updateUser.mockRejectedValueOnce(new Error("offline"));
+  await render(<PMSSettings workspaceSlug="team" tab="account" />);
+  await enter("#pms-account-name", "Updated Person");
+  await submit();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not save");
+  expect(host.querySelector<HTMLInputElement>("#pms-account-name")?.value).toBe("Updated Person");
+  log.mockRestore();
 });
 it.each(["account", "teammates"])("links the sidebar to settings and highlights %s", async (tab) => {
   mocks.pathname = `/team/pms-settings/${tab}`;
