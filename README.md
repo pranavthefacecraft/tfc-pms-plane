@@ -630,6 +630,11 @@ autosave and existing drawing data are unchanged.
 Live scene refreshes synchronize only the shared background and presenter viewport,
 not local UI flags, so joining or reconnecting an editable session does not restore
 the canvas's earlier read-only state and hide the drawing tools.
+The drawing dock uses a rounded white toolbox with a pale-blue border, pastel
+blue/purple/gray tool tiles and visible icon labels. Selected tools have a blue
+outline; keyboard focus, native shortcuts, extra tools and comment placement are
+preserved. The palette adapts to dark mode and tiles wrap on narrow canvases.
+These are the existing Excalidraw tools, not new Task, Sticky or Table actions.
 
 ### Live sharing and presentation
 

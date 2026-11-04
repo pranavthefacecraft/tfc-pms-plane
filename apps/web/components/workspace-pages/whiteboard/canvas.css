@@ -1,11 +1,31 @@
 .pms-whiteboard {
   --pms-board-dot: #dce8fa;
   --pms-board-controls-top: 64px;
+  --pms-toolbox-border: #cfddff;
+  --pms-toolbox-surface: #ffffff;
+  --pms-toolbox-ink: #26354d;
+  --pms-tool-blue: #e8f1ff;
+  --pms-tool-purple: #f0ecff;
+  --pms-tool-gray: #f0f3f7;
+  --pms-tool-cyan: #e7f5fb;
+  --pms-tool-blue-ink: #135ddd;
+  --pms-tool-purple-ink: #6250bb;
+  --pms-tool-cyan-ink: #36748d;
   container: pms-whiteboard / inline-size;
 }
 
 .pms-whiteboard--dark {
   --pms-board-dot: #303e55;
+  --pms-toolbox-border: #3a5077;
+  --pms-toolbox-surface: #182332;
+  --pms-toolbox-ink: #e0e9fa;
+  --pms-tool-blue: #203b61;
+  --pms-tool-purple: #38305a;
+  --pms-tool-gray: #293445;
+  --pms-tool-cyan: #203e4c;
+  --pms-tool-blue-ink: #9ac0ff;
+  --pms-tool-purple-ink: #c4b8ff;
+  --pms-tool-cyan-ink: #9fd9f0;
 }
 
 .pms-whiteboard__dots {
@@ -60,11 +80,164 @@
   bottom: 240px;
 }
 
-.pms-whiteboard .excalidraw .App-toolbar {
-  border: 1px solid #e2e6ef;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px #203c6420;
-  background: var(--color-surface-lowest);
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar {
+  border: 1px solid var(--pms-toolbox-border);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px #203c641a;
+  background: var(--pms-toolbox-surface);
+  padding: 5px;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal {
+  gap: 4px;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon,
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button {
+  --pms-tool-label: "";
+  --pms-tool-tint: var(--pms-toolbox-surface);
+  --pms-tool-ink: var(--pms-toolbox-ink);
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon__icon,
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 48px;
+  height: 48px;
+  padding: 4px 2px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--pms-tool-tint);
+  color: var(--pms-tool-ink);
+  --icon-fill-color: var(--pms-tool-ink);
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon__icon::after,
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button::after {
+  content: var(--pms-tool-label);
+  font: 10px/12px var(--ui-font);
+  white-space: nowrap;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon__icon svg,
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon__keybinding {
+  display: none;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon:has(input:checked) .ToolIcon__icon,
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button[aria-pressed="true"] {
+  border-color: #135ddd;
+  box-shadow: inset 0 0 0 1px #135ddd;
+  background: var(--pms-tool-tint);
+  color: var(--pms-tool-blue-ink);
+  --icon-fill-color: var(--pms-tool-blue-ink);
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon:hover .ToolIcon__icon,
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button:hover {
+  border-color: #9abcf7;
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon:has(input:focus-visible) .ToolIcon__icon,
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button:focus-visible {
+  outline: 2px solid #135ddd;
+  outline-offset: 2px;
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-selection"]) {
+  --pms-tool-label: "Select";
+  --pms-tool-tint: var(--pms-tool-blue);
+  --pms-tool-ink: var(--pms-tool-blue-ink);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-hand"]) {
+  --pms-tool-label: "Pan";
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-lock"]) {
+  --pms-tool-label: "Lock";
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-freedraw"]) {
+  --pms-tool-label: "Draw";
+  --pms-tool-tint: var(--pms-tool-purple);
+  --pms-tool-ink: var(--pms-tool-purple-ink);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-eraser"]) {
+  --pms-tool-label: "Erase";
+  --pms-tool-tint: var(--pms-tool-gray);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-rectangle"]) {
+  --pms-tool-label: "Rectangle";
+  --pms-tool-tint: var(--pms-tool-gray);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-diamond"]) {
+  --pms-tool-label: "Diamond";
+  --pms-tool-tint: var(--pms-tool-gray);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-ellipse"]) {
+  --pms-tool-label: "Ellipse";
+  --pms-tool-tint: var(--pms-tool-gray);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-arrow"]) {
+  --pms-tool-label: "Arrow";
+  --pms-tool-tint: var(--pms-tool-blue);
+  --pms-tool-ink: var(--pms-tool-blue-ink);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-line"]) {
+  --pms-tool-label: "Line";
+  --pms-tool-tint: var(--pms-tool-blue);
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-text"]) {
+  --pms-tool-label: "Text";
+}
+
+.pms-whiteboard .excalidraw .ToolIcon:has([data-testid="toolbar-image"]) {
+  --pms-tool-label: "Image";
+  --pms-tool-tint: var(--pms-tool-cyan);
+  --pms-tool-ink: var(--pms-tool-cyan-ink);
+}
+
+.pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button {
+  --pms-tool-label: "Comment";
+  --pms-tool-tint: var(--pms-tool-cyan);
+}
+
+.pms-whiteboard
+  .excalidraw
+  .App-toolbar-container
+  .App-toolbar
+  > .Stack_horizontal
+  > .App-toolbar__extra-tools-trigger {
+  --pms-tool-label: "More";
+  --pms-tool-tint: var(--pms-tool-blue);
+}
+
+.pms-whiteboard .excalidraw .zoom-actions,
+.pms-whiteboard .excalidraw .undo-redo-buttons {
+  border: 1px solid var(--pms-toolbox-border);
+  border-radius: 10px;
+  background: var(--pms-toolbox-surface);
+  --button-gray-1: var(--pms-toolbox-surface);
+  --icon-fill-color: var(--pms-toolbox-ink);
 }
 
 .pms-whiteboard .excalidraw .App-menu_top {
@@ -74,6 +247,18 @@
 .pms-whiteboard .excalidraw .App-toolbar__extra-tools-dropdown {
   top: auto;
   bottom: calc(100% + 8px);
+}
+
+@container pms-whiteboard (max-width: 900px) {
+  .pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(7, 48px);
+    gap: 4px;
+  }
+
+  .pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar__divider {
+    display: none;
+  }
 }
 
 @container pms-whiteboard (max-width: 767px) {
@@ -87,7 +272,7 @@
 
   .pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal {
     grid-auto-flow: row;
-    grid-template-columns: repeat(7, 32px);
+    grid-template-columns: repeat(4, 48px);
     gap: 2px;
   }
 
@@ -95,9 +280,7 @@
     display: none;
   }
 
-  .pms-whiteboard .excalidraw .App-toolbar-container .ToolIcon__icon,
-  .pms-whiteboard .excalidraw .App-toolbar-container .App-toolbar > .Stack_horizontal > button {
-    width: 32px;
-    height: 32px;
+  .pms-whiteboard .excalidraw--mobile .scroll-back-to-content {
+    bottom: 340px;
   }
 }
