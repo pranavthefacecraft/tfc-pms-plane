@@ -9,6 +9,7 @@ from typing import Optional, Any
 # Django imports
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator, URLValidator
 from django.db import models
 
 # Module imports
@@ -136,6 +137,16 @@ class Workspace(BaseModel):
     slug = models.SlugField(max_length=48, db_index=True, unique=True, validators=[slug_validator])
     organization_size = models.CharField(max_length=20, blank=True, null=True)
     timezone = models.CharField(max_length=255, default="UTC", choices=TIMEZONE_CHOICES)
+    website = models.URLField(
+        max_length=2048, blank=True, default="", validators=[URLValidator(schemes=["http", "https"])]
+    )
+    billing_email = models.EmailField(blank=True, default="")
+    currency = models.CharField(
+        max_length=3,
+        blank=True,
+        default="",
+        validators=[RegexValidator(r"^[A-Z]{3}$", "Enter a three-letter uppercase currency code, such as USD or IDR.")],
+    )
     background_color = models.CharField(max_length=255, default=get_random_color)
 
     def __str__(self):

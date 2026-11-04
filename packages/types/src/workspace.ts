@@ -34,6 +34,9 @@ export interface IWorkspace {
   total_projects?: number;
   role: number;
   timezone: string;
+  website?: string;
+  billing_email?: string;
+  currency?: string;
 }
 
 export interface IWorkspaceLite {

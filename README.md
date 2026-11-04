@@ -419,7 +419,7 @@ the updated app.
 
 The sidebar **PMS Settings** entry and the user-menu **PMS Settings** action open
 `/<workspace>/pms-settings/account` as a full page inside the normal app shell,
-not the profile popup. The **Account** and **Teammates** tabs have separate URLs
+not the profile popup. The **Account**, **Teammates**, **Billing** and **Company** tabs have separate URLs
 and support direct links and browser history.
 
 - Account uses compact Name and Email rows with Cancel/Save actions and a separate
@@ -437,8 +437,25 @@ and support direct links and browser history.
   a project they administer. Existing members are added directly to a selected
   project; new users receive a workspace invitation with project access applied
   after acceptance. Guests cannot view the teammate list.
-- Billing, Company, Integrations and PMS Preferences tabs are not included in this
-  first version. Two-step verification and login history are marked unavailable
+- Billing (`/<workspace>/pms-settings/billing`) shows the self-hosted Community
+  plan in the compact settings layout. **Manage Plan** reuses the existing
+  Community upgrade dialog, plan cards and external Plane subscription links;
+  it does not add a new checkout or payment integration. Admins and Editors can
+  view the page, matching the original Community action. Payment methods and invoices
+  are marked unavailable because this edition does not manage them. Billing email
+  displays the contact saved in Company profile.
+  The original sidebar Community button remains hidden.
+- Company (`/<workspace>/pms-settings/company`) shows the Company profile and
+  Regional settings rows. Admins can edit the workspace/company name, website
+  (HTTP/HTTPS URL), billing contact email, existing workspace time zone and
+  three-letter uppercase currency code; Editors can view them. Optional website,
+  email and currency fields can be cleared. Changes use the existing workspace
+  update API and are persisted in the database; migration
+  `0137_workspace_company_profile` must be applied before using this tab.
+  Company name changes also rename the workspace. Billing contact and currency
+  are profile metadata, not a payment integration.
+- Integrations and PMS Preferences tabs are not included.
+  Two-step verification and login history are marked unavailable
   because they are not supported by the existing account settings.
 
 ### Project List

@@ -10,11 +10,12 @@ import { PMSSettings } from "@/components/settings/pms/settings";
 
 export default function PMSSettingsPage() {
   const { workspaceSlug, settingsTab } = useParams();
-  if (settingsTab && settingsTab !== "account" && settingsTab !== "teammates")
+  const tab = settingsTab ?? "account";
+  if (tab !== "account" && tab !== "teammates" && tab !== "billing" && tab !== "company")
     return <Navigate to={`/${workspaceSlug}/pms-settings/account`} replace />;
   return (
     <ContentWrapper>
-      <PMSSettings workspaceSlug={workspaceSlug ?? ""} tab={settingsTab === "teammates" ? "teammates" : "account"} />
+      <PMSSettings workspaceSlug={workspaceSlug ?? ""} tab={tab} />
     </ContentWrapper>
   );
 }

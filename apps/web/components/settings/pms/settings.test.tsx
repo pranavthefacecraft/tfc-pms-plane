@@ -7,14 +7,28 @@
 import { act } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { PLANE_COMMUNITY_PRODUCTS, SUBSCRIPTION_REDIRECTION_URLS } from "@plane/constants";
+import { EProductSubscriptionEnum } from "@plane/types";
+import type { PlanUpgradeCardProps } from "@/components/license/modal/card/plan-upgrade";
 import { PMSSettings } from "./settings";
 import { InviteTeammateDialog } from "./invite-teammate-dialog";
 import { PMSSettingsLink } from "@/components/workspace/sidebar/pms-settings-link";
+import PMSSettingsPage from "@/app/(all)/[workspaceSlug]/(projects)/pms-settings/page";
 
 const mocks = vi.hoisted(() => ({
   role: 20,
+  infoLoaded: true,
+  workspace: {
+    name: "Test Company",
+    website: "https://example.com",
+    billing_email: "billing@example.com",
+    timezone: "UTC",
+    currency: "USD",
+  },
+  workspaceLoaded: true,
+  updateWorkspace: vi.fn(),
   invite: vi.fn(),
   projectInvite: vi.fn(),
   refresh: vi.fn(),
@@ -31,6 +45,53 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@plane/blocks/toast", () => ({ setToast: vi.fn() }));
 vi.mock("@/components/core/page-title", () => ({ PageHead: () => null }));
+vi.mock("@/components/core/content-wrapper", () => ({
+  ContentWrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+vi.mock("@/hooks/store/use-workspace", () => ({
+  useWorkspace: () => ({
+    getWorkspaceBySlug: () => (mocks.workspaceLoaded ? mocks.workspace : null),
+    updateWorkspace: mocks.updateWorkspace,
+  }),
+}));
+vi.mock("@/components/global/timezone-select", () => ({
+  TimezoneSelect: ({
+    value,
+    onChange,
+    disabled,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    disabled: boolean;
+  }) => (
+    <select
+      aria-label="Company time zone"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      disabled={disabled}
+    >
+      <option value="UTC">UTC</option>
+      <option value="Asia/Makassar">Asia/Makassar</option>
+    </select>
+  ),
+}));
+vi.mock("@/components/license", () => ({
+  FreePlanCard: ({ isOnFreePlan }: { isOnFreePlan: boolean }) => <div>{isOnFreePlan ? "Your plan: Free" : "Free"}</div>,
+  PlanUpgradeCard: ({ planVariant, product, handleCheckout, extraFeatures }: PlanUpgradeCardProps) => (
+    <div data-plan={planVariant}>
+      {product?.prices.map((price) => (
+        <button
+          key={price.id}
+          type="button"
+          onClick={() => handleCheckout({ planVariant, productId: product.id, priceId: price.id })}
+        >
+          {`${planVariant} ${price.recurring}`}
+        </button>
+      ))}
+      {extraFeatures}
+    </div>
+  ),
+}));
 vi.mock("@/components/settings/profile/content/pages/general", () => ({
   GeneralProfileSettings: () => <div>Existing profile form</div>,
 }));
@@ -43,7 +104,7 @@ vi.mock("@/components/workspace/settings/members-list", () => ({
 vi.mock("@/hooks/store/user", () => ({
   useUser: () => ({ data: mocks.user, updateCurrentUser: mocks.updateUser }),
   useUserPermissions: () => ({
-    workspaceInfoBySlug: () => ({ role: mocks.role }),
+    workspaceInfoBySlug: () => (mocks.infoLoaded ? { role: mocks.role } : undefined),
     allowPermissions: (roles: number[]) => roles.includes(mocks.role),
   }),
 }));
@@ -86,9 +147,27 @@ vi.mock("swr", () => ({
   default: () => ({ data: [], isLoading: false, error: mocks.error, mutate: mocks.refresh }),
 }));
 vi.mock("@makeplane/propel/components/dialog", () => ({
-  Dialog: ({ children }: { children: ReactNode }) => <div role="dialog">{children}</div>,
+  Dialog: ({
+    children,
+    open = true,
+    onOpenChange,
+  }: {
+    children: ReactNode;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+  }) =>
+    open ? (
+      <div role="dialog">
+        {children}
+        <button type="button" onClick={() => onOpenChange?.(false)}>
+          Close dialog
+        </button>
+      </div>
+    ) : null,
   DialogContent: ({ children }: { children: ReactNode }) => <>{children}</>,
   DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
+  DialogMain: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DialogBody: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 let host: HTMLDivElement;
@@ -97,6 +176,19 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   mocks.role = 20;
+  mocks.infoLoaded = true;
+  mocks.workspaceLoaded = true;
+  mocks.workspace = {
+    name: "Test Company",
+    website: "https://example.com",
+    billing_email: "billing@example.com",
+    timezone: "UTC",
+    currency: "USD",
+  };
+  mocks.updateWorkspace.mockImplementation(async (_slug, data) => {
+    mocks.workspace = { ...mocks.workspace, ...data };
+    return mocks.workspace;
+  });
   mocks.error = undefined;
   mocks.pathname = "/team/pms-settings/account";
   mocks.invite.mockResolvedValue({});
@@ -140,6 +232,7 @@ it("renders full-page account settings with real profile and password surfaces a
   expect(host.textContent).toContain("Login history unavailable");
   expect(host.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/team/pms-settings/account/");
   expect(host.querySelector('a[href="/team/pms-settings/teammates/"]')).not.toBeNull();
+  expect(host.querySelector('a[href="/team/pms-settings/billing/"]')).not.toBeNull();
   expect(host.querySelector('[role="dialog"]')).toBeNull();
 });
 it("saves the name and cancels unsaved changes without writing email", async () => {
@@ -172,11 +265,140 @@ it("reports save failures and retains the unsaved name", async () => {
   expect(host.querySelector<HTMLInputElement>("#pms-account-name")?.value).toBe("Updated Person");
   log.mockRestore();
 });
-it.each(["account", "teammates"])("links the sidebar to settings and highlights %s", async (tab) => {
-  mocks.pathname = `/team/pms-settings/${tab}`;
-  await render(<PMSSettingsLink />);
-  expect(host.querySelector("a")?.getAttribute("href")).toBe("/team/pms-settings/account/");
-  expect(host.querySelector("a")?.getAttribute("aria-current")).toBe("page");
+it.each(["account", "teammates", "billing", "company"])(
+  "links the sidebar to settings and highlights %s",
+  async (tab) => {
+    mocks.pathname = `/team/pms-settings/${tab}`;
+    await render(<PMSSettingsLink />);
+    expect(host.querySelector("a")?.getAttribute("href")).toBe("/team/pms-settings/account/");
+    expect(host.querySelector("a")?.getAttribute("aria-current")).toBe("page");
+  }
+);
+it.each([
+  ["/team/pms-settings/billing", "Billing"],
+  ["/team/pms-settings/company", "Company"],
+  ["/team/pms-settings", "Account"],
+  ["/team/pms-settings/invalid", "Account"],
+])("renders the settings route %s as %s", async (path, heading) => {
+  await act(() =>
+    root.render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/:workspaceSlug/pms-settings/:settingsTab?" element={<PMSSettingsPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+  );
+  expect(host.querySelector("h2")?.textContent).toBe(heading);
+  expect(host.querySelector('a[aria-current="page"]')?.textContent).toBe(heading);
+});
+it("shows saved company profile and regional details", async () => {
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  expect(host.querySelector("h2")?.textContent).toBe("Company");
+  expect(host.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/team/pms-settings/company/");
+  expect([...host.querySelectorAll("dd")].map((row) => row.textContent)).toEqual([
+    "Test CompanyChange",
+    "https://example.comChange",
+    "billing@example.comEdit",
+    "UTCChange",
+    "USDChange",
+  ]);
+});
+it.each([
+  ["name", "Change Company name", 'input[aria-label="Company name"]', "Updated Company"],
+  ["website", "Change Website", 'input[aria-label="Website"]', "https://updated.example.com"],
+  ["billing_email", "Edit Billing contact", 'input[aria-label="Billing contact"]', "updated@example.com"],
+  ["timezone", "Change Time zone", 'select[aria-label="Company time zone"]', "Asia/Makassar"],
+  ["currency", "Change Currency", 'input[aria-label="Currency"]', "idr"],
+])("persists only the edited company %s field", async (field, action, selector, value) => {
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  await act(() => host.querySelector<HTMLButtonElement>(`button[aria-label="${action}"]`)!.click());
+  await enter(selector, value);
+  await submit();
+  const saved = field === "currency" ? "IDR" : value;
+  expect(mocks.updateWorkspace).toHaveBeenCalledWith("team", { [field]: saved });
+  expect(host.querySelector("form")).toBeNull();
+  expect(host.textContent).toContain(saved);
+});
+it("cancels company edits without saving", async () => {
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Change Company name"]')!.click());
+  await enter('input[aria-label="Company name"]', "Unsaved");
+  await act(() => button("Cancel")!.click());
+  expect(mocks.updateWorkspace).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("Test Company");
+  expect(host.querySelector("form")).toBeNull();
+});
+it("retains company drafts and reports failed saves", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  mocks.updateWorkspace.mockRejectedValueOnce(new Error("offline"));
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Change Company name"]')!.click());
+  await enter('input[aria-label="Company name"]', "Unsaved Company");
+  await submit();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not save company details");
+  expect(host.querySelector<HTMLInputElement>("input")?.value).toBe("Unsaved Company");
+  await submit();
+  expect(host.querySelector("form")).toBeNull();
+  log.mockRestore();
+});
+it("lets Editors view company details without edit controls and excludes Guests", async () => {
+  mocks.role = 15;
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  expect(host.textContent).toContain("Test Company");
+  expect(host.querySelector("button")).toBeNull();
+  mocks.role = 5;
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Only workspace admins and members");
+  expect(host.querySelector("dl")).toBeNull();
+});
+it("reports missing company data and waits for permissions", async () => {
+  mocks.infoLoaded = false;
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading workspace permissions");
+  mocks.infoLoaded = true;
+  mocks.workspaceLoaded = false;
+  await render(<PMSSettings workspaceSlug="team" tab="company" />);
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("could not be loaded");
+});
+it.each([20, 15])("reuses the Community upgrade dialog for billing with workspace role %s", async (role) => {
+  mocks.role = role;
+  const open = vi.spyOn(window, "open").mockImplementation(() => null);
+  await render(<PMSSettings workspaceSlug="team" tab="billing" />);
+  expect(host.querySelector("h2")?.textContent).toBe("Billing");
+  expect(host.querySelector('a[aria-current="page"]')?.getAttribute("href")).toBe("/team/pms-settings/billing/");
+  expect(host.textContent).toContain("Community");
+  expect(host.textContent).toContain("No scheduled payment for Community");
+  expect(host.querySelectorAll("dd")).toHaveLength(4);
+  expect(
+    [...host.querySelectorAll("dd")].slice(1, 3).every((row) => row.textContent === "Not available in Community")
+  ).toBe(true);
+  expect(host.querySelectorAll("dd")[3]?.textContent).toBe("billing@example.com");
+  expect(host.querySelector('[role="dialog"]')).toBeNull();
+  await act(() => button("Manage Plan")!.click());
+  expect(host.querySelector('[role="dialog"]')?.textContent).toContain("Upgrade to a paid plan");
+  expect(host.querySelector('[role="dialog"]')?.textContent).toContain("Your plan: Free");
+  expect(host.querySelectorAll("[data-plan]")).toHaveLength(3);
+  expect(host.querySelectorAll('[role="dialog"] a')).toHaveLength(3);
+  const price = PLANE_COMMUNITY_PRODUCTS[EProductSubscriptionEnum.PRO].prices.find(
+    (item) => item.recurring === "year"
+  )!;
+  await act(() => button(`${EProductSubscriptionEnum.PRO} ${price.recurring}`)!.click());
+  expect(open).toHaveBeenCalledWith(SUBSCRIPTION_REDIRECTION_URLS[EProductSubscriptionEnum.PRO].year, "_blank");
+  await act(() => button("Close dialog")!.click());
+  expect(host.querySelector('[role="dialog"]')).toBeNull();
+  open.mockRestore();
+});
+it("does not expose billing plan actions while permissions load or to guests", async () => {
+  mocks.infoLoaded = false;
+  await render(<PMSSettings workspaceSlug="team" tab="billing" />);
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("Loading workspace permissions");
+  expect(button("Manage Plan")).toBeUndefined();
+  mocks.infoLoaded = true;
+  mocks.role = 5;
+  await render(<PMSSettings workspaceSlug="team" tab="billing" />);
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Only workspace admins and members");
+  expect(button("Manage Plan")).toBeUndefined();
 });
 it("shows teammates and opens the invite form for admins", async () => {
   await render(<PMSSettings workspaceSlug="team" tab="teammates" />);

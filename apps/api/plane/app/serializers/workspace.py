@@ -45,6 +45,14 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
     logo_url = serializers.CharField(read_only=True)
     role = serializers.IntegerField(read_only=True)
 
+    def validate_website(self, value):
+        if value:
+            try:
+                URLValidator(schemes=["http", "https"])(value)
+            except ValidationError as exc:
+                raise serializers.ValidationError("Enter a valid HTTP or HTTPS website URL.") from exc
+        return value
+
     def validate_name(self, value):
         # Check if the name contains a URL
         if contains_url(value):
