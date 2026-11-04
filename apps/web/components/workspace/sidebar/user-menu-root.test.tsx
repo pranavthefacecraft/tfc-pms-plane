@@ -146,6 +146,7 @@ it("lists actual workspaces with the current workspace first, creation and invit
   expect(items[1]?.textContent).toBe("Personal StudioSwitch account");
   expect(host.querySelector('a[href="/create-workspace/"]')).not.toBeNull();
   expect(host.querySelector('a[href="/invitations/"]')).not.toBeNull();
+  expect(host.querySelector('a[href="/team/all-accounts-activity/"]')).not.toBeNull();
 });
 it("respects disabled workspace creation and falls back outside a workspace", () => {
   actions.creationDisabled = true;

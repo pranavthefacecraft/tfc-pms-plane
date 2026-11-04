@@ -71,6 +71,10 @@ export const coreRoutes: RouteConfigEntry[] = [
         // Workspace Home
         route(":workspaceSlug", "./(all)/[workspaceSlug]/(projects)/page.tsx"),
         route(":workspaceSlug/pms-settings/:settingsTab?", "./(all)/[workspaceSlug]/(projects)/pms-settings/page.tsx"),
+        route(
+          ":workspaceSlug/all-accounts-activity",
+          "./(all)/[workspaceSlug]/(projects)/all-accounts-activity/page.tsx"
+        ),
 
         // Active Cycles
         layout("./(all)/[workspaceSlug]/(projects)/active-cycles/layout.tsx", [

@@ -474,6 +474,19 @@ and support direct links and browser history.
 - Two-step verification and login history are marked unavailable
   because they are not supported by the existing account settings.
 
+### All Accounts Activity
+
+The profile popup's **All accounts activity** link opens
+`/<workspace>/all-accounts-activity`. Account buttons filter personal notifications
+across accessible PMS workspaces, including mentions and read notifications.
+Cards are newest first, grouped by date in the user's personal time zone, with
+real task, whiteboard and workspace-message links. The page reuses existing
+permission-checked workspace notification APIs and loads older activity in batches.
+Archived notifications and snoozed reminders stay in each workspace's inbox.
+Loading failures show Retry instead of claiming that there is no activity.
+This is not a team-wide audit log; external Clevdex bookings are not connected.
+Viewing the feed does not mark notifications read.
+
 ### Project List
 
 The project **List** tab (`/<workspace>/projects/<id>/list`, API

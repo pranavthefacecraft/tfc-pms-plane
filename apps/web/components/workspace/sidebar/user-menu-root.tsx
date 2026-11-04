@@ -169,6 +169,12 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
             {!config?.is_workspace_creation_disabled && (
               <MenuItem label="+ Add account" render={<Link href="/create-workspace" />} />
             )}
+            {workspacesList[0] && (
+              <MenuItem
+                label="All accounts activity →"
+                render={<Link href={`/${workspacesList[0].slug}/all-accounts-activity`} />}
+              />
+            )}
             <MenuItem label={t("workspace_invites")} render={<Link href="/invitations" />} />
             <div>
               <MenuItem
