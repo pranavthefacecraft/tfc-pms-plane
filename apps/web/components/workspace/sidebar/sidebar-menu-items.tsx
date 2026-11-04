@@ -30,6 +30,7 @@ import { IS_STICKIES_SIDEBAR_ENABLED } from "./feature-flags";
 import { SidebarItemBase } from "./sidebar-item";
 import { SidebarToolMenu } from "./sidebar-tool-menu";
 import { SidebarQuickActions } from "./quick-actions";
+import { PMSSettingsLink } from "./pms-settings-link";
 
 export const SidebarMenuItems = observer(function SidebarMenuItems() {
   // routers
@@ -119,6 +120,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
         ))}
       </div>
       <SidebarToolMenu />
+      <PMSSettingsLink />
       {/* Retain creation and workspace navigation for future use. */}
       <div hidden className="hidden">
         <SidebarQuickActions />

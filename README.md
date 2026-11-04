@@ -415,6 +415,25 @@ manually assigned, not inferred from task progress. AI summaries and milestones
 are not included. Apply backend migration `0128_project_overview` before running
 the updated app.
 
+### PMS Settings
+
+The sidebar **PMS Settings** entry and the user-menu **PMS Settings** action open
+`/<workspace>/pms-settings/account` as a full page inside the normal app shell,
+not the profile popup. The **Account** and **Teammates** tabs have separate URLs
+and support direct links and browser history.
+
+- Account reuses the existing profile, photo, cover, verified email-change,
+  account-deactivation and password-change controls. Preferences, notifications
+  and developer settings remain available through the existing profile settings.
+- Teammates reuses workspace member management, search and pending invitations.
+  Workspace admins can invite a Teammate or Viewer, optionally granting access to
+  a project they administer. Existing members are added directly to a selected
+  project; new users receive a workspace invitation with project access applied
+  after acceptance. Guests cannot view the teammate list.
+- Billing, Company, Integrations and PMS Preferences tabs are not included in this
+  first version. Two-step verification and login history are not shown because
+  they are not supported by the existing account settings.
+
 ### Project List
 
 The project **List** tab (`/<workspace>/projects/<id>/list`, API

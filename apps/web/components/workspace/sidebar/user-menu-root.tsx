@@ -23,6 +23,7 @@ import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useUser } from "@/hooks/store/user";
+import { useWorkspace } from "@/hooks/store/use-workspace";
 
 export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false }: { showInitial?: boolean }) {
   // states
@@ -33,6 +34,7 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
   const { toggleAnySidebarDropdown } = useAppTheme();
   const { data: currentUser } = useUser();
   const { signOut } = useUser();
+  const { currentWorkspace } = useWorkspace();
   const { toggleProfileSettingsModal } = useCommandPalette();
   // derived values
   const isUserInstanceAdmin = false;
@@ -123,12 +125,11 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
             <div>
               <MenuItem
                 icon={<Icon icon={SettingsOutline} />}
-                label={t("settings")}
+                label="PMS Settings"
                 onClick={() =>
-                  toggleProfileSettingsModal({
-                    activeTab: "general",
-                    isOpen: true,
-                  })
+                  router.push(
+                    currentWorkspace ? `/${currentWorkspace.slug}/pms-settings/account` : "/settings/profile/general"
+                  )
                 }
               />
               <MenuItem

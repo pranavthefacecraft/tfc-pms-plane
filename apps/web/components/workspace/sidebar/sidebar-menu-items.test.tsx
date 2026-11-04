@@ -30,6 +30,9 @@ vi.mock("./sidebar-item", () => ({
   SidebarItemBase: ({ item }: { item: { key: string } }) => <a href={`/${item.key}`}>{item.key}</a>,
 }));
 vi.mock("./sidebar-tool-menu", () => ({ SidebarToolMenu: () => <div>Tools</div> }));
+vi.mock("./pms-settings-link", () => ({
+  PMSSettingsLink: () => <a href="/team/pms-settings/account">PMS Settings</a>,
+}));
 vi.mock("./quick-actions", () => ({ SidebarQuickActions: () => <button>New work item</button> }));
 
 it("keeps Tools visible while retaining creation and Workspace in a hidden container", () => {
@@ -37,9 +40,12 @@ it("keeps Tools visible while retaining creation and Workspace in a hidden conta
   host.innerHTML = renderToStaticMarkup(<SidebarMenuItems />);
   const personal = host.firstElementChild;
   const tools = personal?.nextElementSibling;
-  const hiddenSection = tools?.nextElementSibling;
+  const settings = tools?.nextElementSibling;
+  const hiddenSection = settings?.nextElementSibling;
   const action = hiddenSection?.firstElementChild;
   expect(tools?.textContent).toBe("Tools");
+  expect(settings?.textContent).toBe("PMS Settings");
+  expect(settings?.closest("[hidden]")).toBeNull();
   expect(personal?.querySelectorAll("a").length).toBeGreaterThan(1);
   expect(action?.textContent).toBe("New work item");
   expect(action?.nextElementSibling?.textContent).toContain("common.workspace");
