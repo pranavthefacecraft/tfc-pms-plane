@@ -102,14 +102,14 @@ export const InviteTeammateDialog = observer(function InviteTeammateDialog({
             </select>
           </label>
           <label className="flex flex-col gap-1.5 text-12">
-            Project access
+            Add to project (optional)
             <select
               value={projectId}
               onChange={(event) => setProjectId(event.target.value)}
               disabled={busy || sent}
               className={fieldClass}
             >
-              <option value="">Workspace only</option>
+              <option value="">Join workspace without adding to a project</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -117,7 +117,11 @@ export const InviteTeammateDialog = observer(function InviteTeammateDialog({
               ))}
             </select>
           </label>
-          <p className="text-12 text-secondary">You can change access later in Settings.</p>
+          <p className="text-12 text-secondary">
+            {projectId
+              ? "Accepting adds this person to the workspace and the selected project."
+              : "Accepting joins this workspace. Project access depends on membership, role, and project visibility."}
+          </p>
           {error && (
             <p role="alert" className="text-12 text-danger-primary">
               {error}

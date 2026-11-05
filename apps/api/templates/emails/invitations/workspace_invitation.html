@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>{{first_name}} invited you to {{workspace_name}} on Clevdex</title>
+    <title>{{first_name}} invited you to {{invitation_target}} on Clevdex</title>
 
     <style>
       /* Basic resets for email clients */
@@ -73,7 +73,7 @@
         visibility: hidden;
       "
     >
-      {{first_name}} has invited you to join {{workspace_name}} on Clevdex.
+      {{first_name}} has invited you to join {{invitation_target}} on Clevdex.
     </span>
 
     <!-- Outer Wrapper -->
@@ -147,13 +147,20 @@
                       color: #111111;
                     "
                   >
-                    Join {{workspace_name}} on Clevdex
+                    Join {{invitation_target}} on Clevdex
                   </h1>
 
                   <!-- Intro copy -->
                   <p style="margin: 0 0 12px;">
+                    {% if project_names %}
+                    {{first_name}} has invited you to collaborate on
+                    <strong>{{project_names}}</strong> in the
+                    <strong>{{workspace_name}}</strong> workspace on Clevdex.
+                    Accepting this invitation joins the workspace and adds you to the invited project(s).
+                    {% else %}
                     {{first_name}} has invited you to collaborate with them in
                     <strong>{{workspace_name}}</strong> workspace on Clevdex.
+                    {% endif %}
                   </p>
 
                   <!-- Primary button -->

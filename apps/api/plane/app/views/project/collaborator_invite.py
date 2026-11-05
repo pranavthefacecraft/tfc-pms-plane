@@ -9,9 +9,11 @@ invitation email plus a pending project invite that is applied when they join th
 """
 
 import secrets
+from functools import partial
 
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import transaction
 from django.db.models import Min
 from rest_framework import status
 from rest_framework.response import Response
@@ -28,9 +30,8 @@ from plane.db.models import (
     WorkspaceMemberInvite,
 )
 from plane.utils.host import base_host
+from plane.utils.project_invitation import PENDING_COLLABORATOR_INVITE
 
-# Marks invites created here so the email-based project invitation flow is left untouched.
-PENDING_COLLABORATOR_INVITE = "pending-create-project-collaborator"
 MAX_INVITES = 20
 INVITE_ROLES = (ROLE.MEMBER.value, ROLE.GUEST.value)
 
@@ -85,6 +86,7 @@ def apply_pending_project_invites(user, workspace_ids=None):
 
 class ProjectCollaboratorInvitesEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN])
+    @transaction.atomic
     def post(self, request, slug, project_id):
         project = Project.objects.filter(id=project_id, workspace__slug=slug, archived_at__isnull=True).first()
         if project is None:
@@ -134,6 +136,7 @@ class ProjectCollaboratorInvitesEndpoint(BaseAPIView):
             workspace_invite = WorkspaceMemberInvite.objects.filter(
                 workspace_id=project.workspace_id, email=email
             ).first()
+            new_workspace_invite = workspace_invite is None
             if workspace_invite is None:
                 workspace_invite = WorkspaceMemberInvite.objects.create(
                     workspace_id=project.workspace_id,
@@ -142,15 +145,23 @@ class ProjectCollaboratorInvitesEndpoint(BaseAPIView):
                     role=role,
                     created_by=request.user,
                 )
-                workspace_invitation.delay(
-                    email, project.workspace_id, workspace_invite.token, current_site, request.user.email
-                )
-            ProjectMemberInvite.objects.update_or_create(
+            _, new_project_invite = ProjectMemberInvite.objects.update_or_create(
                 project=project,
                 workspace_id=project.workspace_id,
                 email=email,
                 message=PENDING_COLLABORATOR_INVITE,
                 defaults={"role": role, "token": secrets.token_urlsafe(32), "created_by": request.user},
             )
+            if new_workspace_invite or new_project_invite:
+                transaction.on_commit(
+                    partial(
+                        workspace_invitation.delay,
+                        email,
+                        project.workspace_id,
+                        workspace_invite.token,
+                        current_site,
+                        request.user.email,
+                    )
+                )
 
         return Response({"added": added, "invited": new_emails}, status=status.HTTP_200_OK)

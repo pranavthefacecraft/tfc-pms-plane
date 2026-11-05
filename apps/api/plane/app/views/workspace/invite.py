@@ -4,6 +4,7 @@
 
 # Python imports
 from datetime import datetime
+from secrets import compare_digest
 
 import jwt
 
@@ -31,6 +32,7 @@ from plane.bgtasks.workspace_invitation_task import workspace_invitation
 from plane.db.models import User, Workspace, WorkspaceMember, WorkspaceMemberInvite
 from plane.utils.cache import invalidate_cache, invalidate_cache_directly
 from plane.utils.host import base_host
+from plane.utils.project_invitation import pending_invited_projects
 from .. import BaseViewSet
 
 
@@ -233,7 +235,14 @@ class WorkspaceJoinEndpoint(BaseAPIView):
         # that an unauthenticated caller cannot retrieve the acceptance token
         # (GHSA-86mg-259g-pwgg / GHSA-gf48-p6jp-cwc4).
         serializer = WorkSpaceMemberInvitePublicSerializer(workspace_invitation)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = serializer.data
+        token = request.query_params.get("token", "")
+        data["projects"] = (
+            pending_invited_projects(workspace_invitation.workspace_id, workspace_invitation.email)
+            if token and compare_digest(token.encode(), workspace_invitation.token.encode())
+            else []
+        )
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class UserWorkspaceInvitationsViewSet(BaseViewSet):

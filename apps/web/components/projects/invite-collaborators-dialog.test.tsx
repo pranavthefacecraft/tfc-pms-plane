@@ -16,6 +16,7 @@ import { accessNote, accessRoleLabel } from "./invite-collaborators.helpers";
 const mocks = vi.hoisted(() => ({
   invite: vi.fn(),
   fetchMembers: vi.fn(),
+  fetchWorkspace: vi.fn(),
   fetchProject: vi.fn(),
   copy: vi.fn(),
   toast: vi.fn(),
@@ -37,6 +38,7 @@ const people: Record<string, { name: string; role: number }> = {
   me: { name: "Pat Owner", role: 20 },
   eve: { name: "Eve Stone", role: 15 },
   ann: { name: "Ann Lee", role: 15 },
+  boss: { name: "Workspace Admin", role: 20 },
 };
 vi.mock("@/hooks/store/use-member", () => ({
   useMember: () => ({
@@ -44,6 +46,7 @@ vi.mock("@/hooks/store/use-member", () => ({
     workspace: {
       workspaceMemberIds: Object.keys(people),
       getWorkspaceMemberDetails: (id: string) => ({ id, role: people[id].role, is_active: true }),
+      fetchWorkspaceMembers: mocks.fetchWorkspace,
     },
     project: {
       fetchProjectMembers: mocks.fetchMembers,
@@ -82,6 +85,7 @@ describe("InviteCollaboratorsDialog", () => {
     vi.clearAllMocks();
     mocks.members = ["me", "eve"];
     mocks.fetchMembers.mockResolvedValue([]);
+    mocks.fetchWorkspace.mockResolvedValue([]);
     mocks.fetchProject.mockResolvedValue({});
     mocks.invite.mockResolvedValue({ added: ["ann@acme.test"], invited: [] });
     host = document.createElement("div");
@@ -127,6 +131,50 @@ describe("InviteCollaboratorsDialog", () => {
     expect(mocks.fetchProject).toHaveBeenCalledWith("acme", "p1");
     expect(mocks.fetchMembers).toHaveBeenCalledTimes(2);
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Collaborator added" }));
+  });
+
+  it("loads the workspace roster and searches by email", async () => {
+    await render();
+    expect(mocks.fetchWorkspace).toHaveBeenCalledWith("acme");
+    await type("ann@acme.test");
+    expect(host.querySelector('ul[aria-label="Suggestions"]')?.textContent).toContain("Ann Lee");
+    expect(host.textContent).not.toContain("Invite ann@acme.test");
+  });
+
+  it("allows viewer invitations", async () => {
+    await render();
+    const select = host.querySelector<HTMLSelectElement>('select[aria-label="Project role"]')!;
+    await act(() => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(select, "5");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await type("ann");
+    await act(async () =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Ann Lee"))!.click()
+    );
+    expect(mocks.invite).toHaveBeenCalledWith("acme", "p1", [{ email: "ann@acme.test", role: 5 }]);
+  });
+
+  it("sends an accepted role for workspace admins, whose admin role is enforced by the backend", async () => {
+    await render();
+    await type("boss@acme.test");
+    await act(async () =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Workspace Admin"))!.click()
+    );
+    expect(mocks.invite).toHaveBeenCalledWith("acme", "p1", [{ email: "boss@acme.test", role: 15 }]);
+  });
+
+  it("reports an invitation failure without claiming success", async () => {
+    mocks.invite.mockRejectedValue(new Error("Forbidden"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await render();
+    await type("new@acme.test");
+    await act(async () =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent === "Invite new@acme.test")!.click()
+    );
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not add this teammate");
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "error" }));
+    vi.restoreAllMocks();
   });
 
   it("does not suggest current members and invites new emails", async () => {

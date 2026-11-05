@@ -46,7 +46,11 @@ export const ProjectMemberList = observer(function ProjectMemberList(props: TPro
     const fullName = `${memberDetails?.member.first_name} ${memberDetails?.member.last_name}`.toLowerCase();
     const displayName = memberDetails?.member.display_name.toLowerCase();
 
-    return displayName?.includes(searchQuery.toLowerCase()) || fullName.includes(searchQuery.toLowerCase());
+    return (
+      displayName?.includes(searchQuery.toLowerCase()) ||
+      fullName.includes(searchQuery.toLowerCase()) ||
+      memberDetails.member.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   });
 
   const memberDetails = searchedProjectMembers?.map((memberId) =>

@@ -16,6 +16,7 @@ from plane.db.models import User, Workspace, WorkspaceMemberInvite
 from plane.license.utils.instance_value import get_email_configuration
 from plane.utils.email import generate_plain_text_from_html, render_email_template
 from plane.utils.exception_logger import log_exception
+from plane.utils.project_invitation import pending_invited_projects
 
 
 @shared_task
@@ -25,6 +26,9 @@ def workspace_invitation(email, workspace_id, token, current_site, inviter):
 
         workspace = Workspace.objects.get(pk=workspace_id)
         workspace_member_invite = WorkspaceMemberInvite.objects.get(token=token, email=email)
+        projects = pending_invited_projects(workspace.id, email)
+        project_names = ", ".join(project["name"] for project in projects)
+        invitation_target = f"{project_names} in {workspace.name}" if projects else workspace.name
 
         # Relative link
         relative_link = (
@@ -45,12 +49,14 @@ def workspace_invitation(email, workspace_id, token, current_site, inviter):
         ) = get_email_configuration()
 
         # Subject of the email
-        subject = f"{user.first_name or user.display_name or user.email} has invited you to join them in {workspace.name} on Clevdex"  # noqa: E501
+        subject = f"{user.first_name or user.display_name or user.email} has invited you to join them in {invitation_target} on Clevdex"  # noqa: E501
 
         context = {
             "email": email,
             "first_name": user.first_name or user.display_name or user.email,
             "workspace_name": workspace.name,
+            "project_names": project_names,
+            "invitation_target": invitation_target,
             "abs_url": abs_url,
         }
 

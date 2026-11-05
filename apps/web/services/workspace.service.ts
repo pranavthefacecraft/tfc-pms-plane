@@ -169,8 +169,15 @@ export class WorkspaceService extends APIService {
       });
   }
 
-  async getWorkspaceInvitation(workspaceSlug: string, invitationId: string): Promise<IWorkspaceMemberInvitation> {
-    return this.get(`/api/workspaces/${workspaceSlug}/invitations/${invitationId}/join/`, { headers: {} })
+  async getWorkspaceInvitation(
+    workspaceSlug: string,
+    invitationId: string,
+    token?: string | null
+  ): Promise<IWorkspaceMemberInvitation> {
+    return this.get(`/api/workspaces/${workspaceSlug}/invitations/${invitationId}/join/`, {
+      headers: {},
+      params: token ? { token } : undefined,
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

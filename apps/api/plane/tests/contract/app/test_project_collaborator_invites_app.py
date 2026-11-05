@@ -20,6 +20,7 @@ from plane.db.models import (
     WorkspaceMember,
     WorkspaceMemberInvite,
 )
+from plane.bgtasks.workspace_invitation_task import workspace_invitation
 
 TASK_PATH = "plane.app.views.project.collaborator_invite.workspace_invitation"
 
@@ -39,6 +40,15 @@ def _member(workspace, email, role):
 
 def _url(workspace, project):
     return f"/api/workspaces/{workspace.slug}/projects/{project.id}/collaborator-invites/"
+
+
+@pytest.fixture
+def post_invite(session_client, django_capture_on_commit_callbacks):
+    def post(url, payload):
+        with django_capture_on_commit_callbacks(execute=True):
+            return session_client.post(url, payload, format="json")
+
+    return post
 
 
 @pytest.mark.contract
@@ -74,10 +84,8 @@ class TestProjectCollaboratorInvites:
 
     @pytest.mark.django_db
     @mock.patch(TASK_PATH)
-    def test_invites_new_email_and_adds_them_after_joining(self, task, session_client, workspace, project):
-        response = session_client.post(
-            _url(workspace, project), {"invites": [{"email": "New@Example.com", "role": 5}]}, format="json"
-        )
+    def test_invites_new_email_and_adds_them_after_joining(self, task, session_client, workspace, project, post_invite):
+        response = post_invite(_url(workspace, project), {"invites": [{"email": "New@Example.com", "role": 5}]})
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data == {"added": [], "invited": ["new@example.com"]}
@@ -102,10 +110,10 @@ class TestProjectCollaboratorInvites:
 
     @pytest.mark.django_db
     @mock.patch(TASK_PATH)
-    def test_pending_invite_applies_through_other_join_paths(self, task, session_client, workspace, project):
-        session_client.post(
-            _url(workspace, project), {"invites": [{"email": "later@example.com", "role": 15}]}, format="json"
-        )
+    def test_pending_invite_applies_through_other_join_paths(
+        self, task, session_client, workspace, project, post_invite
+    ):
+        post_invite(_url(workspace, project), {"invites": [{"email": "later@example.com", "role": 15}]})
         invite = WorkspaceMemberInvite.objects.get(email="later@example.com")
         later = User.objects.create(email="later@example.com", username="later")
 
@@ -136,14 +144,103 @@ class TestProjectCollaboratorInvites:
 
     @pytest.mark.django_db
     @mock.patch(TASK_PATH)
-    def test_existing_workspace_invite_is_not_resent(self, task, session_client, workspace, project, create_user):
+    def test_existing_workspace_invite_sends_new_project_context_but_not_duplicates(
+        self, task, workspace, project, post_invite
+    ):
         WorkspaceMemberInvite.objects.create(workspace=workspace, email="pending@example.com", token="x", role=15)
-        response = session_client.post(
-            _url(workspace, project), {"invites": [{"email": "pending@example.com", "role": 15}]}, format="json"
-        )
+        response = post_invite(_url(workspace, project), {"invites": [{"email": "pending@example.com", "role": 15}]})
         assert response.status_code == status.HTTP_200_OK
+        task.delay.assert_called_once()
+        task.reset_mock()
+        post_invite(_url(workspace, project), {"invites": [{"email": "pending@example.com", "role": 15}]})
         task.delay.assert_not_called()
         assert WorkspaceMemberInvite.objects.filter(email="pending@example.com").count() == 1
+
+    @pytest.mark.django_db
+    @mock.patch(TASK_PATH)
+    def test_project_context_requires_the_invitation_token(self, task, session_client, workspace, project, post_invite):
+        post_invite(_url(workspace, project), {"invites": [{"email": "context@example.com", "role": 15}]})
+        invite = WorkspaceMemberInvite.objects.get(email="context@example.com")
+        session_client.force_authenticate(user=None)
+        url = f"/api/workspaces/{workspace.slug}/invitations/{invite.id}/join/"
+        for token in ("", "wrong", "\u00e9"):
+            response = session_client.get(url, {"token": token})
+            assert response.status_code == 200
+            assert response.data["projects"] == []
+            assert "token" not in response.data
+            assert "invite_link" not in response.data
+        response = session_client.get(url, {"token": invite.token})
+        assert response.data["projects"] == [{"id": str(project.id), "name": project.name}]
+        unrelated = Project.objects.create(name="Private", identifier="PRI", workspace=workspace)
+        ProjectMemberInvite.objects.create(
+            project=unrelated,
+            workspace=workspace,
+            email="other@example.com",
+            role=15,
+            token="other",
+            message=PENDING_COLLABORATOR_INVITE,
+        )
+        response = session_client.get(url, {"token": invite.token})
+        assert response.data["projects"] == [{"id": str(project.id), "name": project.name}]
+
+    @pytest.mark.django_db
+    @mock.patch(TASK_PATH)
+    def test_email_is_enqueued_only_after_pending_project_is_committed(
+        self, task, session_client, workspace, project, django_capture_on_commit_callbacks
+    ):
+        with django_capture_on_commit_callbacks(execute=True):
+            session_client.post(
+                _url(workspace, project), {"invites": [{"email": "queued@example.com", "role": 15}]}, format="json"
+            )
+            task.delay.assert_not_called()
+        task.delay.assert_called_once()
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("project_count", [0, 1, 2])
+    def test_email_names_only_the_pending_invited_projects(
+        self, workspace, project, create_user, settings, project_count
+    ):
+        settings.WEB_URL = "https://pms.example.test"
+        invite = WorkspaceMemberInvite.objects.create(
+            workspace=workspace, email="mail@example.com", token="mail-token", role=15
+        )
+        project.name = "Website & Design"
+        project.save()
+        for index in range(project_count):
+            selected = (
+                project if index == 0 else Project.objects.create(workspace=workspace, name="Second", identifier="SEC")
+            )
+            ProjectMemberInvite.objects.create(
+                project=selected,
+                workspace=workspace,
+                email=invite.email,
+                role=15,
+                token=f"project-{index}",
+                message=PENDING_COLLABORATOR_INVITE,
+            )
+        with (
+            mock.patch(
+                "plane.bgtasks.workspace_invitation_task.get_email_configuration",
+                return_value=("smtp.invalid", "", "", "25", "0", "0", "noreply@example.test"),
+            ),
+            mock.patch("plane.bgtasks.workspace_invitation_task.get_connection"),
+            mock.patch("plane.bgtasks.workspace_invitation_task.EmailMultiAlternatives") as email,
+        ):
+            workspace_invitation(invite.email, workspace.id, invite.token, settings.WEB_URL, create_user.email)
+        email.assert_called_once()
+        subject = email.call_args.kwargs["subject"]
+        html = email.return_value.attach_alternative.call_args.args[0]
+        assert workspace.name in subject
+        if project_count:
+            assert f"Website & Design in {workspace.name}" in subject
+            assert "Website &amp; Design" in html
+            assert "Accepting this invitation joins the workspace" in html
+            if project_count == 2:
+                assert "Second" in subject
+        else:
+            assert "Website" not in subject
+            assert "Accepting this invitation joins the workspace" not in html
+        email.return_value.send.assert_called_once()
 
     @pytest.mark.django_db
     @pytest.mark.parametrize(

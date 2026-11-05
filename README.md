@@ -599,6 +599,22 @@ sub-work item, restoring a draft, editing a work item, and group **+** buttons t
 prefill fields the side form lacks (such as labels) still use the full popup, so those
 links are kept.
 
+## Teammate invitations
+
+Project Overview **Add Teammate**, Project Settings **Add member**, and the Projects
+page collaborator menu use the same popup. Project admins can search workspace
+teammates by name or email, or invite a new email as an Editor or Viewer. Workspace
+admins remain project admins and workspace viewers cannot receive a higher role.
+
+PMS Settings **Teammates** also supports workspace-only invitations or selecting a
+project. A project invitation first joins the workspace, then applies the pending
+project membership on acceptance. Emails and the token-verified acceptance page
+name the invited projects and workspace; acceptance opens the first invited project.
+Workspace-only invitations remain workspace-labelled. Project visibility and
+existing workspace/project permissions are unchanged. New project invitations
+reuse an existing workspace invitation, sending updated context once per newly
+invited project rather than resending duplicate invitations.
+
 ## Task likes
 
 Task detail headers (side panel and full page) include a thumbs-up button to like

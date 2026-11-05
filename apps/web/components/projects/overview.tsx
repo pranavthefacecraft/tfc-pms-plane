@@ -25,6 +25,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { ProjectOverviewResources } from "./overview-resources";
 import { ProjectPageHeader } from "./project-page-header";
 import { initials } from "./projects-browse.helpers";
+import { InviteCollaboratorsDialog } from "./invite-collaborators-dialog";
 
 const HEALTH_OPTIONS = [
   { value: "", label: "Not set", color: "#9ca3af" },
@@ -210,6 +211,7 @@ const OverviewTeammates = observer(function OverviewTeammates({
   workspaceSlug: string;
   canEdit: boolean;
 }) {
+  const [inviting, setInviting] = useState(false);
   const { getUserDetails, project: projectMembers } = useMember();
   const { error, mutate } = useSWR(["overview-members", workspaceSlug, project.id], () =>
     projectMembers.fetchProjectMembers(workspaceSlug, project.id)
@@ -231,13 +233,14 @@ const OverviewTeammates = observer(function OverviewTeammates({
           Project Teammates
         </h2>
         {canEdit && (
-          <Link
-            href={`/${workspaceSlug}/settings/projects/${project.id}/members`}
+          <button
+            type="button"
+            onClick={() => setInviting(true)}
             className="inline-flex items-center gap-1 text-12 font-medium text-[#135DDD] hover:underline"
           >
             <Plus className="size-3.5" aria-hidden="true" />
             Add Teammate
-          </Link>
+          </button>
         )}
       </div>
       {error ? (
@@ -273,6 +276,13 @@ const OverviewTeammates = observer(function OverviewTeammates({
         </ul>
       ) : (
         <p className="text-13 text-tertiary">No teammates yet.</p>
+      )}
+      {inviting && canEdit && (
+        <InviteCollaboratorsDialog
+          workspaceSlug={workspaceSlug}
+          project={{ ...project, member_role: EUserPermissions.ADMIN }}
+          onClose={() => setInviting(false)}
+        />
       )}
     </section>
   );

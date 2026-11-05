@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import {
@@ -28,6 +29,7 @@ import { useAppRouter } from "@/hooks/use-app-router";
 // wrappers
 import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
 import { WorkspaceService } from "@/services/workspace.service";
+import { setToast } from "@plane/blocks/toast";
 // services
 
 // service initialization
@@ -43,47 +45,68 @@ function WorkspaceInvitationPage() {
   const token = searchParams.get("token");
   // store hooks
   const { data: currentUser } = useUser();
+  const [responding, setResponding] = useState(false);
+  const [responseError, setResponseError] = useState("");
 
   const { data: invitationDetail, error } = useSWR(
-    invitation_id && slug && WORKSPACE_INVITATION(invitation_id.toString()),
+    invitation_id && slug ? [WORKSPACE_INVITATION(invitation_id.toString()), slug, token] : null,
     invitation_id && slug
-      ? () => workspaceService.getWorkspaceInvitation(slug.toString(), invitation_id.toString())
+      ? () => workspaceService.getWorkspaceInvitation(slug.toString(), invitation_id.toString(), token)
       : null
   );
 
-  const handleAccept = () => {
-    if (!invitationDetail) return;
-    workspaceService
+  const projects = invitationDetail?.projects ?? [];
+  const invitationTarget = projects.length
+    ? `${projects.map((project) => project.name).join(", ")} in ${invitationDetail?.workspace.name}`
+    : invitationDetail?.workspace.name;
+
+  const respond = (accepted: boolean) => {
+    if (!invitationDetail || responding) return;
+    if (!token) {
+      setResponseError("This invitation link is missing its token. Open the full link from your invitation email.");
+      return;
+    }
+    setResponding(true);
+    setResponseError("");
+    void workspaceService
       .joinWorkspace(invitationDetail.workspace.slug, invitationDetail.id, {
-        accepted: true,
+        accepted,
         token: token,
       })
       .then(() => {
-        if (invitationDetail.email === currentUser?.email) {
-          router.push(`/${invitationDetail.workspace.slug}`);
+        if (accepted && invitationDetail.email.toLowerCase() === currentUser?.email?.toLowerCase()) {
+          const project = projects[0];
+          router.push(
+            project
+              ? `/${invitationDetail.workspace.slug}/projects/${project.id}/overview`
+              : `/${invitationDetail.workspace.slug}`
+          );
         } else {
           router.push("/");
         }
       })
-      .catch((err: unknown) => console.error(err));
-  };
-
-  const handleReject = () => {
-    if (!invitationDetail || !token) return;
-    void workspaceService
-      .joinWorkspace(invitationDetail.workspace.slug, invitationDetail.id, {
-        accepted: false,
-        token: token,
+      .catch((err: unknown) => {
+        console.error("Invitation response failed", err);
+        const message = "Could not respond to the invitation. Sign in with the invited email and try again.";
+        setResponseError(message);
+        setToast({ type: "error", title: "Invitation not accepted", message });
       })
-      .then(() => {
-        router.push("/");
-      })
-      .catch((err: unknown) => console.error(err));
+      .finally(() => setResponding(false));
   };
 
   return (
     <AuthenticationWrapper pageType={EPageTypes.PUBLIC}>
       <div className="flex h-full w-full flex-col items-center justify-center px-3">
+        {responseError && (
+          <p role="alert" className="mb-4 text-13 text-danger-primary">
+            {responseError}
+          </p>
+        )}
+        {responding && (
+          <p role="status" className="mb-4 text-13">
+            Updating invitation...
+          </p>
+        )}
         {invitationDetail && !invitationDetail.responded_at ? (
           error ? (
             <div className="shadow-2xl flex w-full flex-col space-y-4 rounded-sm border border-subtle bg-surface-1 px-4 py-8 text-center md:w-1/3">
@@ -91,11 +114,15 @@ function WorkspaceInvitationPage() {
             </div>
           ) : (
             <EmptySpace
-              title={`You have been invited to ${invitationDetail.workspace.name}`}
-              description="Your workspace is where you'll create projects, collaborate on your work items, and organize different streams of work in your Plane account."
+              title={`You have been invited to ${invitationTarget}`}
+              description={
+                projects.length
+                  ? "Accepting joins this workspace and adds you to the invited project(s), where you can collaborate on tasks."
+                  : "Accepting joins this workspace. Project access depends on membership, role, and project visibility."
+              }
             >
-              <EmptySpaceItem Icon={TickOutline} title="Accept" action={handleAccept} />
-              <EmptySpaceItem Icon={CloseOutline} title="Ignore" action={handleReject} />
+              <EmptySpaceItem Icon={TickOutline} title="Accept" action={() => respond(true)} />
+              <EmptySpaceItem Icon={CloseOutline} title="Ignore" action={() => respond(false)} />
             </EmptySpace>
           )
         ) : error || invitationDetail?.responded_at ? (

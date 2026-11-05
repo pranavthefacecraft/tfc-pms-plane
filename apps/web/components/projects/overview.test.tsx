@@ -26,6 +26,14 @@ vi.mock("./project-page-header", () => ({
   ProjectPageHeader: ({ name, active }: { name: string; active: string }) => <h1 data-active-tab={active}>{name}</h1>,
 }));
 vi.mock("@plane/blocks/toast", () => ({ setToast: mocks.toast }));
+vi.mock("./invite-collaborators-dialog", () => ({
+  InviteCollaboratorsDialog: ({ project, onClose }: { project: { name: string }; onClose: () => void }) => (
+    <div role="dialog">
+      Invite to {project.name}
+      <button onClick={onClose}>Close invitation</button>
+    </div>
+  ),
+}));
 vi.mock("@/hooks/store/use-project", () => ({
   useProject: () => ({ fetchProjectDetails: mocks.fetch, updateProject: mocks.update }),
 }));
@@ -134,9 +142,7 @@ describe("project overview", () => {
     expect(host.textContent).toContain("Project Teammates");
     const people = [...host.querySelectorAll("section[aria-labelledby=overview-teammates] li")];
     expect(people.map((node) => node.textContent)).toEqual(["POProject OwnerProject owner", "TMTeam MemberTeammate"]);
-    expect(host.querySelector('a[href^="/workspace/settings/projects/project/members"]')?.textContent).toContain(
-      "Add Teammate"
-    );
+    expect(button("Add Teammate")).toBeTruthy();
     expect(host.textContent).toContain("Key Resources");
     expect(host.textContent).toContain("Attached file");
     expect(host.querySelector('a[aria-label="Open Project brief"]')?.getAttribute("href")).toBe(
@@ -146,6 +152,13 @@ describe("project overview", () => {
     expect(host.querySelector("progress")).toBeNull();
     expect(host.querySelector("select")).toBeNull();
     expect(host.textContent).not.toContain("Project health");
+  });
+  it("opens the shared project invitation popup without leaving the overview", async () => {
+    await render();
+    await act(() => button("Add Teammate").click());
+    expect(host.querySelector('[role="dialog"]')?.textContent).toContain("Invite to Launch");
+    await act(() => button("Close invitation").click());
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
   });
   it("lists the project creator as owner when no lead is set", async () => {
     mocks.project.project_lead = null;

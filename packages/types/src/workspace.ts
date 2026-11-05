@@ -46,6 +46,7 @@ export interface IWorkspaceLite {
 }
 
 export interface IWorkspaceMemberInvitation {
+  projects?: { id: string; name: string }[];
   accepted: boolean;
   email: string;
   id: string;

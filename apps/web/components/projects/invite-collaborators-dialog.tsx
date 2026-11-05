@@ -18,7 +18,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUser } from "@/hooks/store/user";
 import { ProjectCollaboratorsService } from "@/services/project-collaborators.service";
 import { Avatar, SuggestionList } from "./collaborator-invite-parts";
-import { EDITOR_ROLE, collaboratorRole, personName, teammateSuggestions } from "./create-project-dialog.helpers";
+import { EDITOR_ROLE, VIEWER_ROLE, personName, teammateSuggestions } from "./create-project-dialog.helpers";
 import type { TTeammate } from "./create-project-dialog.helpers";
 import { accessNote, accessRoleLabel } from "./invite-collaborators.helpers";
 
@@ -34,21 +34,23 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
   onClose,
 }: {
   workspaceSlug: string;
-  project: TProject;
+  project: Pick<TProject, "id" | "name" | "member_role" | "created_by" | "network">;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [invited, setInvited] = useState<string[]>([]);
+  const [role, setRole] = useState(EDITOR_ROLE);
+  const [error, setError] = useState("");
   const { data: currentUser } = useUser();
   const { fetchProjectDetails } = useProject();
   const {
     getUserDetails,
-    workspace: { workspaceMemberIds, getWorkspaceMemberDetails },
+    workspace: { workspaceMemberIds, getWorkspaceMemberDetails, fetchWorkspaceMembers },
     project: { fetchProjectMembers, getProjectMemberIds, getProjectMemberDetails },
   } = useMember();
   const members = useSWR(["invite-collaborators-members", workspaceSlug, project.id], () =>
-    fetchProjectMembers(workspaceSlug, project.id, true)
+    Promise.all([fetchProjectMembers(workspaceSlug, project.id, true), fetchWorkspaceMembers(workspaceSlug)])
   );
   const canInvite = project.member_role === EUserPermissions.ADMIN;
   const memberIds = getProjectMemberIds(project.id, true) ?? [];
@@ -68,8 +70,11 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
   const invite = async (email: string, role: number, label: string) => {
     if (busy || !email) return;
     setBusy(true);
+    setError("");
+    let saved = false;
     try {
       const result = await collaboratorsService.invite(workspaceSlug, project.id, [{ email, role }]);
+      saved = true;
       setQuery("");
       if (result.invited.length) setInvited((previous) => [...previous, ...result.invited]);
       await Promise.all([members.mutate(), fetchProjectDetails(workspaceSlug, project.id)]);
@@ -77,12 +82,16 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
         type: "success",
         title: result.invited.length ? "Invitation sent" : "Collaborator added",
         message: result.invited.length
-          ? `${label} will join ${project.name} after accepting the workspace invitation.`
+          ? `${label} will join ${project.name} after accepting the invitation, which also joins the workspace.`
           : `${label} can now open ${project.name}.`,
       });
     } catch (error) {
       console.error("Collaborator invite failed", error);
-      setToast({ type: "error", title: "Could not add collaborator", message: "Check the email and try again." });
+      const message = saved
+        ? "Access was updated, but the member list could not refresh. Close and reopen this popup to refresh."
+        : "Could not add this teammate. Check the email and your permissions, then try again.";
+      setError(message);
+      setToast({ type: "error", title: "Could not complete invitation", message });
     } finally {
       setBusy(false);
     }
@@ -90,10 +99,10 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
   const addMember = (id: string) =>
     void invite(
       getUserDetails(id)?.email ?? "",
-      collaboratorRole(getWorkspaceMemberDetails(id)?.role),
+      Math.min(role, getWorkspaceMemberDetails(id)?.role ?? EDITOR_ROLE),
       personName(getUserDetails(id), "Teammate")
     );
-  const addEmail = () => void invite(term, EDITOR_ROLE, term);
+  const addEmail = () => void invite(term, role, term);
   const copyLink = async () => {
     try {
       await copyUrlToClipboard(`${workspaceSlug}/projects/${project.id}/overview`);
@@ -124,6 +133,9 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
               <X className="size-4" />
             </button>
           </div>
+          <p className="text-12 text-secondary">
+            Add teammates to <strong>{project.name}</strong>. New teammates will also join this workspace.
+          </p>
           {canInvite ? (
             <div className="flex flex-col gap-1.5">
               <label htmlFor="invite-collaborators-input" className="text-13 font-medium">
@@ -133,7 +145,7 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
                 id="invite-collaborators-input"
                 value={query}
                 autoComplete="off"
-                disabled={busy}
+                disabled={busy || members.isLoading || !!members.error}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter") return;
@@ -144,6 +156,22 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
                 placeholder="Enter email or teammate name"
                 className="w-full rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-13 outline-none placeholder:text-placeholder focus:border-[#135DDD] focus:ring-1 focus:ring-[#135DDD]"
               />
+              <label className="mt-2 flex items-center justify-between text-12">
+                Project role
+                <select
+                  aria-label="Project role"
+                  value={role}
+                  disabled={busy}
+                  onChange={(event) => setRole(Number(event.target.value))}
+                  className="rounded-md border border-subtle bg-surface-1 px-2 py-1"
+                >
+                  <option value={EDITOR_ROLE}>Editor</option>
+                  <option value={VIEWER_ROLE}>Viewer</option>
+                </select>
+              </label>
+              <p className="text-12 text-secondary">
+                Workspace admins remain admins; workspace viewers remain viewers.
+              </p>
               {term && (
                 <SuggestionList
                   term={term}
@@ -152,6 +180,11 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
                   onAddMember={addMember}
                   onAddEmail={addEmail}
                 />
+              )}
+              {error && (
+                <p role="alert" className="text-12 text-danger-primary">
+                  {error}
+                </p>
               )}
             </div>
           ) : (
