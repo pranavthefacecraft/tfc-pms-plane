@@ -601,6 +601,12 @@ links are kept.
 
 ## Teammate invitations
 
+Project Settings uses the PMS-branded sidebar and the main-screen search,
+notification and profile header. Workspace switching remains available under the
+profile menu instead of the top-left workspace dropdown. Settings links, forms,
+feature toggles and permissions are unchanged; the shared chrome applies across
+project settings, including General, Members, Cycles and Modules.
+
 Project Overview **Add Teammate**, Project Settings **Add member**, and the Projects
 page collaborator menu use the same popup. Project admins can search workspace
 teammates by name or email, or invite a new email as an Editor or Viewer. Workspace

@@ -14,6 +14,7 @@ import type { ISvgIcons } from "@plane/blocks/icons";
 type Props = {
   isActive: boolean;
   label: string;
+  appearance?: "pms";
 } & ({ as: "button"; onClick: () => void } | { as: "link"; href: string }) &
   (
     | {
@@ -23,13 +24,17 @@ type Props = {
   );
 
 export function SettingsSidebarItem(props: Props) {
-  const { as, isActive, label } = props;
+  const { as, isActive, label, appearance } = props;
   // common class
   const className = cn(
     "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-body-sm-medium text-secondary transition-colors",
     {
-      "bg-layer-transparent-selected text-primary": isActive,
-      "hover:bg-layer-transparent-hover": !isActive,
+      "bg-layer-transparent-selected text-primary": isActive && appearance !== "pms",
+      "hover:bg-layer-transparent-hover": !isActive && appearance !== "pms",
+      "rounded-md border border-transparent text-13 text-[#3A4D66] dark:text-secondary": appearance === "pms",
+      "border-[#CFE0FF] bg-[#EAF2FF] text-[#135DDD] dark:border-subtle dark:bg-layer-1 dark:text-primary":
+        isActive && appearance === "pms",
+      "hover:bg-[#F8F9FB] dark:hover:bg-layer-1": !isActive && appearance === "pms",
     }
   );
   // common content

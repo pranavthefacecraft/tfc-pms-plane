@@ -50,10 +50,10 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
 
         return (
           <div key={category} className="shrink-0 py-3 first:pt-0 last:pb-0">
-            <div className="p-2 text-caption-md-medium text-tertiary capitalize">
+            <div className="px-2 py-2 text-11 font-medium text-secondary capitalize">
               {t(PROJECT_SETTINGS_CATEGORY_LABELS[category])}
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-1">
               {accessibleItems.map((item) => {
                 const isItemActive =
                   item.href === ""
@@ -64,6 +64,7 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
                   <SettingsSidebarItem
                     key={item.key}
                     as="link"
+                    appearance="pms"
                     href={`/${workspaceSlug}/settings/projects/${projectId}${item.href}/`}
                     isActive={isItemActive}
                     icon={PROJECT_SETTINGS_ICONS[item.key]}
