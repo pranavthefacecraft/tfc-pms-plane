@@ -6,6 +6,7 @@
 
 import { makeObservable, observable } from "mobx";
 import { computedFn } from "mobx-utils";
+import { isAxiosError } from "axios";
 // types
 import type { TIssue, TIssueServiceType } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
@@ -35,6 +36,7 @@ export interface IIssueStoreActions {
 }
 
 export interface IIssueStore extends IIssueStoreActions {
+  refreshIssue: (workspaceSlug: string, projectId: string, issueId: string) => Promise<void>;
   getIsFetchingIssueDetails: (issueId: string | undefined) => boolean;
   // helper methods
   getIssueById: (issueId: string) => TIssue | undefined;
@@ -84,6 +86,48 @@ export class IssueStore implements IIssueStore {
   });
 
   // actions
+  refreshIssue = async (workspaceSlug: string, projectId: string, issueId: string) => {
+    let issue: TIssue;
+    try {
+      issue = await this.issueService.retrieve(
+        workspaceSlug,
+        projectId,
+        issueId,
+        {
+          expand: "issue_reactions,issue_attachments,issue_link,parent",
+        },
+        true
+      );
+    } catch (error) {
+      if (isAxiosError(error) && [401, 403, 404].includes(error.response?.status ?? 0)) {
+        console.error("Live task is no longer accessible:", error.response?.status);
+        this.rootIssueDetailStore.rootIssueStore.issues.removeIssue(issueId);
+        return;
+      }
+      throw error;
+    }
+    this.addIssueToStore(issue);
+    const detail = this.rootIssueDetailStore;
+    detail.addSubscription(issueId, issue.is_subscribed);
+    if (issue.issue_reactions) detail.addReactions(issueId, issue.issue_reactions);
+    if (issue.issue_link) detail.addLinks(issueId, issue.issue_link);
+    const results = await Promise.allSettled([
+      detail.attachment.fetchAttachments(workspaceSlug, projectId, issueId),
+      detail.activity.fetchActivities(workspaceSlug, projectId, issueId, "mutate", true),
+      detail.comment.fetchComments(workspaceSlug, projectId, issueId, "mutate", true),
+      detail.subIssues.fetchSubIssues(workspaceSlug, projectId, issueId),
+      detail.relation.fetchRelations(workspaceSlug, projectId, issueId),
+      detail.rootIssueStore.rootStore.state.fetchProjectStates(workspaceSlug, projectId),
+      issue.parent?.id && issue.parent.project_id
+        ? this.issueService
+            .retrieve(workspaceSlug, issue.parent.project_id, issue.parent.id)
+            .then((parent) => detail.rootIssueStore.issues.addIssue([parent]))
+        : Promise.resolve(),
+    ]);
+    const failures = results.filter((result) => result.status === "rejected").map((result) => result.reason);
+    if (failures.length) throw new AggregateError(failures, "Live task details could not be fully refreshed");
+  };
+
   fetchIssue = async (workspaceSlug: string, projectId: string, issueId: string) => {
     const query = {
       expand: "issue_reactions,issue_attachments,issue_link,parent",
@@ -147,6 +191,7 @@ export class IssueStore implements IIssueStore {
       description_html: issue?.description_html,
       sort_order: issue?.sort_order,
       state_id: issue?.state_id,
+      section_id: issue?.section_id,
       priority: issue?.priority,
       label_ids: issue?.label_ids,
       assignee_ids: issue?.assignee_ids,

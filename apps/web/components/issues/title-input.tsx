@@ -52,7 +52,7 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
   const debouncedValue = useDebounce(title, 1500);
 
   useEffect(() => {
-    if (value) {
+    if (value && !hasUnsavedChanges.current) {
       setTitle(value);
       currentTitleRef.current = value;
       // Reset unsaved changes flag when value is set from props
@@ -62,11 +62,11 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: IssueTit
 
   useEffect(() => {
     const textarea = document.querySelector("#title-input");
-    if (debouncedValue && debouncedValue !== value) {
+    if (hasUnsavedChanges.current && debouncedValue && debouncedValue !== value) {
       if (debouncedValue.trim().length > 0) {
         issueOperations.update(workspaceSlug, projectId, issueId, { name: debouncedValue }).finally(() => {
-          setIsSubmitting("saved");
-          hasUnsavedChanges.current = false;
+          hasUnsavedChanges.current = currentTitleRef.current !== debouncedValue;
+          setIsSubmitting(hasUnsavedChanges.current ? "submitting" : "saved");
           if (textarea && !textarea.matches(":focus")) {
             const trimmedTitle = debouncedValue.trim();
             if (trimmedTitle !== title) setTitle(trimmedTitle);

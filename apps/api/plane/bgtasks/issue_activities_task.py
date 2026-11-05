@@ -33,6 +33,7 @@ from plane.db.models import (
     EstimatePoint,
 )
 from plane.settings.redis import redis_instance
+from plane.utils.task_events import publish_task_update
 from plane.utils.exception_logger import log_exception
 from plane.utils.issue_relation_mapper import get_inverse_relation
 from plane.utils.uuid import is_valid_uuid
@@ -1582,6 +1583,8 @@ def issue_activity(
 
         # Save all the values to database
         issue_activities_created = IssueActivity.objects.bulk_create(issue_activities)
+        # Bulk writes do not fire model signals; also announce the completed activity timeline.
+        publish_task_update(workspace_id)
 
         if notification:
             notifications.delay(

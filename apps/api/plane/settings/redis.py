@@ -7,7 +7,7 @@ from django.conf import settings
 from urllib.parse import urlparse
 
 
-def redis_instance():
+def redis_instance(socket_timeout=None, socket_connect_timeout=None):
     # connect to redis
     if settings.REDIS_SSL:
         url = urlparse(settings.REDIS_URL)
@@ -17,8 +17,12 @@ def redis_instance():
             password=url.password,
             ssl=True,
             ssl_cert_reqs=None,
+            socket_timeout=socket_timeout,
+            socket_connect_timeout=socket_connect_timeout,
         )
     else:
-        ri = redis.Redis.from_url(settings.REDIS_URL, db=0)
+        ri = redis.Redis.from_url(
+            settings.REDIS_URL, db=0, socket_timeout=socket_timeout, socket_connect_timeout=socket_connect_timeout
+        )
 
     return ri

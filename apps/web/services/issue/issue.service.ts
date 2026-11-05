@@ -110,7 +110,13 @@ export class IssueService extends APIService {
       });
   }
 
-  async retrieve(workspaceSlug: string, projectId: string, issueId: string, queries?: any): Promise<TIssue> {
+  async retrieve(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    queries?: any,
+    preserveError = false
+  ): Promise<TIssue> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/`, {
       params: queries,
     })
@@ -122,6 +128,7 @@ export class IssueService extends APIService {
         return response?.data;
       })
       .catch((error) => {
+        if (preserveError) throw error;
         throw error?.response?.data;
       });
   }

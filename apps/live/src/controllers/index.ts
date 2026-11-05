@@ -9,6 +9,7 @@ import { DocumentController } from "./document.controller";
 import { HealthController } from "./health.controller";
 import { PdfExportController } from "./pdf-export.controller";
 import { WhiteboardController } from "./whiteboard.controller";
+import { TaskUpdatesController } from "./task-updates.controller";
 
 export const CONTROLLERS = [
   CollaborationController,
@@ -16,4 +17,5 @@ export const CONTROLLERS = [
   HealthController,
   PdfExportController,
   WhiteboardController,
+  TaskUpdatesController,
 ];

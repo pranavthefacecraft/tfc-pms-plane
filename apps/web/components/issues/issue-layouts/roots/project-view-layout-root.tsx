@@ -18,6 +18,7 @@ import { AddSection } from "@/components/project-sections/add-section";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProjectView } from "@/hooks/store/use-project-view";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
+import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
 // local imports
 import { IssuePeekOverview } from "../../peek-overview";
 import { ProjectViewCalendarLayout } from "../calendar/roots/project-view-root";
@@ -50,7 +51,11 @@ export const ProjectViewLayoutRoot = observer(function ProjectViewLayoutRoot() {
   const projectId = routerProjectId ? routerProjectId?.toString() : undefined;
   const viewId = routerViewId ? routerViewId?.toString() : undefined;
   // hooks
-  const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT_VIEW);
+  const { issues, issuesFilter } = useIssues(EIssuesStoreType.PROJECT_VIEW);
+  useLiveTaskUpdates(workspaceSlug, async () => {
+    if (workspaceSlug && projectId && viewId)
+      await issues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, viewId, "mutation");
+  });
   const { getViewById } = useProjectView();
   // derived values
   const projectView = viewId ? getViewById(viewId) : undefined;

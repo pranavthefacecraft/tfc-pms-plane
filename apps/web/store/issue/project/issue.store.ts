@@ -83,7 +83,7 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
    * @param projectId
    */
   fetchParentStats = async (workspaceSlug: string, projectId?: string) => {
-    projectId && this.rootIssueStore.rootStore.projectRoot.project.fetchProjectDetails(workspaceSlug, projectId);
+    if (projectId) this.rootIssueStore.rootStore.projectRoot.project.fetchProjectDetails(workspaceSlug, projectId);
   };
 
   /** */
@@ -108,7 +108,7 @@ export class ProjectIssues extends BaseIssuesStore implements IProjectIssues {
       // set loader and clear store
       runInAction(() => {
         this.setLoader(loadType);
-        this.clear(!isExistingPaginationOptions); // clear while fetching from server.
+        this.clear(!isExistingPaginationOptions, isExistingPaginationOptions);
       });
 
       // get params from pagination options

@@ -22,6 +22,7 @@ import { AddSection } from "@/components/project-sections/add-section";
 import { useCycle } from "@/hooks/store/use-cycle";
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
+import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
 // local imports
 import { IssuePeekOverview } from "../../peek-overview";
 import { CycleCalendarLayout } from "../calendar/roots/cycle-root";
@@ -57,7 +58,11 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   const cycleId = routerCycleId ? routerCycleId.toString() : undefined;
   // store hooks
-  const { issuesFilter } = useIssues(EIssuesStoreType.CYCLE);
+  const { issues, issuesFilter } = useIssues(EIssuesStoreType.CYCLE);
+  useLiveTaskUpdates(workspaceSlug, async () => {
+    if (workspaceSlug && projectId && cycleId)
+      await issues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation", cycleId);
+  });
   const { getCycleById } = useCycle();
   // state
   const [transferIssuesModal, setTransferIssuesModal] = useState(false);

@@ -23,6 +23,7 @@ vi.mock("@/hooks/store/use-issue-detail", () => ({
 vi.mock("@/hooks/store/use-member", () => ({ useMember: () => ({ getUserDetails: vi.fn() }) }));
 vi.mock("@/hooks/store/user", () => ({ useUser: () => ({ data: null }) }));
 vi.mock("@/hooks/use-reload-confirmation", () => ({ default: () => ({ setShowAlert: vi.fn() }) }));
+vi.mock("@/hooks/use-live-issue-detail", () => ({ useLiveIssueDetail: vi.fn() }));
 vi.mock("@/services/issue", () => ({
   WorkItemVersionService: vi.fn(function () {
     return {};

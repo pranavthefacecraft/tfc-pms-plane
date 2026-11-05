@@ -31,7 +31,8 @@ export interface IIssueActivityStoreActions {
     workspaceSlug: string,
     projectId: string,
     issueId: string,
-    loaderType?: TActivityLoader
+    loaderType?: TActivityLoader,
+    replace?: boolean
   ) => Promise<TIssueActivity[]>;
 }
 
@@ -142,14 +143,15 @@ export class IssueActivityStore implements IIssueActivityStore {
     workspaceSlug: string,
     projectId: string,
     issueId: string,
-    loaderType: TActivityLoader = "fetch"
+    loaderType: TActivityLoader = "fetch",
+    replace = false
   ) {
     try {
       this.loader = loaderType;
 
       let props = {};
       const currentActivityIds = this.getActivitiesByIssueId(issueId);
-      if (currentActivityIds && currentActivityIds.length > 0) {
+      if (!replace && currentActivityIds && currentActivityIds.length > 0) {
         const currentActivity = this.getActivityById(currentActivityIds[currentActivityIds.length - 1]);
         if (currentActivity) props = { created_at__gt: currentActivity.created_at };
       }
@@ -161,7 +163,7 @@ export class IssueActivityStore implements IIssueActivityStore {
       runInAction(() => {
         // oxlint-disable-next-line no-shadow
         update(this.activities, issueId, (currentActivityIds) => {
-          if (!currentActivityIds) return activityIds;
+          if (replace || !currentActivityIds) return activityIds;
           return uniq(concat(currentActivityIds, activityIds));
         });
         activities.forEach((activity) => {

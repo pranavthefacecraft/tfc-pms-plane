@@ -21,6 +21,7 @@ import { PersonalTasks } from "./personal-tasks";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
+import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
 
 type Props = {
   type: "assigned" | "subscribed" | "created";
@@ -31,9 +32,13 @@ export const ProfileIssuesPage = observer(function ProfileIssuesPage(props: Prop
   const { workspaceSlug, userId } = useParams();
   // store hooks
   const {
-    issues: { setViewId },
+    issues: { setViewId, fetchIssuesWithExistingPagination },
     issuesFilter: { issueFilters, fetchFilters, updateFilterExpression },
   } = useIssues(EIssuesStoreType.PROFILE);
+  useLiveTaskUpdates(workspaceSlug?.toString(), async () => {
+    if (workspaceSlug && userId)
+      await fetchIssuesWithExistingPagination(workspaceSlug.toString(), userId.toString(), "mutation");
+  });
   // derived values
   const activeLayout = issueFilters?.displayFilters?.layout || undefined;
 

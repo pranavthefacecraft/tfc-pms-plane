@@ -126,6 +126,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
     workspaceSlug,
     workspaceId,
   } = props;
+  const incomingDescription = swrDescription ?? initialValue;
   // states
   const [localDescription, setLocalDescription] = useState<TFormData>({
     id: entityId,
@@ -144,7 +145,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
   // translation
   const { t } = useTranslation();
   // form info
-  const { handleSubmit, reset, control, setValue } = useForm<TFormData>({
+  const { handleSubmit, reset, control, setValue, getValues } = useForm<TFormData>({
     defaultValues: {
       id: entityId,
       description_html: initialValue?.trim() ?? "",
@@ -164,14 +165,17 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
       );
       // Update lastSavedContent after successful save
       lastSavedContent.current = formData.description_html;
+      hasUnsavedChanges.current = getValues("description_html") !== formData.description_html;
+      if (!hasUnsavedChanges.current) setLocalDescription({ ...formData, isMigrationUpdate: false });
     },
-    [onSubmit]
+    [onSubmit, getValues]
   );
 
   // reset form values
   useEffect(() => {
     if (!entityId) return;
-    const normalizedValue = initialValue?.trim() === "" ? "<p></p>" : (initialValue ?? "<p></p>");
+    if (hasUnsavedChanges.current) return;
+    const normalizedValue = incomingDescription?.trim() === "" ? "<p></p>" : (incomingDescription ?? "<p></p>");
     // Update last saved content when entity/initialValue changes
     lastSavedContent.current = normalizedValue;
     reset({
@@ -186,7 +190,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
     });
     // Reset unsaved changes flag when form is reset
     hasUnsavedChanges.current = false;
-  }, [entityId, initialValue, reset]);
+  }, [entityId, incomingDescription, reset]);
 
   // ADDING handleDescriptionFormSubmit TO DEPENDENCY ARRAY PRODUCES ADVERSE EFFECTS
   // TODO: Verify the exhaustive-deps warning
@@ -194,11 +198,8 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
   const debouncedFormSave = useCallback(
     debounce(async () => {
       handleSubmit(handleDescriptionFormSubmit)()
-        .catch((error) => console.error(`Failed to save description for ${entityId}:`, error))
-        .finally(() => {
-          setIsSubmitting("submitted");
-          hasUnsavedChanges.current = false;
-        });
+        .then(() => setIsSubmitting(hasUnsavedChanges.current ? "submitting" : "submitted"))
+        .catch((error) => console.error(`Failed to save description for ${entityId}:`, error));
     }, 1500),
     [entityId, handleSubmit]
   );
@@ -243,7 +244,7 @@ export const DescriptionInput = observer(function DescriptionInput(props: Props)
           issueSequenceId={issueSequenceId}
           disabledExtensions={disabledExtensions}
           initialValue={localDescription.description_html ?? "<p></p>"}
-          value={swrDescription ?? null}
+          value={localDescription.description_html}
           workspaceSlug={workspaceSlug}
           workspaceId={resolvedWorkspaceId}
           projectId={projectId}

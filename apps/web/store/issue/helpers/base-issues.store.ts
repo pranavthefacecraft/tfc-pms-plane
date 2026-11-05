@@ -64,7 +64,7 @@ export interface IBaseIssuesStore {
 
   //actions
   removeIssue: (workspaceSlug: string, projectId: string, issueId: string) => Promise<void>;
-  clear(shouldClearPaginationOptions?: boolean): void;
+  clear(shouldClearPaginationOptions?: boolean, preserveContent?: boolean): void;
   // helper methods
   getIssueIds: (groupId?: string, subGroupId?: string) => string[] | undefined;
   issuesSortWithOrderBy(issueIds: string[], key: Partial<TIssueOrderByOptions>): string[];
@@ -1161,11 +1161,13 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
   /**
    * Method called to clear out the current store
    */
-  clear(shouldClearPaginationOptions = true) {
+  clear(shouldClearPaginationOptions = true, preserveContent = false) {
     runInAction(() => {
-      this.groupedIssueIds = undefined;
-      this.issuePaginationData = {};
-      this.groupedIssueCount = {};
+      if (!preserveContent) {
+        this.groupedIssueIds = undefined;
+        this.issuePaginationData = {};
+        this.groupedIssueCount = {};
+      }
       if (shouldClearPaginationOptions) {
         this.paginationOptions = undefined;
       }

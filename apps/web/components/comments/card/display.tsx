@@ -168,6 +168,7 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
             ref={readOnlyEditorRef}
             id={comment.id}
             initialValue={comment.comment_html ?? ""}
+            value={comment.comment_html ?? ""}
             workspaceId={workspaceId}
             workspaceSlug={workspaceSlug}
             containerClassName={cn("!py-1 transition-[border-color] duration-500", highlightClassName)}

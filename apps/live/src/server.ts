@@ -23,6 +23,7 @@ import { env } from "@/env";
 import { HocusPocusServerManager } from "@/hocuspocus";
 // redis
 import { redisManager } from "@/redis";
+import { taskEvents } from "@/task-events";
 
 export class Server {
   private app: Express;
@@ -42,6 +43,7 @@ export class Server {
   public async initialize(): Promise<void> {
     try {
       await redisManager.initialize();
+      await taskEvents.initialize();
       logger.info("SERVER: Redis setup completed");
       const manager = HocusPocusServerManager.getInstance();
       this.hocuspocusServer = await manager.initialize();
@@ -109,6 +111,7 @@ export class Server {
       logger.info("SERVER: HocusPocus connections closed gracefully.");
     }
 
+    await taskEvents.destroy();
     await redisManager.disconnect();
     logger.info("SERVER: Redis connection closed gracefully.");
 

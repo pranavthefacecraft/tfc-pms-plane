@@ -12,6 +12,7 @@ import { renderFormattedPayloadDate } from "@plane/utils";
 import { customFields, fieldError, useCustomFields } from "./service";
 import type { CustomField, FieldValue } from "./service";
 import { parseFieldDraft } from "./value.helpers";
+import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
 
 function OptionBadge({ name, color }: { name: string; color: string }) {
   return (
@@ -33,7 +34,9 @@ function FieldValueEditor({
   disabled: boolean;
   onSave: (value: FieldValue) => Promise<void>;
 }) {
-  const [draft, setDraft] = useState(typeof value === "string" || typeof value === "number" ? String(value) : "");
+  const initial = value === null ? "" : String(value);
+  const [draftState, setDraftState] = useState({ baseValue: initial, text: initial });
+  const draft = draftState.text === draftState.baseValue ? initial : draftState.text;
   const [busy, setBusy] = useState(false);
   const [invalid, setInvalid] = useState<string>();
   const [today] = useState(() => renderFormattedPayloadDate(new Date()));
@@ -41,6 +44,8 @@ function FieldValueEditor({
     setBusy(true);
     try {
       await onSave(next);
+      const saved = next === null ? "" : String(next);
+      setDraftState({ baseValue: saved, text: saved });
     } catch (error) {
       fieldError(error);
     } finally {
@@ -113,7 +118,6 @@ function FieldValueEditor({
       </details>
     );
   const kind = field.field_type;
-  const initial = value === null ? "" : String(value);
   return (
     <form
       className="space-y-1"
@@ -140,7 +144,7 @@ function FieldValueEditor({
         value={draft}
         aria-invalid={!!invalid}
         className="w-full rounded border border-subtle bg-surface-1 px-2 py-1 text-13"
-        onChange={(event) => setDraft(event.target.value)}
+        onChange={(event) => setDraftState({ baseValue: initial, text: event.target.value })}
       />
       {invalid && (
         <p role="alert" className="text-11 text-danger-primary">
@@ -157,7 +161,7 @@ function FieldValueEditor({
             label="Cancel"
             disabled={busy}
             onClick={() => {
-              setDraft(initial);
+              setDraftState({ baseValue: initial, text: initial });
               setInvalid(undefined);
             }}
           />
@@ -182,6 +186,7 @@ export function TaskCustomFields({
   const values = useSWR(["task-custom-field-values", workspaceSlug, projectId, issueId], () =>
     customFields.values(workspaceSlug, projectId, issueId)
   );
+  useLiveTaskUpdates(workspaceSlug, () => Promise.all([values.mutate(), fields.mutate()]));
   if (fields.error || values.error)
     return (
       <div role="alert" className="py-2 text-13 text-danger-primary">
@@ -217,11 +222,7 @@ export function TaskCustomFields({
             </div>
             <div className="min-w-0">
               <FieldValueEditor
-                key={
-                  field.field_type === "single_select" || field.field_type === "multi_select"
-                    ? field.id
-                    : `${field.id}:${JSON.stringify(value)}`
-                }
+                key={field.id}
                 field={field}
                 value={value}
                 disabled={disabled}

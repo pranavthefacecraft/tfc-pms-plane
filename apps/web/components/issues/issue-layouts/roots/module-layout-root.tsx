@@ -18,6 +18,7 @@ import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 import { AddSection } from "@/components/project-sections/add-section";
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
+import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
 // local imports
 import { IssuePeekOverview } from "../../peek-overview";
 import { ModuleCalendarLayout } from "../calendar/roots/module-root";
@@ -50,7 +51,11 @@ export const ModuleLayoutRoot = observer(function ModuleLayoutRoot() {
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   const moduleId = routerModuleId ? routerModuleId.toString() : undefined;
   // hooks
-  const { issuesFilter } = useIssues(EIssuesStoreType.MODULE);
+  const { issues, issuesFilter } = useIssues(EIssuesStoreType.MODULE);
+  useLiveTaskUpdates(workspaceSlug, async () => {
+    if (workspaceSlug && projectId && moduleId)
+      await issues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation", moduleId);
+  });
   // derived values
   const workItemFilters = moduleId ? issuesFilter?.getIssueFilters(moduleId) : undefined;
   const activeLayout = workItemFilters?.displayFilters?.layout || undefined;

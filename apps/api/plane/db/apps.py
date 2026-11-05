@@ -7,3 +7,8 @@ from django.apps import AppConfig
 
 class DbConfig(AppConfig):
     name = "plane.db"
+
+    def ready(self):
+        from .task_events import register_task_events
+
+        register_task_events(self)

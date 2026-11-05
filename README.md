@@ -607,6 +607,41 @@ reaction, persist across reloads, and stay in sync with task emoji reactions.
 Archived tasks show likes read-only. Run the web component and reaction-store
 tests with `pnpm --filter web test`.
 
+## TFCPMS live task updates
+
+Task detail pages and previews now subscribe to `/live/task-updates/` using the
+signed-in session. Comments (including edits/deletes and reactions), status and
+other task properties, descriptions, attachments, links, relations and custom
+fields refresh without reloading the page. Project lists/boards/calendar/timeline,
+cycles, modules, project views, workspace views and profile task lists refresh
+using their existing filters and pagination settings.
+
+The API publishes workspace-scoped invalidations to Redis after database commits.
+The activity worker also publishes after its bulk writes, so delayed activity
+entries arrive separately from the task change. The live server uses Redis pub/sub
+across replicas, verifies workspace membership before connection and delivery,
+and never streams task contents or identifiers. Each browser refetches through
+the existing permission-checked REST APIs, including restricted guest access.
+Events are coalesced for 100ms and refetches are serialized. Reconnect, focus and
+returning to a visible tab catch up missed changes; this is not periodic polling.
+Network/refetch failures are logged and retried; denied sessions stop reconnecting.
+
+Unsaved title, description, comment-edit and custom-field drafts are retained.
+Clean description/comment editors synchronize externally updated content.
+Concurrent description editing is still autosave/last-write-wins, not a shared
+CRDT editor. This feature requires deploying **API, worker, live and web** together,
+with the same Redis service and an allowed frontend origin on the live server.
+
+Targeted checks:
+
+- `pnpm --filter web exec vitest run components/issues/live-task-updates.test.tsx`
+- `pnpm --filter live exec vitest run tests/task-updates.controller.test.ts`
+- `docker compose -f docker-compose-test.yml run --rm api-tests pytest plane/tests/unit/utils/test_task_events.py`
+- Set `TASK_UPDATES_TEST_REDIS_URL` to an isolated Redis URL, then run
+  `pnpm --filter live exec vitest run tests/task-events.integration.test.ts`
+  to verify delivery across two live replicas. The test uses random channels
+  and does not flush Redis or change application data.
+
 ## TFCPMS whiteboards
 
 ### Whiteboards layout and linking

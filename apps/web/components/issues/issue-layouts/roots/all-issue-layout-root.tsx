@@ -25,6 +25,7 @@ import { useIssues } from "@/hooks/store/use-issues";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
 import { useWorkspaceIssueProperties } from "@/hooks/use-workspace-issue-properties";
+import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
 
 type Props = {
   isDefaultView: boolean;
@@ -44,8 +45,11 @@ export const AllIssueLayoutRoot = observer(function AllIssueLayoutRoot(props: Pr
   // store hooks
   const {
     issuesFilter: { filters, fetchFilters, updateFilterExpression },
-    issues: { clear, groupedIssueIds, fetchIssues, fetchNextIssues },
+    issues: { clear, groupedIssueIds, fetchIssues, fetchNextIssues, fetchIssuesWithExistingPagination },
   } = useIssues(EIssuesStoreType.GLOBAL);
+  useLiveTaskUpdates(workspaceSlug, async () => {
+    if (workspaceSlug && globalViewId) await fetchIssuesWithExistingPagination(workspaceSlug, globalViewId, "mutation");
+  });
   const { fetchAllGlobalViews, getViewDetailsById } = useGlobalView();
   // Derived values
   const viewDetails = globalViewId ? getViewDetailsById(globalViewId) : undefined;

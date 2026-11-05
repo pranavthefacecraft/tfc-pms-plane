@@ -22,6 +22,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import useSize from "@/hooks/use-window-size";
+import { useLiveIssueDetail } from "@/hooks/use-live-issue-detail";
 // services
 import { WorkItemVersionService } from "@/services/issue";
 // local imports
@@ -48,6 +49,7 @@ type Props = {
 
 export const IssueMainContent = observer(function IssueMainContent(props: Props) {
   const { workspaceSlug, projectId, issueId, issueOperations, isEditable, isArchived } = props;
+  useLiveIssueDetail(workspaceSlug, projectId, issueId);
   // refs
   const editorRef = useRef<EditorRefApi>(null);
   // states

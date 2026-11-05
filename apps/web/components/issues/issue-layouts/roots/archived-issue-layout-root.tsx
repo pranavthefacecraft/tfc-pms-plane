@@ -17,6 +17,7 @@ import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/f
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
+import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
 // local imports
 import { IssuePeekOverview } from "../../peek-overview";
 import { ArchivedIssueListLayout } from "../list/roots/archived-issue-root";
@@ -27,7 +28,11 @@ export const ArchivedIssueLayoutRoot = observer(function ArchivedIssueLayoutRoot
   const workspaceSlug = routerWorkspaceSlug ? routerWorkspaceSlug.toString() : undefined;
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   // hooks
-  const { issuesFilter } = useIssues(EIssuesStoreType.ARCHIVED);
+  const { issues, issuesFilter } = useIssues(EIssuesStoreType.ARCHIVED);
+  useLiveTaskUpdates(workspaceSlug, async () => {
+    if (workspaceSlug && projectId)
+      await issues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
+  });
   // derived values
   const workItemFilters = projectId ? issuesFilter?.getIssueFilters(projectId) : undefined;
 
