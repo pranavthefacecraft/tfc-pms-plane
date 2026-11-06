@@ -5,6 +5,7 @@
  */
 
 // plane imports
+import { useMatches } from "react-router";
 import { ScrollArea } from "@makeplane/propel/components/scroll-area";
 import { cn } from "@plane/utils";
 // components
@@ -18,10 +19,17 @@ type Props = {
 
 export function SettingsContentWrapper(props: Props) {
   const { children, header, hugging = false } = props;
+  const hideSectionHeader = useMatches().some(
+    ({ handle }) =>
+      typeof handle === "object" &&
+      handle !== null &&
+      "hideSettingsSectionHeader" in handle &&
+      handle.hideSettingsSectionHeader === true
+  );
 
   return (
     <div className="@container flex size-full grow flex-col overflow-hidden">
-      {header && (
+      {header && !hideSectionHeader && (
         <div className="w-full shrink-0">
           <AppHeader header={header} />
         </div>

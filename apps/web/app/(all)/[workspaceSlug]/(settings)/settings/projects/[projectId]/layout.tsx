@@ -17,7 +17,7 @@ import type { Route } from "./+types/layout";
 import { ProjectSettingsSidebarRoot } from "@/components/settings/project/sidebar";
 import { TopNavigationRoot } from "@/components/navigation/top-navigation-root";
 
-export const handle = { hasSidebarHeader: true };
+export const handle = { hasSidebarHeader: true, hideSettingsSectionHeader: true };
 
 function ProjectDetailSettingsLayout({ params }: Pick<Route.ComponentProps, "params">) {
   const { workspaceSlug, projectId } = params;

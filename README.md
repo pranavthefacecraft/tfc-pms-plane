@@ -606,6 +606,8 @@ notification and profile header. Workspace switching remains available under the
 profile menu instead of the top-left workspace dropdown. Settings links, forms,
 feature toggles and permissions are unchanged; the shared chrome applies across
 project settings, including General, Members, Cycles and Modules.
+The Project Settings back button returns to the current project's Overview.
+Project settings omit the redundant section-name bar below the search/profile header.
 
 Project Overview **Add Teammate**, Project Settings **Add member**, and the Projects
 page collaborator menu use the same popup. Project admins can search workspace
