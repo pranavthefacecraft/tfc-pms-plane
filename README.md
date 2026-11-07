@@ -438,9 +438,9 @@ and support direct links and browser history.
   project; new users receive a workspace invitation with project access applied
   after acceptance. Guests cannot view the teammate list.
 - Billing (`/<workspace>/pms-settings/billing`) shows the self-hosted Community
-  plan in the compact settings layout. **Manage Plan** reuses the existing
-  Community upgrade dialog, plan cards and external Plane subscription links;
-  it does not add a new checkout or payment integration. Admins and Editors can
+  plan in the compact settings layout. **Manage Plan** is temporarily disabled
+  and does not open the pricing/upgrade dialog or external subscription links.
+  The existing upgrade components remain available for future use. Admins and Editors can
   view the page, matching the original Community action. Payment methods and invoices
   are marked unavailable because this edition does not manage them. Billing email
   displays the contact saved in Company profile.

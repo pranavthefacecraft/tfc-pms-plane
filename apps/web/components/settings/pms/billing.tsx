@@ -4,15 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useWorkspace } from "@/hooks/store/use-workspace";
-import { PaidPlanUpgradeModal } from "@/components/license/modal/upgrade-modal";
 
 export const PMSBilling = observer(function PMSBilling({ workspaceSlug }: { workspaceSlug: string }) {
-  const [managingPlan, setManagingPlan] = useState(false);
   const { workspaceInfoBySlug, allowPermissions } = useUserPermissions();
   const workspaceStore = useWorkspace();
   const workspace = workspaceStore.getWorkspaceBySlug(workspaceSlug);
@@ -40,12 +37,7 @@ export const PMSBilling = observer(function PMSBilling({ workspaceSlug }: { work
         </div>
         <div className="flex items-center gap-3">
           <span className="text-12 text-secondary">Free / Self-hosted</span>
-          <button
-            type="button"
-            className="dark:text-custom-primary-100 text-12 font-medium text-[#135DDD] hover:underline"
-            onClick={() => setManagingPlan(true)}
-            aria-haspopup="dialog"
-          >
+          <button type="button" disabled className="cursor-not-allowed text-12 font-medium text-secondary opacity-50">
             Manage Plan
           </button>
         </div>
@@ -72,10 +64,9 @@ export const PMSBilling = observer(function PMSBilling({ workspaceSlug }: { work
         </div>
       </dl>
       <p className="mt-3 text-12 text-secondary">
-        Manage Plan uses the existing Community upgrade options and opens Plane&apos;s external subscription pages.
-        Payments and invoices are not managed inside this self-hosted app. Billing email is managed in Company profile.
+        Plan management is temporarily unavailable. Payments and invoices are not managed inside this self-hosted app.
+        Billing email is managed in Company profile.
       </p>
-      {managingPlan && <PaidPlanUpgradeModal isOpen handleClose={() => setManagingPlan(false)} />}
     </>
   );
 });
