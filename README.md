@@ -87,6 +87,8 @@ CSRF handling, error messages, and instance setup flow are unchanged.
 Shared web loading screens use the supplied stacked Clevdex logo with a
 reduced-motion-aware pulse, without inverting its brand colors in light mode.
 God Mode loading screens use the same Clevdex logo and animation.
+The God Mode sidebar uses the PMS by Clevdex lockup in place of its old icon
+and Instance admin title; account and collapsed-sidebar menus remain unchanged.
 
 Application emails use the supplied blue Clevdex email logo on a white header,
 with Clevdex product text, subjects, and footers across all templates. The logo is

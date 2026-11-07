@@ -23,6 +23,7 @@ import { LogOutOutline, PaletteOutline } from "@makeplane/propel/icons";
 import { API_BASE_URL } from "@plane/constants";
 import { AuthService } from "@plane/services";
 import { getFileURL, cn } from "@plane/utils";
+import pmsLogo from "@/app/assets/logos/clevdex-pms-lockup.svg";
 // hooks
 import { useTheme, useUser } from "@/hooks/store";
 
@@ -102,20 +103,16 @@ export const AdminSidebarDropdown = observer(function AdminSidebarDropdown() {
                     "cursor-default": !isSidebarCollapsed,
                   })}
                 >
-                  <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-sm bg-layer-1 p-1">
-                    <img src="/god-mode/tfc-pms-logo.png" alt="TFC PMS" className="size-6 object-contain" />
-                  </div>
+                  <img
+                    src={pmsLogo}
+                    alt="PMS by Clevdex"
+                    className={cn("h-auto max-w-full object-contain", isSidebarCollapsed ? "w-9" : "w-36")}
+                  />
                 </button>
               }
             />
             {isSidebarCollapsed && getSidebarMenuItems()}
           </Menu>
-
-          {!isSidebarCollapsed && (
-            <div className="flex w-full gap-2">
-              <h4 className="grow truncate text-body-md-medium text-primary">Instance admin</h4>
-            </div>
-          )}
         </div>
       </div>
 
