@@ -5,6 +5,64 @@
    tokens (animate-spinner-reveal, animate-progress-indeterminate) its components rely on. */
 @import "@makeplane/propel/styles";
 
+body:has(.god-mode-sign-in),
+.bg-surface-1:has(> .god-mode-sign-in) {
+  background-color: #fdfdfe;
+}
+
+.god-mode-sign-in {
+  color-scheme: light;
+  --bg-canvas: #fdfdfe;
+  --bg-surface-1: #ffffff;
+  --bg-surface-2: #ffffff;
+  --bg-layer-1: #ffffff;
+  --bg-layer-2: #ffffff;
+  --bg-accent-primary: #135ddd;
+  --bg-accent-primary-hover: #104fc0;
+  --bg-accent-primary-active: #0d429f;
+  --txt-primary: #111827;
+  --txt-secondary: #334155;
+  --txt-tertiary: #475569;
+  --txt-placeholder: #64748b;
+  --txt-inverse: #ffffff;
+  --txt-accent-primary: #135ddd;
+  --txt-accent-secondary: #135ddd;
+  --txt-icon-primary: #111827;
+  --border-subtle: #e2e8f0;
+  --border-subtle-1: #cbd5e1;
+  --border-strong: #94a3b8;
+  --border-accent-strong: #135ddd;
+  background-color: #fdfdfe;
+  color: #111827;
+}
+
+.god-mode-sign-in-card {
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background-color: #ffffff;
+  box-shadow:
+    0 2px 8px rgb(19 93 221 / 8%),
+    0 1px 2px rgb(15 23 42 / 4%);
+}
+
+.god-mode-sign-in button[data-variant="primary"][data-size] {
+  background-color: #135ddd;
+  color: #ffffff;
+  border-radius: 100px;
+  border-color: #135ddd;
+}
+
+.god-mode-sign-in button[data-variant="primary"][data-size]:hover {
+  background-color: #104fc0;
+}
+
+.god-mode-sign-in button[data-variant="primary"][data-size]:is(:disabled, [aria-busy="true"]) {
+  background-color: #135ddd;
+  color: #ffffff;
+  opacity: 0.5;
+}
+
 .shadow-custom {
   box-shadow: 2px 2px 8px 2px rgba(234, 231, 250, 0.3); /* Convert #EAE7FA4D to rgba */
 }

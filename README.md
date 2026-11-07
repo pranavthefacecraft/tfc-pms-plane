@@ -81,8 +81,12 @@ it explains that password-reset emails are unavailable.
 Login and sign-up use a centered logo above a narrow white card with rounded corners and a soft shadow,
 left-aligned heading and supporting text, and an account-switch link below.
 Password-recovery pages retain their existing header layout.
+God Mode sign-in uses the same centered Clevdex logo, light background, rounded
+white card, and blue pill-shaped button. Its email/password admin sign-in,
+CSRF handling, error messages, and instance setup flow are unchanged.
 Shared web loading screens use the supplied stacked Clevdex logo with a
 reduced-motion-aware pulse, without inverting its brand colors in light mode.
+God Mode loading screens use the same Clevdex logo and animation.
 
 Application emails use the supplied blue Clevdex email logo on a white header,
 with Clevdex product text, subjects, and footers across all templates. The logo is

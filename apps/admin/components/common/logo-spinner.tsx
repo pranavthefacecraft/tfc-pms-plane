@@ -4,19 +4,15 @@
  * See the LICENSE file for details.
  */
 
-import { useTheme } from "next-themes";
+import clevdexLoadingLogo from "@/app/assets/logos/clevdex-loading-logo.png";
 
 export function LogoSpinner() {
-  const { resolvedTheme } = useTheme();
-
-  const isLightTheme = resolvedTheme === "light" || resolvedTheme === "light-contrast";
-
   return (
-    <div role="status" aria-label="Loading TFCPMS" className="flex items-center justify-center">
+    <div role="status" aria-label="Loading Clevdex" className="flex items-center justify-center">
       <img
-        src="/god-mode/tfc-pms-logo.png"
-        alt="TFCPMS"
-        className={`h-6 w-auto object-contain motion-safe:animate-pulse sm:h-11${isLightTheme ? " invert" : ""}`}
+        src={clevdexLoadingLogo}
+        alt="Clevdex"
+        className="h-auto w-24 max-w-full object-contain motion-safe:animate-pulse sm:w-32"
       />
     </div>
   );

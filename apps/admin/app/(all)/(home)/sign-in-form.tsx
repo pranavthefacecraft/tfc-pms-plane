@@ -16,7 +16,6 @@ import { AuthService } from "@plane/services";
 // components
 import { Banner } from "@/components/common/banner";
 // local components
-import { FormHeader } from "@/components/instance/form-header";
 import { AuthBanner } from "./auth-banner";
 import { AuthHeader } from "./auth-header";
 import { authErrorHandler } from "./auth-helpers";
@@ -109,14 +108,16 @@ export function InstanceSignInForm() {
   }, [errorCode]);
 
   return (
-    <>
-      <AuthHeader />
-      <div className="mt-10 flex w-full flex-grow flex-col items-center justify-center py-6">
-        <div className="relative flex w-full max-w-[22.5rem] flex-col gap-6">
-          <FormHeader
-            heading="Manage your TFC PMS instance"
-            subHeading="Configure instance-wide settings to secure your instance"
-          />
+    <div className="god-mode-sign-in flex w-full flex-grow flex-col items-center justify-center py-6">
+      <div className="my-auto flex w-full max-w-[22.5rem] flex-col gap-8">
+        <AuthHeader centered />
+        <div className="god-mode-sign-in-card relative flex w-full flex-col gap-6">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-20 leading-7 font-semibold text-primary">Manage your TFC PMS instance</h1>
+            <p className="font-normal text-14 leading-6 text-tertiary">
+              Configure instance-wide settings to secure your instance
+            </p>
+          </div>
           <form
             className="space-y-4"
             method="POST"
@@ -200,6 +201,6 @@ export function InstanceSignInForm() {
           </form>
         </div>
       </div>
-    </>
+    </div>
   );
 }
