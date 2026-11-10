@@ -13,8 +13,17 @@ vi.mock("@/hooks/store/use-app-theme", () => ({
 vi.mock("@/lib/app-rail", () => ({ useAppRailVisibility: () => ({ shouldRenderAppRail: false }) }));
 vi.mock("@/components/navigation", () => ({ AppRailRoot: () => null }));
 vi.mock("@/components/navigation/top-navigation-root", () => ({
-  TopNavigationRoot: ({ showWorkspaceMenu = true }: { showWorkspaceMenu?: boolean }) => (
-    <header data-testid="top-navigation">{showWorkspaceMenu && <button>Workspace</button>}</header>
+  TopNavigationRoot: ({
+    showWorkspaceMenu = true,
+    showSidebarToggle = false,
+  }: {
+    showWorkspaceMenu?: boolean;
+    showSidebarToggle?: boolean;
+  }) => (
+    <header data-testid="top-navigation">
+      {showWorkspaceMenu && <button>Workspace</button>}
+      {showSidebarToggle && <button>Expand sidebar</button>}
+    </header>
   ),
 }));
 vi.mock("@/components/power-k/projects-app-provider", () => ({ ProjectsAppPowerKProvider: () => null }));
@@ -84,12 +93,12 @@ it("puts exactly one top bar in the main content, beside the full-height sidebar
 });
 
 it.each(["/workspace", "/workspace/notifications"])(
-  "retains workspace switching with collapsed sidebar on %s",
+  "offers sidebar expansion without the legacy workspace dropdown on %s",
   async (path) => {
     mocks.collapsed = true;
     await render(path);
     expect(host.querySelectorAll('[data-testid="top-navigation"]')).toHaveLength(1);
-    expect(host.querySelector("header button")?.textContent).toBe("Workspace");
+    expect(host.querySelector("header button")?.textContent).toBe("Expand sidebar");
   }
 );
 

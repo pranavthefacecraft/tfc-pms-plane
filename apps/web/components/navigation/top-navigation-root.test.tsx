@@ -1,11 +1,22 @@
 import type { ReactNode } from "react";
+import { act } from "react";
+import { createRoot } from "react-dom/client";
+import { observer } from "mobx-react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { expect, it, vi } from "vitest";
 import { TopNavigationRoot } from "./top-navigation-root";
+import { ThemeStore } from "@/store/theme.store";
+import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 
+const theme = new ThemeStore();
 const counts = vi.hoisted(() => ({ mention_unread_notifications_count: 0, total_unread_notifications_count: 3 }));
-vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
+vi.mock("@/hooks/store/use-app-theme", () => ({ useAppTheme: () => theme }));
+vi.mock("@plane/i18n", () => ({
+  useTranslation: () => ({
+    t: (key: string) => (key.endsWith("expand_sidebar") ? "Expand sidebar" : "Collapse sidebar"),
+  }),
+}));
 vi.mock("next/navigation", () => ({
   useParams: () => ({ workspaceSlug: "team" }),
   usePathname: () => "/team/notifications/",
@@ -61,4 +72,59 @@ it.each([0, 3])("retains hidden Create and shows the notification bell with unre
   expect(notification?.querySelector("span") !== null).toBe(unread > 0);
   expect(notification?.closest("[hidden]")).toBeNull();
   expect(host.querySelector("input")?.closest("[hidden]")).toBeNull();
+});
+
+it.each([false, true])("can repeatedly restore the sidebar, initially collapsed: %s", async (collapsed) => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  theme.toggleSidebar(collapsed);
+  theme.toggleSidebarPeek(true);
+  const Shell = observer(function Shell() {
+    return (
+      <>
+        {!theme.sidebarCollapsed && (
+          <aside>
+            <AppSidebarToggleButton />
+          </aside>
+        )}
+        <TopNavigationRoot showWorkspaceMenu={false} showSidebarToggle={!!theme.sidebarCollapsed} />
+      </>
+    );
+  });
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(() =>
+      root.render(
+        <MemoryRouter>
+          <Shell />
+        </MemoryRouter>
+      )
+    );
+    const restoreSidebar = async () => {
+      if (!theme.sidebarCollapsed) {
+        await act(() => host.querySelector<HTMLButtonElement>('[aria-label="Collapse sidebar"]')!.click());
+      }
+      const expand = host.querySelector<HTMLButtonElement>('[aria-label="Expand sidebar"]');
+      expect(expand).not.toBeNull();
+      expect(expand?.closest("aside")).toBeNull();
+      expect(expand?.closest("[hidden]")).toBeNull();
+      expect(host.textContent).not.toContain("Workspace");
+      expect(localStorage.getItem("app_sidebar_collapsed")).toBe("true");
+      await act(() => expand!.click());
+      expect(theme.sidebarCollapsed).toBe(false);
+      expect(theme.sidebarPeek).toBe(false);
+      expect(localStorage.getItem("app_sidebar_collapsed")).toBe("false");
+      expect(host.querySelector('[aria-label="Expand sidebar"]')).toBeNull();
+      expect(host.querySelector('aside [aria-label="Collapse sidebar"]')).not.toBeNull();
+    };
+    await restoreSidebar();
+    await restoreSidebar();
+    await restoreSidebar();
+  } finally {
+    await act(() => root.unmount());
+    host.remove();
+    localStorage.removeItem("app_sidebar_collapsed");
+    vi.unstubAllGlobals();
+  }
 });

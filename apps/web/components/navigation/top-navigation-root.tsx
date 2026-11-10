@@ -18,11 +18,14 @@ import { Bell } from "lucide-react";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { TopNavCreateMenu } from "./create-menu";
+import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
 
 export const TopNavigationRoot = observer(function TopNavigationRoot({
   showWorkspaceMenu = true,
+  showSidebarToggle = false,
 }: {
   showWorkspaceMenu?: boolean;
+  showSidebarToggle?: boolean;
 }) {
   // router
   const { workspaceSlug } = useParams();
@@ -55,6 +58,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot({
         }
       )}
     >
+      {showSidebarToggle && <AppSidebarToggleButton />}
       {workspaceSlug && (
         <div hidden className="hidden">
           <TopNavCreateMenu workspaceSlug={workspaceSlug.toString()} />

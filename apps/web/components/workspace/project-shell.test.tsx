@@ -52,8 +52,16 @@ vi.mock("@/components/power-k/projects-app-provider", () => ({
   ProjectsAppPowerKProvider: () => null,
 }));
 vi.mock("@/components/navigation/top-navigation-root", () => ({
-  TopNavigationRoot: ({ showWorkspaceMenu }: { showWorkspaceMenu: boolean }) => (
-    <header data-workspace-switcher={showWorkspaceMenu}>Top bar</header>
+  TopNavigationRoot: ({
+    showWorkspaceMenu,
+    showSidebarToggle,
+  }: {
+    showWorkspaceMenu: boolean;
+    showSidebarToggle?: boolean;
+  }) => (
+    <header data-workspace-switcher={showWorkspaceMenu} data-sidebar-toggle={showSidebarToggle}>
+      Top bar
+    </header>
   ),
 }));
 
@@ -92,7 +100,7 @@ it.each(["/team/notifications/", "/team/notifications/item/", "/team/"])(
   }
 );
 
-it("preserves collapsed-sidebar behavior and shows the top-bar workspace switcher on notifications", async () => {
+it("offers sidebar expansion instead of the old workspace switcher when collapsed", async () => {
   mocks.pathname = "/team/notifications/";
   mocks.collapsed = true;
   await act(() =>
@@ -106,6 +114,7 @@ it("preserves collapsed-sidebar behavior and shows the top-bar workspace switche
   );
   expect(host.querySelector('[data-testid="sidebar"]')?.getAttribute("data-collapsed")).toBe("true");
   expect(host.querySelector("nav")).toBeNull();
-  expect(host.querySelector("header")?.getAttribute("data-workspace-switcher")).toBe("true");
+  expect(host.querySelector("header")?.getAttribute("data-workspace-switcher")).toBe("false");
+  expect(host.querySelector("header")?.getAttribute("data-sidebar-toggle")).toBe("true");
   expect(host.querySelector("main section")?.textContent).toBe("Inbox");
 });

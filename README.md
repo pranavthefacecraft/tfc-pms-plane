@@ -69,6 +69,10 @@ Getting started with Plane is simple. Choose the setup that works best for you:
 
 See [CONTRIBUTING](./CONTRIBUTING.md)
 
+Text files use LF line endings, enforced by [`.gitattributes`](./.gitattributes),
+including on Windows. Keep LF when saving files so `pnpm check` agrees with
+the repository formatter. Run `pnpm build` to validate production builds.
+
 ## TFC PMS email branding
 
 Web sign-in, sign-up, and password-recovery headers use the supplied Clevdex
@@ -89,6 +93,52 @@ reduced-motion-aware pulse, without inverting its brand colors in light mode.
 God Mode loading screens use the same Clevdex logo and animation.
 The God Mode sidebar uses the PMS by Clevdex lockup in place of its old icon
 and Instance admin title; account and collapsed-sidebar menus remain unchanged.
+
+### Manual production web deployment through GitHub Actions
+
+[Deploy TFC web manually](.github/workflows/deploy-tfc-web.yml) is an alternative
+release path on an authorized GitHub-hosted Linux runner. It does not disable
+Windows security or modify local commit hooks. It deploys **web only**; API,
+workers, admin, storage and database services are not restarted.
+
+One-time setup by a repository/server administrator:
+
+1. Publish the reviewed workflow, [deployment script](deployments/tfc/deploy-web.sh)
+   and application changes on `preview` using an authorized environment where
+   the normal commit hooks pass. Local uncommitted changes are not available
+   to GitHub Actions. Do not skip hooks to bootstrap this workflow.
+2. Enable GitHub Actions and create a `production` environment in repository
+   Settings > Environments. Restrict its deployment branch to `preview` and
+   configure required reviewers where the repository plan supports them.
+3. Configure these **environment secrets**, never source files or chat:
+   `TFCPMS_SSH_HOST`, `TFCPMS_SSH_USER`, `TFCPMS_SSH_PRIVATE_KEY`,
+   `TFCPMS_SSH_KNOWN_HOSTS`. Use a dedicated approved deployment key, not a
+   copied personal SSH key. Obtain and verify the server's SSH host-key
+   fingerprint through a trusted channel before saving its known-hosts entry.
+   The workflow enforces host-key checking and uses SSH port 22.
+4. Authorize the deployment account to access `/opt/tfcpms` and execute the
+   existing Docker Compose deployment. Docker access is effectively root
+   access; provision this account under your organization's security policy.
+   Ensure the firewall permits the authorized runner to reach SSH. The server
+   requires Bash, `flock`, Docker Compose v2 and `curl`.
+
+To release: select Actions > Deploy TFC web manually > Run workflow, choose
+`preview`, and enter `deploy-web`. Approve the production job if required.
+The runner installs locked dependencies, runs commit-equivalent checks on the
+selected commit (rejecting automatic fixes), web format/lint/type checks and
+unit tests, then builds an image tagged with that exact commit SHA. A failing
+check stops deployment. The verified image artifact is retained for three days.
+
+The deployment saves `tfcpms/plane-frontend:rollback-<commit-sha>`, restarts only
+the web service, checks its image ID and Docker health, and checks public web
+and API availability. Detected deployment failures attempt to restore the
+previous image and still fail the workflow. A lost SSH connection or runner
+termination can require manual recovery: inspect the running web image and
+health before retrying. To restore manually, tag the saved rollback image as
+`tfcpms/plane-frontend:latest`, then run
+`docker compose up -d --no-deps --no-build --pull never web` in `/opt/tfcpms`.
+The script intentionally requires the current web service to use the `latest`
+tag; deployments using `APP_RELEASE` need a separately reviewed release path.
 
 Application emails use the supplied blue Clevdex email logo on a white header,
 with Clevdex product text, subjects, and footers across all templates. The logo is
@@ -264,7 +314,8 @@ Inbox and Drafts entries are temporarily hidden, not removed; their routes,
 components, unread badge, and functionality remain available.
 Search, Inbox and profile remain available in a top bar
 over the main content instead of spanning the sidebar. When the sidebar is
-collapsed, the top bar retains the workspace switcher. Notifications show the
+collapsed, the top bar provides an expand-sidebar button rather than the old
+workspace dropdown. Workspace switching remains in the profile menu. Notifications show the
 normal workspace sidebar alongside the inbox list, with the same collapse and
 resize behavior as other workspace pages. Settings and other layouts keep their existing top bar.
 Create > Message opens a floating draft with a subject, plain-text body, and
