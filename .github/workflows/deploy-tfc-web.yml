@@ -74,7 +74,35 @@ jobs:
       - name: Verify release artifact
         run: |
           sha256sum --check web-image.tar.gz.sha256
-          gzip --decompress --stdout web-image.tar.gz | docker load
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import tarfile
+
+          with tarfile.open("web-image.tar.gz", "r:gz") as archive:
+              manifest = json.load(archive.extractfile("manifest.json"))
+              expected_tag = f"tfcpms/plane-frontend:{os.environ['GITHUB_SHA']}"
+              if len(manifest) != 1 or expected_tag not in manifest[0]["RepoTags"]:
+                  raise ValueError("Artifact does not contain the expected release")
+              config = archive.extractfile(manifest[0]["Config"]).read()
+              image_id = "sha256:" + hashlib.sha256(config).hexdigest()
+              index = json.load(archive.extractfile("index.json"))
+              if len(index["manifests"]) != 1:
+                  raise ValueError("Expected a single release manifest")
+              manifest_id = index["manifests"][0]["digest"]
+              algorithm, digest = manifest_id.split(":")
+              if algorithm != "sha256" or len(digest) != 64:
+                  raise ValueError("Invalid manifest digest")
+              manifest_bytes = archive.extractfile(f"blobs/sha256/{digest}").read()
+              if hashlib.sha256(manifest_bytes).hexdigest() != digest:
+                  raise ValueError("Manifest checksum mismatch")
+              if json.loads(manifest_bytes)["config"]["digest"] != image_id:
+                  raise ValueError("Manifest configuration mismatch")
+          with open(os.environ["GITHUB_ENV"], "a") as environment:
+              environment.write(f"RELEASE_IMAGE_ID={image_id}\n")
+              environment.write(f"RELEASE_MANIFEST_ID={manifest_id}\n")
+          PY
       - name: Deploy web with pinned SSH host identity
         env:
           DEPLOY_HOST: ${{ secrets.TFCPMS_SSH_HOST }}
@@ -105,9 +133,9 @@ jobs:
             -o ServerAliveCountMax=4
           )
           target="$DEPLOY_USER@$DEPLOY_HOST"
-          image_id=$(docker image inspect "tfcpms/plane-frontend:$GITHUB_SHA" --format '{{.Id}}')
+          image_id="$RELEASE_IMAGE_ID"
           [[ "$image_id" =~ ^sha256:[a-f0-9]{64}$ ]]
-          docker save "tfcpms/plane-frontend:$GITHUB_SHA" |
+          gzip --decompress --stdout web-image.tar.gz |
             ssh "${ssh_options[@]}" "$target" docker load
           ssh "${ssh_options[@]}" "$target" \
-            "bash -s -- $GITHUB_SHA $image_id" < deployments/tfc/deploy-web.sh
+            "bash -s -- $GITHUB_SHA $image_id $RELEASE_MANIFEST_ID" < deployments/tfc/deploy-web.sh

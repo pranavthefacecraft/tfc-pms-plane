@@ -131,7 +131,10 @@ check stops deployment. The verified image artifact is retained for three days.
 
 The deployment saves `tfcpms/plane-frontend:rollback-<commit-sha>`, restarts only
 the web service, checks its image ID and Docker health, and checks public web
-and API availability. Detected deployment failures attempt to restore the
+and API availability. Identity checks accept the verified archive's configuration
+or manifest digest to support both classic and containerd Docker image stores;
+the original checksummed archive is transferred without re-exporting it.
+Detected deployment failures attempt to restore the
 previous image and still fail the workflow. A lost SSH connection or runner
 termination can require manual recovery: inspect the running web image and
 health before retrying. To restore manually, tag the saved rollback image as

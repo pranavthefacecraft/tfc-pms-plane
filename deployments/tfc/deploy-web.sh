@@ -3,8 +3,10 @@ set -Eeuo pipefail
 
 revision=${1:?A release commit SHA is required}
 expected_image=${2:?An image ID is required}
+expected_manifest=${3:?A manifest ID is required}
 [[ "$revision" =~ ^[a-f0-9]{40}$ ]]
 [[ "$expected_image" =~ ^sha256:[a-f0-9]{64}$ ]]
+[[ "$expected_manifest" =~ ^sha256:[a-f0-9]{64}$ ]]
 
 cd /opt/tfcpms
 exec 9>.web-deploy.lock
@@ -13,12 +15,16 @@ flock -n 9 || { echo "Another web deployment is running" >&2; exit 1; }
 release="tfcpms/plane-frontend:$revision"
 latest="tfcpms/plane-frontend:latest"
 rollback="tfcpms/plane-frontend:rollback-$revision"
-[[ "$(docker image inspect "$release" --format '{{.Id}}')" == "$expected_image" ]]
+release_image=$(docker image inspect "$release" --format '{{.Id}}')
+if [[ "$release_image" != "$expected_image" && "$release_image" != "$expected_manifest" ]]; then
+  echo "Loaded release identity does not match the verified artifact" >&2
+  exit 1
+fi
 container=$(docker compose ps -q web)
 test -n "$container"
 [[ "$(docker inspect "$container" --format '{{.Config.Image}}')" == "$latest" ]]
 previous=$(docker inspect "$container" --format '{{.Image}}')
-if [[ "$previous" == "$expected_image" ]]; then
+if [[ "$previous" == "$release_image" ]]; then
   [[ "$(docker inspect "$container" --format '{{.State.Health.Status}}')" == healthy ]]
   echo "This web image is already deployed; preserving the existing rollback tag"
   exit 0
@@ -59,7 +65,11 @@ docker tag "$release" "$latest"
 docker compose up -d --no-deps --no-build --pull never web
 wait_healthy
 container=$(docker compose ps -q web)
-[[ "$(docker inspect "$container" --format '{{.Image}}')" == "$expected_image" ]]
+running_image=$(docker inspect "$container" --format '{{.Image}}')
+if [[ "$running_image" != "$expected_image" && "$running_image" != "$expected_manifest" ]]; then
+  echo "Running web identity does not match the verified artifact" >&2
+  false
+fi
 curl --fail --silent --show-error --retry 5 --retry-delay 3 --max-time 15 \
   https://tfcpms.tfcmockup.com/ > /dev/null
 curl --fail --silent --show-error --retry 5 --retry-delay 3 --max-time 15 \
