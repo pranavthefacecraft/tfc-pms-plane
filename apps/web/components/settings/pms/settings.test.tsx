@@ -9,8 +9,6 @@ import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { PLANE_COMMUNITY_PRODUCTS, SUBSCRIPTION_REDIRECTION_URLS } from "@plane/constants";
-import { EProductSubscriptionEnum } from "@plane/types";
 import type { PlanUpgradeCardProps } from "@/components/license/modal/card/plan-upgrade";
 import { PMSSettings } from "./settings";
 import { InviteTeammateDialog } from "./invite-teammate-dialog";
@@ -472,7 +470,7 @@ it("reports missing company data and waits for permissions", async () => {
   await render(<PMSSettings workspaceSlug="team" tab="company" />);
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("could not be loaded");
 });
-it.each([20, 15])("reuses the Community upgrade dialog for billing with workspace role %s", async (role) => {
+it.each([20, 15])("keeps Manage Plan disabled for billing with workspace role %s", async (role) => {
   mocks.role = role;
   const open = vi.spyOn(window, "open").mockImplementation(() => null);
   await render(<PMSSettings workspaceSlug="team" tab="billing" />);
@@ -486,17 +484,12 @@ it.each([20, 15])("reuses the Community upgrade dialog for billing with workspac
   ).toBe(true);
   expect(host.querySelectorAll("dd")[3]?.textContent).toBe("billing@example.com");
   expect(host.querySelector('[role="dialog"]')).toBeNull();
-  await act(() => button("Manage Plan")!.click());
-  expect(host.querySelector('[role="dialog"]')?.textContent).toContain("Upgrade to a paid plan");
-  expect(host.querySelector('[role="dialog"]')?.textContent).toContain("Your plan: Free");
-  expect(host.querySelectorAll("[data-plan]")).toHaveLength(3);
-  expect(host.querySelectorAll('[role="dialog"] a')).toHaveLength(3);
-  const price = PLANE_COMMUNITY_PRODUCTS[EProductSubscriptionEnum.PRO].prices.find(
-    (item) => item.recurring === "year"
-  )!;
-  await act(() => button(`${EProductSubscriptionEnum.PRO} ${price.recurring}`)!.click());
-  expect(open).toHaveBeenCalledWith(SUBSCRIPTION_REDIRECTION_URLS[EProductSubscriptionEnum.PRO].year, "_blank");
-  await act(() => button("Close dialog")!.click());
+  const managePlan = button("Manage Plan");
+  expect(managePlan).toBeDefined();
+  expect(managePlan?.disabled).toBe(true);
+  await act(() => managePlan!.click());
+  expect(open).not.toHaveBeenCalled();
+  expect(host.querySelectorAll("[data-plan]")).toHaveLength(0);
   expect(host.querySelector('[role="dialog"]')).toBeNull();
   open.mockRestore();
 });
