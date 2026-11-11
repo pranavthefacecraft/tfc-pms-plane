@@ -31,7 +31,7 @@ it.each([false, true])("styles navigation hover and selected state (active: %s)"
   expect(item?.classList.contains("border-[#CBDCF8]")).toBe(isActive);
   expect(item?.classList.contains("border-transparent")).toBe(!isActive);
   expect(item?.classList.contains("dark:hover:bg-layer-transparent-hover")).toBe(true);
-  expect(item?.classList.contains("text-[#344867]")).toBe(!isActive);
+  expect(item?.classList.contains("text-[#3A4D66]")).toBe(!isActive);
   expect(item?.classList.contains("dark:text-secondary")).toBe(!isActive);
 });
 
