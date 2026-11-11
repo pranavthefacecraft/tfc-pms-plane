@@ -107,12 +107,23 @@ const CreateWorkspacePage = observer(function CreateWorkspacePage() {
             </div>
           ) : (
             <div className="w-full space-y-7 sm:space-y-10">
-              <h4 className="text-20 font-semibold">{t("workspace_creation.heading")}</h4>
+              <div className="space-y-4">
+                <Button
+                  variant="secondary"
+                  type="button"
+                  size="sm"
+                  stretch="auto"
+                  label={t("common.go_back")}
+                  onClick={() => router.back()}
+                />
+                <h4 className="text-20 font-semibold">Create your account</h4>
+              </div>
               <div className="sm:w-3/4 md:w-2/5">
                 <CreateWorkspaceForm
                   onSubmit={onSubmit}
                   defaultValues={defaultValues}
                   setDefaultValues={setDefaultValues}
+                  showBackButton={false}
                 />
               </div>
             </div>

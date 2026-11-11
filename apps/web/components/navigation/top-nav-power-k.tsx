@@ -4,291 +4,149 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Command } from "cmdk";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-// hooks
 import { CloseOutline, SearchOutline } from "@makeplane/propel/icons";
+import { CheckCircle2, Folder, Users, FileText, Paperclip, Command as CommandIcon } from "lucide-react";
 import { cn } from "@plane/utils";
-// power-k
-import type { TPowerKCommandConfig, TPowerKContext } from "@/components/power-k/core/types";
-import { ProjectsAppPowerKCommandsList } from "@/components/power-k/ui/modal/commands-list";
-import { PowerKModalFooter } from "@/components/power-k/ui/modal/footer";
-import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { usePowerK } from "@/hooks/store/use-power-k";
-import { useUser } from "@/hooks/store/user";
-import { useAppRouter } from "@/hooks/use-app-router";
 import { useExpandableSearch } from "@/hooks/use-expandable-search";
+import { WorkspaceSearch } from "./workspace-search";
+import type { SearchCategory } from "./workspace-search";
 
-export const TopNavPowerK = observer(() => {
-  // router
-  const router = useAppRouter();
-  const params = useParams();
-  const { projectId: routerProjectId, workItem: workItemIdentifier } = params;
+const categories = [
+  { key: "all", label: "All", icon: SearchOutline },
+  { key: "tasks", label: "Tasks", icon: CheckCircle2 },
+  { key: "projects", label: "Projects", icon: Folder },
+  { key: "people", label: "People", icon: Users },
+  { key: "documents", label: "Documents", icon: FileText },
+  { key: "files", label: "Files", icon: Paperclip },
+] as const;
 
-  // states
+export const TopNavPowerK = observer(function TopNavPowerK() {
+  const { workspaceSlug } = useParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeCommand, setActiveCommand] = useState<TPowerKCommandConfig | null>(null);
-  const [shouldShowContextBasedActions, setShouldShowContextBasedActions] = useState(true);
-  const [isWorkspaceLevel, setIsWorkspaceLevel] = useState(false);
-
-  // store hooks
-  const { activeContext, setActivePage, activePage, setTopNavInputRef } = usePowerK();
-  const { data: currentUser } = useUser();
-
-  const handleOnClose = useCallback(() => {
+  const [category, setCategory] = useState<SearchCategory>("all");
+  const { setTopNavInputRef, togglePowerKModal } = usePowerK();
+  const onClose = useCallback(() => {
     setSearchTerm("");
-    setActivePage(null);
-    setActiveCommand(null);
-  }, [setSearchTerm, setActivePage, setActiveCommand]);
-
-  // expandable search hook
-  const {
-    isOpen,
-    containerRef,
-    inputRef,
-    handleClose: closePanel,
-    handleMouseDown,
-    handleFocus,
-    openPanel,
-  } = useExpandableSearch({
-    onClose: handleOnClose,
+    setCategory("all");
+  }, []);
+  const { isOpen, containerRef, inputRef, handleClose, handleMouseDown, handleFocus, openPanel } = useExpandableSearch({
+    onClose,
   });
 
-  // derived values
-  const {
-    issue: { getIssueById, getIssueIdByIdentifier },
-  } = useIssueDetail();
-
-  const workItemId = workItemIdentifier ? getIssueIdByIdentifier(workItemIdentifier.toString()) : undefined;
-  const workItemDetails = workItemId ? getIssueById(workItemId) : undefined;
-  const projectId: string | string[] | undefined | null = routerProjectId ?? workItemDetails?.project_id;
-
-  // Build command context
-  const context: TPowerKContext = useMemo(
-    () => ({
-      currentUserId: currentUser?.id,
-      activeCommand,
-      activeContext,
-      shouldShowContextBasedActions,
-      setShouldShowContextBasedActions,
-      params: {
-        ...params,
-        projectId,
-      },
-      router,
-      closePalette: closePanel,
-      setActiveCommand,
-      setActivePage,
-    }),
-    [
-      currentUser?.id,
-      activeCommand,
-      activeContext,
-      shouldShowContextBasedActions,
-      params,
-      projectId,
-      router,
-      setActivePage,
-      closePanel,
-    ]
-  );
-
-  // Register input ref with PowerK store for keyboard shortcut access
   useEffect(() => {
     setTopNavInputRef(inputRef);
-    return () => {
-      setTopNavInputRef(null);
-    };
-  }, [setTopNavInputRef]);
-
-  const handleClear = () => {
-    setSearchTerm("");
-    inputRef.current?.focus();
-  };
-
-  // Handle command selection
-  const handleCommandSelect = useCallback(
-    (command: TPowerKCommandConfig) => {
-      if (command.type === "action") {
-        command.action(context);
-        // Always close on command selection
-        context.closePalette();
-      } else if (command.type === "change-page") {
-        context.setActiveCommand(command);
-        setActivePage(command.page);
-        setSearchTerm("");
-      }
-    },
-    [context, setActivePage]
-  );
-
-  // Handle selection page item selection
-  const handlePageDataSelection = useCallback(
-    (data: unknown) => {
-      if (context.activeCommand?.type === "change-page") {
-        context.activeCommand.onSelect(data, context);
-      }
-      // Always close on page data selection
-      context.closePalette();
-    },
-    [context]
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      // Cmd/Ctrl+K closes the search dropdown
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        closePanel();
-        return;
-      }
-
-      if (e.key === "Escape") {
-        e.preventDefault();
-        if (searchTerm) {
-          setSearchTerm("");
-        }
-        closePanel();
-        return;
-      }
-
-      if (e.key === "Backspace" && !searchTerm) {
-        if (activePage) {
-          e.preventDefault();
-          setActivePage(null);
-          context.setActiveCommand(null);
-        } else if (shouldShowContextBasedActions) {
-          // Optional: logic to hide context actions if desired, similar to wrapper
-          context.setShouldShowContextBasedActions(false);
-        }
-        return;
-      }
-
-      // Arrow down/up keys to navigate command items
-      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && isOpen) {
-        e.preventDefault();
-        // Get the Command.List element
-        const commandList = containerRef.current?.querySelector("[cmdk-list]") as HTMLElement;
-        if (commandList) {
-          // Create and dispatch a keyboard event on the list to trigger cmdk navigation
-          const syntheticEvent = new KeyboardEvent("keydown", {
-            key: e.key,
-            bubbles: true,
-            cancelable: true,
-          });
-          commandList.dispatchEvent(syntheticEvent);
-
-          // Also try to focus the first/selected item
-          if (e.key === "ArrowDown") {
-            const firstItem = commandList.querySelector('[cmdk-item]:not([aria-disabled="true"])') as HTMLElement;
-            if (firstItem) {
-              firstItem.focus();
-            }
-          }
-        }
-        return;
-      }
-
-      // Enter key to execute selected command
-      if (e.key === "Enter" && isOpen) {
-        e.preventDefault();
-        // Find the currently selected/focused item
-        const selectedItem = containerRef.current?.querySelector('[cmdk-item][aria-selected="true"]') as HTMLElement;
-        if (selectedItem) {
-          // Trigger click on the selected item
-          selectedItem.click();
-        }
-        return;
-      }
-    },
-    [searchTerm, activePage, context, shouldShowContextBasedActions, setActivePage, closePanel]
-  );
+    return () => setTopNavInputRef(null);
+  }, [setTopNavInputRef, inputRef]);
 
   return (
     <div ref={containerRef} className="relative">
-      <div
-        className={cn("relative z-30 flex w-[364px] items-center transition-all duration-300 ease-in-out", {
-          "w-[554px]": isOpen,
-        })}
-      >
+      <Command shouldFilter={false} className="flex w-full flex-col">
         <div
-          className={cn(
-            "flex h-7 w-full items-center rounded-lg border border-subtle-1 bg-layer-2 p-2 transition-colors duration-200",
-            {
-              "bg-layer-1": isOpen,
-            }
-          )}
-          onClick={() => inputRef.current?.focus()}
-          role="button"
+          className={cn("relative z-30 flex w-[364px] max-w-[calc(100vw-100px)] items-center", {
+            "w-[554px]": isOpen,
+          })}
         >
-          <SearchOutline className="mr-2 size-3.5 shrink-0 text-placeholder" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              if (!isOpen) openPanel();
-            }}
-            onMouseDown={handleMouseDown}
-            onFocus={handleFocus}
-            onKeyDown={handleKeyDown}
-            placeholder="Search commands..."
-            className="placeholder-text-placeholder min-w-0 flex-1 bg-transparent text-13 text-primary outline-none"
-          />
-          {searchTerm && (
-            <button type="button" onClick={handleClear} className="ml-2 shrink-0">
-              <CloseOutline className="size-3.5 text-placeholder hover:text-primary" />
-            </button>
-          )}
+          <div className="flex h-8 w-full items-center rounded-lg border border-subtle-1 bg-layer-2 px-2">
+            <SearchOutline className="mr-2 size-3.5 shrink-0 text-placeholder" />
+            <Command.Input
+              ref={inputRef}
+              value={searchTerm}
+              onValueChange={(value) => {
+                setSearchTerm(value);
+                openPanel();
+              }}
+              onMouseDown={handleMouseDown}
+              onFocus={handleFocus}
+              onKeyDown={(event) => {
+                if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                  event.preventDefault();
+                  handleClose();
+                  return;
+                }
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleClose();
+                }
+              }}
+              aria-label="Search"
+              aria-expanded={isOpen}
+              placeholder="Search all PMS..."
+              className="placeholder-text-placeholder min-w-0 flex-1 bg-transparent text-13 text-primary outline-none"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => {
+                  setSearchTerm("");
+                  inputRef.current?.focus();
+                }}
+                className="ml-2 shrink-0"
+              >
+                <CloseOutline className="size-3.5 text-placeholder hover:text-primary" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-      <div
-        className={cn(
-          "shadow-lg absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-md border border-subtle bg-surface-1 px-0 pt-10 transition-all duration-300 ease-in-out",
-          {
-            "max-h-[80vh] w-[574px] opacity-100": isOpen,
-            "h-0 w-0 opacity-0": !isOpen,
-          }
-        )}
-      >
         {isOpen && (
-          <Command
-            filter={(i18nValue: string, search: string) => {
-              if (i18nValue === "no-results") return 1;
-              if (i18nValue.toLowerCase().includes(search.toLowerCase())) return 1;
-              return 0;
-            }}
-            shouldFilter={searchTerm.length > 0}
-            className="flex h-full w-full flex-col"
-          >
-            <Command.Input value={searchTerm} hidden />
-            {/* We can skip the header input since we have the main input above,
-                     but we might need the context indicator if we want that feature.
-                     For now, let's just render the list. */}
-
-            <Command.List className="vertical-scrollbar scrollbar-sm max-h-[60vh] overflow-y-auto px-2 pb-4 outline-none">
-              <ProjectsAppPowerKCommandsList
-                activePage={activePage}
-                context={context}
-                handleCommandSelect={handleCommandSelect}
-                handlePageDataSelection={handlePageDataSelection}
-                isWorkspaceLevel={isWorkspaceLevel}
+          <div className="shadow-lg absolute -top-[6px] -left-2 z-20 flex max-h-[80vh] w-[574px] max-w-[calc(100vw-84px)] flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1 pt-10">
+            <div
+              role="group"
+              aria-label="Search categories"
+              className="flex flex-wrap gap-2 border-b border-subtle px-3 py-3"
+            >
+              {categories.map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={category === key}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border border-subtle px-3 py-1 text-12 font-medium text-secondary hover:bg-layer-2",
+                    {
+                      "border-[#CBDCF8] bg-[#EAF2FF] text-[#135DDD] dark:bg-layer-2": category === key,
+                    }
+                  )}
+                  onClick={() => {
+                    setCategory(key);
+                    inputRef.current?.focus();
+                  }}
+                >
+                  <Icon className="size-3.5" />
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-full border border-subtle px-3 py-1 text-12 font-medium text-secondary hover:bg-layer-2"
+                onClick={() => {
+                  handleClose();
+                  togglePowerKModal(true);
+                }}
+              >
+                <CommandIcon className="size-3.5" />
+                Commands
+              </button>
+            </div>
+            <Command.List className="vertical-scrollbar scrollbar-sm max-h-[60vh] overflow-y-auto px-2 py-2 outline-none">
+              <WorkspaceSearch
+                workspaceSlug={workspaceSlug?.toString() || ""}
                 searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                handleSearchMenuClose={() => closePanel()}
+                category={category}
+                onClose={handleClose}
               />
             </Command.List>
-            <PowerKModalFooter
-              isWorkspaceLevel={isWorkspaceLevel}
-              projectId={context.params.projectId?.toString()}
-              onWorkspaceLevelChange={setIsWorkspaceLevel}
-            />
-          </Command>
+            <div className="border-t border-subtle px-3 py-2 text-11 text-tertiary">
+              All your workspaces - Use arrow keys to navigate, Enter to open
+            </div>
+          </div>
         )}
-      </div>
+      </Command>
     </div>
   );
 });

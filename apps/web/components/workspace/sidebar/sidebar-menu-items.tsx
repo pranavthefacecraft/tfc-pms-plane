@@ -102,7 +102,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems({ compact = f
 
   return (
     <>
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-3">
         {filteredStaticNavigationItems.map((item) => (
           <div
             key={item.key}
@@ -119,9 +119,9 @@ export const SidebarMenuItems = observer(function SidebarMenuItems({ compact = f
             />
           </div>
         ))}
+        <SidebarToolMenu compact={compact} />
+        <PMSSettingsLink compact={compact} />
       </div>
-      <SidebarToolMenu compact={compact} />
-      <PMSSettingsLink compact={compact} />
       {/* Retain creation and workspace navigation for future use. */}
       <div hidden className="hidden">
         <SidebarQuickActions />

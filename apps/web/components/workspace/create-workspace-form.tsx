@@ -33,6 +33,7 @@ type Props = {
   };
   setDefaultValues: Dispatch<SetStateAction<Pick<IWorkspace, "name" | "slug" | "organization_size">>>;
   secondaryButton?: React.ReactNode;
+  showBackButton?: boolean;
   primaryButtonText?: {
     loading: string;
     default: string;
@@ -48,6 +49,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
     defaultValues,
     setDefaultValues,
     secondaryButton,
+    showBackButton = true,
     primaryButtonText = {
       loading: "workspace_creation.button.loading",
       default: "workspace_creation.button.default",
@@ -228,7 +230,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
                   pinSelected={false}
                   placeholder={t("workspace_creation.form.organization_size.placeholder")}
                 >
-                  <Select.Trigger<string> variant="select-2xl">
+                  <Select.Trigger<string> variant="select-2xl" className="border border-subtle-1">
                     {(selected) => (
                       <span className="grow truncate text-left">
                         {selected[0] ?? t("workspace_creation.form.organization_size.placeholder")}
@@ -255,7 +257,7 @@ export const CreateWorkspaceForm = observer(function CreateWorkspaceForm(props: 
           disabled={!isValid}
           loading={isSubmitting}
         />
-        {!secondaryButton && (
+        {!secondaryButton && showBackButton && (
           <Button
             variant="secondary"
             type="button"

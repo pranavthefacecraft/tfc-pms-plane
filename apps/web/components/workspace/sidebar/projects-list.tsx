@@ -168,7 +168,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList({ compa
   }, [pathname]);
   if (compact) {
     return (
-      <div className="flex flex-col gap-1 border-t border-subtle pt-3">
+      <div className="flex flex-col gap-3 border-t border-subtle pt-3">
         <Link href={`/${workspaceSlug}/projects`} aria-label={t("projects")} title={t("projects")}>
           <SidebarNavItem isActive={pathname.replace(/\/$/, "") === `/${workspaceSlug}/projects`}>
             <span className="flex w-full justify-center py-2">
@@ -245,7 +245,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList({ compa
               ) : null
             }
           >
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-3 pt-3">
               {loader === "init-loader" && (
                 <Loader className="w-full space-y-1.5">
                   {Array.from({ length: 4 }).map((_, index) => (

@@ -6,9 +6,11 @@ from django.urls import path
 
 
 from plane.app.views import GlobalSearchEndpoint, IssueSearchEndpoint, SearchEndpoint
+from plane.app.views.search.pms import PMSSearchEndpoint
 
 
 urlpatterns = [
+    path("search/pms/", PMSSearchEndpoint.as_view(), name="pms-search"),
     path(
         "workspaces/<str:slug>/search/",
         GlobalSearchEndpoint.as_view(),

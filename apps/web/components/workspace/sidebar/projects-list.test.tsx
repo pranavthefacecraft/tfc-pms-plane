@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { expect, it, vi } from "vitest";
@@ -33,7 +34,10 @@ vi.mock("@/hooks/store/use-project", () => ({
   }),
 }));
 vi.mock("@/components/project/create-project-modal", () => ({ CreateProjectModal: () => null }));
-vi.mock("./projects-list-item", () => ({ SidebarProjectsListItem: () => null }));
+vi.mock("./projects-list-item", () => ({ SidebarProjectsListItem: () => <div data-project-row /> }));
+vi.mock("@makeplane/propel/components/collapsible", () => ({
+  Collapsible: ({ children }: { children: ReactNode }) => <section>{children}</section>,
+}));
 
 it.each([true, false])("keeps project icon links, current selection and project limit (limited: %s)", (limited) => {
   mocks.limited = limited;
@@ -44,6 +48,7 @@ it.each([true, false])("keeps project icon links, current selection and project 
     </MemoryRouter>
   );
   const allProjects = host.querySelector('a[aria-label="projects"]');
+  expect(allProjects?.parentElement?.classList.contains("gap-3")).toBe(true);
   const project = host.querySelector('a[aria-label="Project one"]');
   expect(allProjects?.getAttribute("href")).toBe("/team/projects/");
   expect(allProjects?.querySelector("svg")).not.toBeNull();
@@ -53,4 +58,17 @@ it.each([true, false])("keeps project icon links, current selection and project 
   expect(project?.querySelector("[data-project-icon]")).not.toBeNull();
   expect(project?.firstElementChild?.classList.contains("bg-[#EAF2FF]")).toBe(true);
   expect(host.querySelectorAll("[data-project-icon]")).toHaveLength(limited ? 1 : 2);
+});
+
+it("matches expanded project and creation row gaps to the main menu", () => {
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
+    <MemoryRouter>
+      <SidebarProjectsList />
+    </MemoryRouter>
+  );
+  const list = host.querySelector("[data-project-row]")?.parentElement;
+  expect(list?.classList.contains("gap-3")).toBe(true);
+  expect(list?.classList.contains("pt-3")).toBe(true);
+  expect(list?.textContent).toContain("Create a project");
 });

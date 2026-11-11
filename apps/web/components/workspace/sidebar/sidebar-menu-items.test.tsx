@@ -35,14 +35,18 @@ vi.mock("./pms-settings-link", () => ({
 }));
 vi.mock("./quick-actions", () => ({ SidebarQuickActions: () => <button>New work item</button> }));
 
-it("keeps Tools visible while retaining creation and Workspace in a hidden container", () => {
+it.each([false, true])("keeps menu spacing consistent and workspace navigation hidden (compact: %s)", (compact) => {
   const host = document.createElement("div");
-  host.innerHTML = renderToStaticMarkup(<SidebarMenuItems />);
+  host.innerHTML = renderToStaticMarkup(<SidebarMenuItems compact={compact} />);
   const personal = host.firstElementChild;
-  const tools = personal?.nextElementSibling;
-  const settings = tools?.nextElementSibling;
-  const hiddenSection = settings?.nextElementSibling;
+  const settings = personal?.lastElementChild;
+  const tools = settings?.previousElementSibling;
+  const hiddenSection = personal?.nextElementSibling;
   const action = hiddenSection?.firstElementChild;
+  expect(personal?.classList.contains("flex-col")).toBe(true);
+  expect(personal?.classList.contains("gap-3")).toBe(true);
+  expect(tools?.parentElement).toBe(personal);
+  expect(settings?.parentElement).toBe(personal);
   expect(tools?.textContent).toBe("Tools");
   expect(settings?.textContent).toBe("PMS Settings");
   expect(settings?.closest("[hidden]")).toBeNull();
@@ -60,7 +64,7 @@ it("keeps Tools visible while retaining creation and Workspace in a hidden conta
 it("retains Inbox and Drafts but hides only their sidebar entries", () => {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(<SidebarMenuItems />);
-  const personalLinks = Array.from(host.firstElementChild?.querySelectorAll("a") ?? []);
+  const personalLinks = Array.from(host.firstElementChild?.querySelectorAll(":scope > div > a") ?? []);
   expect(personalLinks.slice(0, 2).map((link) => link.textContent)).toEqual(["home", "inbox"]);
   expect(personalLinks.filter((link) => link.textContent === "inbox")).toHaveLength(1);
   for (const key of ["inbox", "drafts"]) {

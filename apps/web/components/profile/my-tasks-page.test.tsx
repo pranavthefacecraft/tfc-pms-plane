@@ -2,6 +2,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SWRConfig } from "swr";
+import { MemoryRouter } from "react-router";
 import { MyTasksPage } from "./my-tasks-page";
 import type { TPersonalTask } from "@/services/personal-task.service";
 import type { TMyTaskListItem } from "@/services/workspace-my-tasks.service";
@@ -154,12 +155,14 @@ afterEach(async () => {
   if (animationsDescriptor) Object.defineProperty(Element.prototype, "getAnimations", animationsDescriptor);
   else Reflect.deleteProperty(Element.prototype, "getAnimations");
 });
-async function render() {
+async function render(path = "/") {
   await act(async () =>
     root.render(
-      <SWRConfig value={{ provider: () => new Map(), shouldRetryOnError: false }}>
-        <MyTasksPage workspaceSlug="team" />
-      </SWRConfig>
+      <MemoryRouter initialEntries={[path]}>
+        <SWRConfig value={{ provider: () => new Map(), shouldRetryOnError: false }}>
+          <MyTasksPage workspaceSlug="team" />
+        </SWRConfig>
+      </MemoryRouter>
     )
   );
 }
@@ -170,6 +173,19 @@ async function click(label: string) {
   expect(button).toBeDefined();
   await act(() => button?.click());
 }
+
+it("opens an owned personal task from a global search link", async () => {
+  await render(`/?personal_task=${personal.id}`);
+  expect(host.querySelector('[role="dialog"]')?.textContent).toBe(personal.name);
+});
+
+it("reports stale personal task links without opening another user's task", async () => {
+  await render("/?personal_task=missing");
+  expect(host.querySelector('[role="dialog"]')).toBeNull();
+  expect(state.toast).toHaveBeenCalledWith(
+    expect.objectContaining({ type: "error", title: "Personal task not available" })
+  );
+});
 it("renders Figma columns and actual personal/project task data without legacy profile widgets", async () => {
   await render();
   expect(host.querySelector("h1")?.textContent).toBe("My Tasks");

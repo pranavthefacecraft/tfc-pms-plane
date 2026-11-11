@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
+import { useSearchParams } from "react-router";
 import useSWR, { useSWRConfig } from "swr";
 import { CalendarDays, Check, GanttChartSquare, KanbanSquare, List, Paperclip } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -103,6 +104,8 @@ function MyTaskRow({
 }
 
 function useMyTasks(workspaceSlug: string) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchedPersonalTask = searchParams.get("personal_task");
   const { data: user } = useUser();
   const { allowPermissions } = useUserPermissions();
   const { currentTime } = useCurrentTime();
@@ -122,6 +125,25 @@ function useMyTasks(workspaceSlug: string) {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [editing, setEditing] = useState<TPersonalTask | null>(null);
+  useEffect(() => {
+    if (!searchedPersonalTask || !personal.data) return;
+    const task = personal.data.find((item) => item.id === searchedPersonalTask);
+    if (task) setEditing(task);
+    else
+      setToast({
+        type: "error",
+        title: "Personal task not available",
+        message: "It may have been removed or moved to a project.",
+      });
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete("personal_task");
+        return next;
+      },
+      { replace: true }
+    );
+  }, [searchedPersonalTask, personal.data, setSearchParams]);
   const [busy, setBusy] = useState<Set<string>>(new Set());
   const { mutate: refreshAssigned } = assigned;
   const wasPeekOpen = useRef(false);

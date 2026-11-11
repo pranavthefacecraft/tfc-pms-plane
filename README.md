@@ -326,6 +326,22 @@ and the top bar retains an expand-sidebar button rather than the old workspace
 dropdown. Workspace switching remains in the profile menu. Notifications show the
 normal workspace sidebar alongside the inbox list, with the same collapse and
 resize behavior as other workspace pages. Settings and other layouts keep their existing top bar.
+The top-bar search opens a search-first dropdown with All, Tasks, Projects,
+People, Documents, and Files filters, plus a separate Commands button.
+`/api/search/pms/` searches all accessible workspaces: navigation (including
+My tasks and settings), project and owned personal tasks, projects, people,
+Notepad, Whiteboards, project pages, cycles, modules, views, attachment names,
+and task links. Results show their workspace; Show more loads subsequent pages.
+Inactive memberships, private content, restricted guest content, and unrelated
+documents in invitation-only workspaces are excluded. Document search includes
+titles, descriptions, and saved whiteboard scene text; files use metadata, not
+binary content or OCR. Recent tasks/projects still use current-workspace visits.
+Loading, failed requests, and empty results are explicit; saved searches are
+not included. This feature requires deploying both API and web, not the
+web-only manual deployment workflow.
+The standalone `/create-workspace` page is labeled "Create your account" and
+places Go back above its heading, outside the form. Workspace fields and
+creation behavior remain unchanged; other creation flows retain their back controls.
 Create > Message opens a floating draft with a subject, plain-text body, and
 multiple existing workspace recipients (up to 100). Active members and admins
 can send; guests can receive messages addressed to them. Drafts are saved
