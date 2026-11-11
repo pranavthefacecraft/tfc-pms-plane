@@ -318,7 +318,8 @@ components, unread badge, and functionality remain available.
 Search, Inbox and profile remain available in a top bar
 over the main content instead of spanning the sidebar. When the sidebar is
 collapsed on desktop, the sidebar remains a 60px icon rail with labeled navigation,
-Tools, settings, project icons, help, logout and an expand control. Expanding
+Tools, settings, project icons, help and logout. The compact rail displays the
+supplied Clevdex symbol at the top; its single expand control stays in the top bar. Expanding
 restores its saved full width. Favorites and project management controls remain
 in the expanded sidebar. Mobile keeps the existing hide/show overlay behavior,
 and the top bar retains an expand-sidebar button rather than the old workspace

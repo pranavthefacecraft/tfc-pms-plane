@@ -45,7 +45,7 @@ it("retains the Community button inside a hidden footer without hiding navigatio
   expect(host.querySelector("span")?.parentElement?.querySelector('[data-testid="sidebar-toggle"]')).not.toBeNull();
 });
 
-it("keeps the expand control, scrollable icon navigation and footer in compact mode", () => {
+it("shows the Clevdex icon instead of a duplicate expand control in compact mode", () => {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(
     <SidebarWrapper compact title="Projects" header={<button>Workspace</button>}>
@@ -55,11 +55,15 @@ it("keeps the expand control, scrollable icon navigation and footer in compact m
     </SidebarWrapper>
   );
   expect(host.querySelector("[data-sidebar-compact]")).not.toBeNull();
-  expect(host.querySelectorAll('[data-testid="sidebar-toggle"]')).toHaveLength(1);
+  expect(host.querySelectorAll('[data-testid="sidebar-toggle"]')).toHaveLength(0);
   expect(host.querySelector("nav")?.classList.contains("overflow-y-auto")).toBe(true);
   expect(host.querySelector("a")?.closest("[hidden]")).toBeNull();
   expect(host.querySelector("footer")).not.toBeNull();
-  expect(host.querySelector("img")).toBeNull();
+  const logo = host.querySelector('img[alt="PMS by Clevdex"]');
+  expect(logo?.getAttribute("src")).toBe("/clevdex-sidebar-icon.png");
+  expect(logo?.getAttribute("width")).toBe("32");
+  expect(logo?.getAttribute("height")).toBe("32");
+  expect(logo?.closest("button, a, [hidden]")).toBeNull();
   expect(host.textContent).not.toContain("Workspace");
 });
 

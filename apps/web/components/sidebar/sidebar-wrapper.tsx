@@ -51,7 +51,13 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
     return (
       <div className="flex h-full w-full flex-col" data-sidebar-compact>
         <div className="flex shrink-0 justify-center pb-3">
-          <AppSidebarToggleButton />
+          <img
+            src="/clevdex-sidebar-icon.png"
+            alt="PMS by Clevdex"
+            width={32}
+            height={32}
+            className="size-8 object-contain"
+          />
         </div>
         <nav aria-label={title} className="min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-2">
           {children}
