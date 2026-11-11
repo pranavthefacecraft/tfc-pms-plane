@@ -317,8 +317,12 @@ Inbox and Drafts entries are temporarily hidden, not removed; their routes,
 components, unread badge, and functionality remain available.
 Search, Inbox and profile remain available in a top bar
 over the main content instead of spanning the sidebar. When the sidebar is
-collapsed, the top bar provides an expand-sidebar button rather than the old
-workspace dropdown. Workspace switching remains in the profile menu. Notifications show the
+collapsed on desktop, the sidebar remains a 60px icon rail with labeled navigation,
+Tools, settings, project icons, help, logout and an expand control. Expanding
+restores its saved full width. Favorites and project management controls remain
+in the expanded sidebar. Mobile keeps the existing hide/show overlay behavior,
+and the top bar retains an expand-sidebar button rather than the old workspace
+dropdown. Workspace switching remains in the profile menu. Notifications show the
 normal workspace sidebar alongside the inbox list, with the same collapse and
 resize behavior as other workspace pages. Settings and other layouts keep their existing top bar.
 Create > Message opens a floating draft with a subject, plain-text body, and

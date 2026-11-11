@@ -29,18 +29,20 @@ vi.mock("@/components/sidebar/resizable-sidebar", () => ({
     children,
     isCollapsed,
     width,
+    collapsedContent,
   }: {
     children: ReactNode;
     isCollapsed: boolean;
     width: number;
+    collapsedContent: ReactNode;
   }) => (
     <aside data-testid="sidebar" data-collapsed={isCollapsed} data-width={width}>
-      {!isCollapsed && children}
+      {isCollapsed ? collapsedContent : children}
     </aside>
   ),
 }));
 vi.mock("@/app/(all)/[workspaceSlug]/(projects)/sidebar", () => ({
-  AppSidebar: () => <nav>Workspace navigation</nav>,
+  AppSidebar: ({ compact }: { compact?: boolean }) => <nav data-compact={!!compact}>Workspace navigation</nav>,
 }));
 vi.mock("@/app/(all)/[workspaceSlug]/(projects)/extended-sidebar", () => ({
   ExtendedAppSidebar: () => null,
@@ -100,7 +102,7 @@ it.each(["/team/notifications/", "/team/notifications/item/", "/team/"])(
   }
 );
 
-it("offers sidebar expansion instead of the old workspace switcher when collapsed", async () => {
+it("keeps compact sidebar navigation instead of the old workspace switcher when collapsed", async () => {
   mocks.pathname = "/team/notifications/";
   mocks.collapsed = true;
   await act(() =>
@@ -113,7 +115,7 @@ it("offers sidebar expansion instead of the old workspace switcher when collapse
     )
   );
   expect(host.querySelector('[data-testid="sidebar"]')?.getAttribute("data-collapsed")).toBe("true");
-  expect(host.querySelector("nav")).toBeNull();
+  expect(host.querySelector("nav")?.getAttribute("data-compact")).toBe("true");
   expect(host.querySelector("header")?.getAttribute("data-workspace-switcher")).toBe("false");
   expect(host.querySelector("header")?.getAttribute("data-sidebar-toggle")).toBe("true");
   expect(host.querySelector("main section")?.textContent).toBe("Inbox");

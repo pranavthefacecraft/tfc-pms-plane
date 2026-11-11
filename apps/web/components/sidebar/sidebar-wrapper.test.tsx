@@ -45,6 +45,24 @@ it("retains the Community button inside a hidden footer without hiding navigatio
   expect(host.querySelector("span")?.parentElement?.querySelector('[data-testid="sidebar-toggle"]')).not.toBeNull();
 });
 
+it("keeps the expand control, scrollable icon navigation and footer in compact mode", () => {
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
+    <SidebarWrapper compact title="Projects" header={<button>Workspace</button>}>
+      <a href="/projects" aria-label="Projects">
+        <svg />
+      </a>
+    </SidebarWrapper>
+  );
+  expect(host.querySelector("[data-sidebar-compact]")).not.toBeNull();
+  expect(host.querySelectorAll('[data-testid="sidebar-toggle"]')).toHaveLength(1);
+  expect(host.querySelector("nav")?.classList.contains("overflow-y-auto")).toBe(true);
+  expect(host.querySelector("a")?.closest("[hidden]")).toBeNull();
+  expect(host.querySelector("footer")).not.toBeNull();
+  expect(host.querySelector("img")).toBeNull();
+  expect(host.textContent).not.toContain("Workspace");
+});
+
 it("retains the hidden workspace switcher without hiding the logo, toggle or navigation", () => {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(

@@ -55,3 +55,18 @@ it("labels personal work My tasks without changing its profile route", () => {
   expect(host.querySelector("a")?.getAttribute("href")).toBe("/team/profile/user/");
   expect(host.querySelector("svg.lucide-list")).not.toBeNull();
 });
+
+it.each(["home", "your-work"])("keeps %s accessible as an icon-only link", (key) => {
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
+    <MemoryRouter>
+      <SidebarItemBase compact item={WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS[key]} />
+    </MemoryRouter>
+  );
+  const link = host.querySelector("a");
+  expect(link?.textContent).toBe("");
+  expect(link?.querySelector("svg")).not.toBeNull();
+  expect(link?.getAttribute("aria-label")).toBe(key === "home" ? "Activity" : "My tasks");
+  expect(link?.getAttribute("title")).toBe(link?.getAttribute("aria-label"));
+  expect(link?.getAttribute("href")).toBe(key === "home" ? "/team/" : "/team/profile/user/");
+});

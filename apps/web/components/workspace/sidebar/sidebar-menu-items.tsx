@@ -32,7 +32,7 @@ import { SidebarToolMenu } from "./sidebar-tool-menu";
 import { SidebarQuickActions } from "./quick-actions";
 import { PMSSettingsLink } from "./pms-settings-link";
 
-export const SidebarMenuItems = observer(function SidebarMenuItems() {
+export const SidebarMenuItems = observer(function SidebarMenuItems({ compact = false }: { compact?: boolean }) {
   // routers
   const { setValue: toggleWorkspaceMenu, storedValue: isWorkspaceMenuOpen } = useLocalStorage<boolean>(
     "is_workspace_menu_open",
@@ -110,6 +110,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
             className={item.key === "inbox" || item.key === "drafts" ? "hidden" : undefined}
           >
             <SidebarItemBase
+              compact={compact}
               item={item}
               additionalStaticItems={["inbox"]}
               additionalRender={(itemKey, workspaceSlug) =>
@@ -119,8 +120,8 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
           </div>
         ))}
       </div>
-      <SidebarToolMenu />
-      <PMSSettingsLink />
+      <SidebarToolMenu compact={compact} />
+      <PMSSettingsLink compact={compact} />
       {/* Retain creation and workspace navigation for future use. */}
       <div hidden className="hidden">
         <SidebarQuickActions />

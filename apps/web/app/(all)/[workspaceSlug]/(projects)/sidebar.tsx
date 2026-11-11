@@ -18,7 +18,7 @@ import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useUserPermissions } from "@/hooks/store/user";
 
-export const AppSidebar = observer(function AppSidebar() {
+export const AppSidebar = observer(function AppSidebar({ compact = false }: { compact?: boolean }) {
   // store hooks
   const { allowPermissions } = useUserPermissions();
   const { groupedFavorites } = useFavorite();
@@ -32,12 +32,12 @@ export const AppSidebar = observer(function AppSidebar() {
   const isFavoriteEmpty = isEmpty(groupedFavorites);
 
   return (
-    <SidebarWrapper title="Projects" header={<WorkspaceMenuRoot variant="top-navigation" />}>
-      <SidebarMenuItems />
+    <SidebarWrapper compact={compact} title="Projects" header={<WorkspaceMenuRoot variant="top-navigation" />}>
+      <SidebarMenuItems compact={compact} />
       {/* Favorites Menu */}
-      {canPerformWorkspaceMemberActions && !isFavoriteEmpty && <SidebarFavoritesMenu />}
+      {!compact && canPerformWorkspaceMemberActions && !isFavoriteEmpty && <SidebarFavoritesMenu />}
       {/* Projects List */}
-      <SidebarProjectsList />
+      <SidebarProjectsList compact={compact} />
     </SidebarWrapper>
   );
 });

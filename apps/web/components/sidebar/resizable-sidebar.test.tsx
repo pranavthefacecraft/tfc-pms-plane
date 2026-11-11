@@ -20,7 +20,7 @@ function SidebarContent({ close }: { close: () => void }) {
   );
 }
 
-function Harness() {
+function Harness({ compact = false }: { compact?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   const [peek, setPeek] = useState(false);
   const [width, setWidth] = useState(250);
@@ -36,6 +36,13 @@ function Harness() {
         toggleCollapsed={toggleCollapsed}
         showPeek={peek}
         togglePeek={(value) => setPeek((current) => value ?? !current)}
+        collapsedContent={
+          compact ? (
+            <button data-testid="compact-expand" onClick={() => setCollapsed(false)}>
+              Expand sidebar
+            </button>
+          ) : undefined
+        }
       >
         <SidebarContent close={() => setCollapsed(true)} />
       </ResizableSidebar>
@@ -85,4 +92,27 @@ it("mounts only the peek content when collapsed", async () => {
   await act(() => host.querySelectorAll<HTMLButtonElement>("button")[1].click());
   expect(host.querySelectorAll('[data-testid="sidebar-content"]')).toHaveLength(1);
   expect(host.querySelector("#main-sidebar [data-testid]")).toBeNull();
+});
+
+it("keeps a 60px icon rail on desktop and restores the saved expanded width", async () => {
+  vi.spyOn(window, "innerWidth", "get").mockReturnValue(1200);
+  await act(() => root.render(<Harness compact />));
+  const collapse = () => host.querySelector<HTMLButtonElement>('[data-testid="sidebar-content"]')!;
+  await act(() => collapse().click());
+  expect(host.querySelector<HTMLElement>("#main-sidebar")?.style.width).toBe("60px");
+  expect(host.querySelector("#main-sidebar")?.classList.contains("opacity-0")).toBe(false);
+  expect(host.querySelector('[data-testid="sidebar-content"]')).toBeNull();
+  expect(host.querySelector('#main-sidebar [aria-label="Resize sidebar"]')).toBeNull();
+  await act(() => host.querySelector<HTMLButtonElement>('[data-testid="compact-expand"]')!.click());
+  expect(host.querySelector<HTMLElement>("#main-sidebar")?.style.width).toBe("250px");
+  expect(host.querySelector('[data-testid="compact-expand"]')).toBeNull();
+  expect(collapse()).not.toBeNull();
+  await act(() => collapse().click());
+  expect(host.querySelector<HTMLElement>("#main-sidebar")?.style.width).toBe("60px");
+});
+
+it("does not reserve desktop rail space or mount icon navigation on mobile", async () => {
+  await act(() => root.render(<Harness compact />));
+  expect(host.querySelector<HTMLElement>("#main-sidebar")?.style.width).toBe("0px");
+  expect(host.querySelector('[data-testid="compact-expand"]')).toBeNull();
 });

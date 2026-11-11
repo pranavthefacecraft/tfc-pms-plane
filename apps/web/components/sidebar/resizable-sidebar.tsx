@@ -26,6 +26,7 @@ interface ResizableSidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
   className?: string;
   children?: ReactElement;
+  collapsedContent?: ReactElement;
   extendedSidebar?: ReactElement;
   isAnyExtendedSidebarExpanded?: boolean;
   isAnySidebarDropdownOpen?: boolean;
@@ -45,6 +46,7 @@ export function ResizableSidebar({
   maxWidth = 350,
   className = "",
   children,
+  collapsedContent,
   extendedSidebar,
   isAnyExtendedSidebarExpanded = false,
   isAnySidebarDropdownOpen = false,
@@ -59,6 +61,8 @@ export function ResizableSidebar({
   // hooks
   const [viewportWidth] = useSize();
   const isMobile = viewportWidth < 768;
+  const showCompact = isCollapsed && !isMobile && !!collapsedContent;
+  const visibleWidth = isCollapsed ? (showCompact ? 60 : 0) : width;
 
   useEffect(() => {
     if (isMobile) toggleCollapsedProp(true);
@@ -187,14 +191,14 @@ export function ResizableSidebar({
         className={cn(
           "z-20 h-full border-r border-subtle bg-surface-1",
           !isResizing && "transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-0 translate-x-[-100%] opacity-0" : "translate-x-0 opacity-100",
+          isCollapsed && !showCompact ? "w-0 translate-x-[-100%] opacity-0" : "translate-x-0 opacity-100",
           "max-md:absolute",
           className
         )}
         style={{
-          width: `${isCollapsed ? 0 : width}px`,
-          minWidth: `${isCollapsed ? 0 : width}px`,
-          maxWidth: `${isCollapsed ? 0 : width}px`,
+          width: `${visibleWidth}px`,
+          minWidth: `${visibleWidth}px`,
+          maxWidth: `${visibleWidth}px`,
         }}
         role="complementary"
         aria-label="Main sidebar"
@@ -207,21 +211,24 @@ export function ResizableSidebar({
           )}
         >
           {!isCollapsed && children}
+          {showCompact && collapsedContent}
 
           {/* Resize Handle */}
-          <div
-            className={cn(
-              "absolute z-[20] h-full w-1 cursor-ew-resize transition-all duration-200",
-              !isResizing && "hover:bg-surface-2",
-              isResizing && "w-1.5 bg-layer-1",
-              "top-0 right-0"
-            )}
-            // onDoubleClick toggle sidebar
-            onDoubleClick={() => toggleCollapsed()}
-            onMouseDown={(e) => startResizing(e)}
-            role="separator"
-            aria-label="Resize sidebar"
-          />
+          {!isCollapsed && (
+            <div
+              className={cn(
+                "absolute z-[20] h-full w-1 cursor-ew-resize transition-all duration-200",
+                !isResizing && "hover:bg-surface-2",
+                isResizing && "w-1.5 bg-layer-1",
+                "top-0 right-0"
+              )}
+              // onDoubleClick toggle sidebar
+              onDoubleClick={() => toggleCollapsed()}
+              onMouseDown={(e) => startResizing(e)}
+              role="separator"
+              aria-label="Resize sidebar"
+            />
+          )}
         </aside>
       </div>
       {/* Peek View */}

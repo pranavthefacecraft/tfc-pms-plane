@@ -23,6 +23,7 @@ import { useWorkspaceNavigationPreferences } from "@/hooks/use-navigation-prefer
 import { getSidebarNavigationItemIcon } from "@/components/workspace/sidebar/helper";
 
 type Props = {
+  compact?: boolean;
   item: IWorkspaceSidebarNavigationItem;
   additionalRender?: (itemKey: string, workspaceSlug: string) => ReactNode;
   additionalStaticItems?: string[];
@@ -32,6 +33,7 @@ export const SidebarItemBase = observer(function SidebarItemBase({
   item,
   additionalRender,
   additionalStaticItems,
+  compact = false,
 }: Props) {
   const { t } = useTranslation();
   const pathname = usePathname();
@@ -68,9 +70,10 @@ export const SidebarItemBase = observer(function SidebarItemBase({
   const icon = getSidebarNavigationItemIcon(item.key);
   const isActivity = item.key === "home";
   const isActive = item.highlight(pathname, itemHref);
+  const label = item.key === "your_work" ? "My tasks" : t(isActivity ? "activity" : item.labelTranslationKey);
 
   return (
-    <Link href={itemHref} onClick={handleLinkClick}>
+    <Link href={itemHref} onClick={handleLinkClick} aria-label={label} title={label}>
       <SidebarNavItem
         isActive={isActive}
         className={cn({
@@ -78,13 +81,11 @@ export const SidebarItemBase = observer(function SidebarItemBase({
           "dark:text-custom-primary-100 text-[#135DDD]": isActivity && isActive,
         })}
       >
-        <div className="flex items-center gap-1.5 py-[1px]">
+        <div className={compact ? "flex w-full justify-center py-2" : "flex items-center gap-1.5 py-[1px]"}>
           {icon}
-          <p className="text-13 leading-5 font-medium">
-            {item.key === "your_work" ? "My tasks" : t(isActivity ? "activity" : item.labelTranslationKey)}
-          </p>
+          {!compact && <p className="text-13 leading-5 font-medium">{label}</p>}
         </div>
-        {additionalRender?.(item.key, slug)}
+        {!compact && additionalRender?.(item.key, slug)}
       </SidebarNavItem>
     </Link>
   );

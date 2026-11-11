@@ -57,6 +57,7 @@ export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
         }
         isAnyExtendedSidebarExpanded={isAnyExtendedSidebarOpen}
         isAnySidebarDropdownOpen={isAnySidebarDropdownOpen}
+        collapsedContent={<AppSidebar compact />}
       >
         <AppSidebar />
       </ResizableSidebar>

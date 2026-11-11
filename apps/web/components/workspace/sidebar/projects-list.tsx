@@ -9,6 +9,9 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
+import Link from "next/link";
+import { Folder } from "lucide-react";
+import { Logo } from "@plane/blocks/emoji-icon-picker";
 import { Collapsible } from "@makeplane/propel/components/collapsible";
 import { AddOutline, MoreHorizontalOutline } from "@makeplane/propel/icons";
 // plane imports
@@ -35,7 +38,7 @@ import type { TProject } from "@plane/types";
 // local imports
 import { SidebarProjectsListItem } from "./projects-list-item";
 
-export const SidebarProjectsList = observer(function SidebarProjectsList() {
+export const SidebarProjectsList = observer(function SidebarProjectsList({ compact = false }: { compact?: boolean }) {
   // states
   const [isAllProjectsListOpen, setIsAllProjectsListOpen] = useState(true);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -163,6 +166,39 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
       localStorage.setItem("isAllProjectsListOpen", "true");
     }
   }, [pathname]);
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-1 border-t border-subtle pt-3">
+        <Link href={`/${workspaceSlug}/projects`} aria-label={t("projects")} title={t("projects")}>
+          <SidebarNavItem isActive={pathname.replace(/\/$/, "") === `/${workspaceSlug}/projects`}>
+            <span className="flex w-full justify-center py-2">
+              <Folder className="size-4" />
+            </span>
+          </SidebarNavItem>
+        </Link>
+        {displayedProjects.map((projectId) => {
+          const project = getPartialProjectById(projectId);
+          if (!project) return null;
+          return (
+            <Link
+              key={projectId}
+              href={`/${workspaceSlug}/projects/${projectId}/overview`}
+              aria-label={project.name}
+              title={project.name}
+            >
+              <SidebarNavItem isActive={pathname.startsWith(`/${workspaceSlug}/projects/${projectId}/`)}>
+                <span className="flex w-full justify-center py-2">
+                  <span className="size-4">
+                    <Logo logo={project.logo_props} />
+                  </span>
+                </span>
+              </SidebarNavItem>
+            </Link>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <>
       {workspaceSlug && (

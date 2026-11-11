@@ -27,10 +27,11 @@ type TSidebarWrapperProps = {
   children: React.ReactNode;
   quickActions?: React.ReactNode;
   header?: React.ReactNode;
+  compact?: boolean;
 };
 
 export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWrapperProps) {
-  const { title, children, quickActions, header } = props;
+  const { title, children, quickActions, header, compact = false } = props;
   // translation
   const { t } = useTranslation();
   // state
@@ -45,6 +46,20 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
       toggleSidebar();
     }
   });
+
+  if (compact) {
+    return (
+      <div className="flex h-full w-full flex-col" data-sidebar-compact>
+        <div className="flex shrink-0 justify-center pb-3">
+          <AppSidebarToggleButton />
+        </div>
+        <nav aria-label={title} className="min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-2">
+          {children}
+        </nav>
+        <SidebarFooter compact />
+      </div>
+    );
+  }
 
   return (
     <>

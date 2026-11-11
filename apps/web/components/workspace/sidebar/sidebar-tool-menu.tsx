@@ -27,7 +27,7 @@ const TOOL_ITEMS = [
 ];
 
 /** Figma "Tools" sidebar item: clicking it opens a flyout to the right with Notepad and Whiteboard. */
-export const SidebarToolMenu = observer(function SidebarToolMenu() {
+export const SidebarToolMenu = observer(function SidebarToolMenu({ compact = false }: { compact?: boolean }) {
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -49,11 +49,20 @@ export const SidebarToolMenu = observer(function SidebarToolMenu() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<button type="button" className="w-full text-left outline-none" />}>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            aria-label="Tools"
+            title={compact ? "Tools" : undefined}
+            className="w-full text-left outline-none"
+          />
+        }
+      >
         <SidebarNavItem isActive={open || tools.some((tool) => tool.isActive)}>
-          <div className="flex items-center gap-1.5 py-[1px]">
+          <div className={compact ? "flex w-full justify-center py-2" : "flex items-center gap-1.5 py-[1px]"}>
             <Grid2X2 className="size-4 flex-shrink-0" />
-            <p className="text-13 leading-5 font-medium">Tools</p>
+            {!compact && <p className="text-13 leading-5 font-medium">Tools</p>}
           </div>
         </SidebarNavItem>
       </PopoverTrigger>

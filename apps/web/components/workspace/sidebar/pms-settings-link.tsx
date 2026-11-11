@@ -9,17 +9,22 @@ import { useParams, usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 
-export function PMSSettingsLink() {
+export function PMSSettingsLink({ compact = false }: { compact?: boolean }) {
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
   const href = `/${workspaceSlug}/pms-settings`;
   const active = pathname === href || pathname.startsWith(`${href}/`);
   return (
-    <Link href={`${href}/account`} aria-current={active ? "page" : undefined}>
+    <Link
+      href={`${href}/account`}
+      aria-current={active ? "page" : undefined}
+      aria-label={compact ? "PMS Settings" : undefined}
+      title={compact ? "PMS Settings" : undefined}
+    >
       <SidebarNavItem isActive={active} className={active ? "dark:text-custom-primary-100 text-[#135DDD]" : undefined}>
-        <div className="flex items-center gap-1.5 py-[1px]">
+        <div className={compact ? "flex w-full justify-center py-2" : "flex items-center gap-1.5 py-[1px]"}>
           <Settings className="size-4 shrink-0" />
-          <span className="text-13 leading-5 font-medium">PMS Settings</span>
+          {!compact && <span className="text-13 leading-5 font-medium">PMS Settings</span>}
         </div>
       </SidebarNavItem>
     </Link>

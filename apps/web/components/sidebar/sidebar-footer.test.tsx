@@ -64,3 +64,15 @@ it("surfaces sign-out failures and allows retry", async () => {
   });
   expect(host.querySelector("button")?.disabled).toBe(false);
 });
+
+it("keeps help and sign-out available as labeled icons in compact mode", async () => {
+  await act(() => root.render(<SidebarFooter compact />));
+  const help = host.querySelector('a[aria-label="Help Center"]');
+  const logout = host.querySelector<HTMLButtonElement>('button[aria-label="Logout Account"]');
+  expect(help?.textContent).toBe("");
+  expect(logout?.textContent).toBe("");
+  expect(help?.querySelector("svg")).not.toBeNull();
+  expect(logout?.querySelectorAll("svg")).toHaveLength(1);
+  await act(() => logout?.click());
+  expect(mocks.signOut).toHaveBeenCalledOnce();
+});
