@@ -1,0 +1,10 @@
+[Unit]
+Description=Clean abandoned TFC PMS Recorder uploads
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/tfcpms
+ExecStart=/usr/bin/docker compose exec -T api python manage.py cleanup_recordings
+TimeoutStartSec=30min

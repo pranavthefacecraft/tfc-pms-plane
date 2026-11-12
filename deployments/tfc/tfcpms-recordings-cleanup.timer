@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily cleanup of abandoned TFC PMS Recorder uploads
+
+[Timer]
+OnCalendar=*-*-* 03:20:00 UTC
+Persistent=true
+Unit=tfcpms-recordings-cleanup.service
+
+[Install]
+WantedBy=timers.target

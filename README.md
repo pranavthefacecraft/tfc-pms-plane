@@ -555,6 +555,59 @@ and support direct links and browser history.
 - Two-step verification and login history are marked unavailable
   because they are not supported by the existing account settings.
 
+### Recorder
+
+Tools > Recorder (`/<workspace>/tool/recorder/`) records a browser-selected screen,
+window or tab, with optional microphone and browser-supported system audio.
+It supports pause/resume, local preview/download, retryable uploads, private saved
+playback, explicit teammate sharing/revocation and task links. Linking a task
+does **not** grant playback access; share with the relevant teammates separately.
+Guests can play recordings shared with them, but cannot create or manage recordings.
+Workspace membership and owner/viewer permissions are checked on every playback
+request. Ready accessible recordings also appear in global PMS search under Files.
+
+Saved recordings are limited to **500 MiB and 60 minutes**. The capture stops
+at the duration limit; recordings that exceed the size limit can be downloaded
+locally but cannot be saved. Uploads use authenticated raw **5 MiB** parts
+(not multipart forms), preserving the existing attachment/proxy body limit.
+Keep an unsaved recording's tab open until saved or downloaded; in-memory drafts
+cannot survive closing/reloading the browser. Failed uploads retain the local
+blob and support retry without re-sending successful parts.
+Webcam compositing, trimming/editing, captions and local-model AI transcripts/
+summaries are deferred; there are no third-party AI calls.
+
+Capture and audio mixing adapt Cap's AGPL-3.0-only
+[`stream-manager.ts` and `mime-types.ts`](apps/web/components/recorder/cap),
+from [CapSoftware/Cap](https://github.com/CapSoftware/Cap) commit
+`62d5c76aecdc79cf24c2a11cfc8055125e585efb`. The upstream license is included
+in that directory. Changes disable webcam capture for this phase, propagate
+requested-device failures rather than silently dropping devices, and support
+PMS-owned upload/playback instead of Cap's developer backend. No separate Cap
+service, SDK npm package, credit system or public playback link is used.
+Keep attribution and make the modified AGPL source available when deploying.
+
+**Deployment requirements:** deploy API and web from the same revision.
+Before enabling Recorder, run `python manage.py migrate` and
+`python manage.py prepare_recordings` inside the production API container.
+Recorder uses a dedicated private bucket: `RECORDINGS_BUCKET_NAME`, defaulting
+to `<AWS_S3_BUCKET_NAME>-recordings`, on the existing internal S3/MinIO client.
+The preparation command creates/verifies it and rejects Allow bucket policies
+or public ACLs; do not expose it anonymously, reuse the public attachment bucket,
+or add a proxy route to it. Storage credentials must allow the bucket setup,
+multipart and authenticated object operations. Playback streams via PMS APIs,
+including byte-range seeking; no storage keys or signed/public object URLs
+are returned to the browser.
+Schedule `python manage.py cleanup_recordings` **daily** to remove
+unfinished metadata and abandoned multipart uploads older than 24 hours.
+The TFC server uses the included
+[cleanup service](deployments/tfc/tfcpms-recordings-cleanup.service) and
+[daily timer](deployments/tfc/tfcpms-recordings-cleanup.timer). Install both under
+`/etc/systemd/system`, run `systemctl daemon-reload`, then
+`systemctl enable --now tfcpms-recordings-cleanup.timer`. The timer runs at
+03:20 UTC and catches up after downtime. Inspect failures with
+`journalctl -u tfcpms-recordings-cleanup.service`.
+Back up this new bucket alongside the database; monitor disk capacity.
+
 ### Notepads
 
 Tools > Notepad (`/<workspace>/tool/pages/`) uses the compact Notepads list:

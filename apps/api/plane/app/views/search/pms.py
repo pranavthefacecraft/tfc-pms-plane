@@ -18,6 +18,7 @@ from plane.db.models import (
     PersonalTask,
     Project,
     ProjectMember,
+    Recording,
     WorkspaceMember,
 )
 
@@ -121,6 +122,7 @@ def navigation_results(memberships, user, query):
             ("workspace-views", "Workspace views", "workspace-views", "Views filters"),
             ("notepad", "Notepad", "tool/pages", "Tools notes pages"),
             ("whiteboard", "Whiteboards", "tool/whiteboards", "Tools whiteboard"),
+            ("recorder", "Recorder", "tool/recorder", "Tools screen recording video"),
             ("inbox", "Inbox", "notifications", "Notifications messages"),
             ("account", "Account settings", "pms-settings/account", "PMS Settings profile preferences"),
         ]
@@ -331,6 +333,23 @@ class PMSSearchEndpoint(BaseAPIView):
                 )
                 items.append(result(view, "documents", view.name, href, "View"))
         if include("files"):
+            recordings = (
+                Recording.objects.filter(workspace_id__in=workspace_ids, ready=True)
+                .filter(Q(owner=request.user) | Q(viewers=request.user))
+                .filter(matching(query, "name"))
+                .select_related("workspace")
+                .distinct()
+            )
+            for recording in ordered(recordings)[:end]:
+                items.append(
+                    result(
+                        recording,
+                        "files",
+                        recording.name,
+                        f"/{recording.workspace.slug}/tool/recorder/{recording.id}",
+                        "Recording",
+                    )
+                )
             files = (
                 FileAsset.objects.filter(is_uploaded=True, is_deleted=False, is_archived=False)
                 .filter(

@@ -9,13 +9,14 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@makeplane/propel/components/popover";
-import { Grid2X2, NotebookTabs, SquarePen } from "lucide-react";
+import { Grid2X2, NotebookTabs, SquarePen, Video } from "lucide-react";
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 
 const TOOL_ITEMS = [
+  { key: "recorder", label: "Recorder", path: "tool/recorder", icon: Video, tile: "bg-[#FDE8E8] text-[#B42318]" },
   { key: "pages", label: "Notepad", path: "tool/pages", icon: NotebookTabs, tile: "bg-[#EAF1FD] text-[#135DDD]" },
   {
     key: "whiteboards",
@@ -26,7 +27,6 @@ const TOOL_ITEMS = [
   },
 ];
 
-/** Figma "Tools" sidebar item: clicking it opens a flyout to the right with Notepad and Whiteboard. */
 export const SidebarToolMenu = observer(function SidebarToolMenu({ compact = false }: { compact?: boolean }) {
   const { workspaceSlug } = useParams();
   const pathname = usePathname();

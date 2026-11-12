@@ -3,6 +3,15 @@
 # See the LICENSE file for details.
 
 from django.urls import path
+from plane.app.views.workspace.recording import (
+    RecordingsEndpoint,
+    RecordingEndpoint,
+    RecordingPartEndpoint,
+    RecordingCompleteEndpoint,
+    RecordingShareEndpoint,
+    RecordingAttachEndpoint,
+    RecordingPlaybackEndpoint,
+)
 from plane.app.views.workspace.personal_task import (
     PersonalTasksEndpoint,
     PersonalTaskEndpoint,
@@ -48,6 +57,27 @@ from plane.app.views import (
 
 
 urlpatterns = [
+    path("workspaces/<str:slug>/recordings/", RecordingsEndpoint.as_view(), name="recordings"),
+    path("workspaces/<str:slug>/recordings/<uuid:pk>/", RecordingEndpoint.as_view(), name="recording"),
+    path(
+        "workspaces/<str:slug>/recordings/<uuid:pk>/parts/<int:part>/",
+        RecordingPartEndpoint.as_view(),
+        name="recording-part",
+    ),
+    path(
+        "workspaces/<str:slug>/recordings/<uuid:pk>/complete/",
+        RecordingCompleteEndpoint.as_view(),
+        name="recording-complete",
+    ),
+    path("workspaces/<str:slug>/recordings/<uuid:pk>/share/", RecordingShareEndpoint.as_view(), name="recording-share"),
+    path(
+        "workspaces/<str:slug>/recordings/<uuid:pk>/attach/", RecordingAttachEndpoint.as_view(), name="recording-attach"
+    ),
+    path(
+        "workspaces/<str:slug>/recordings/<uuid:pk>/playback/",
+        RecordingPlaybackEndpoint.as_view(),
+        name="recording-playback",
+    ),
     path("shared/personal-tasks/<uuid:token>/", SharedPersonalTaskEndpoint.as_view(), name="shared-personal-task"),
     path(
         "workspaces/<str:slug>/personal-tasks/<uuid:pk>/share/",

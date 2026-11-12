@@ -128,6 +128,14 @@ export const coreRoutes: RouteConfigEntry[] = [
         layout("./(all)/[workspaceSlug]/(projects)/tool/whiteboards/layout.tsx", [
           route(":workspaceSlug/tool/whiteboards", "./(all)/[workspaceSlug]/(projects)/tool/whiteboards/page.tsx"),
         ]),
+        layout("./(all)/[workspaceSlug]/(projects)/tool/recorder/layout.tsx", [
+          route(":workspaceSlug/tool/recorder", "./(all)/[workspaceSlug]/(projects)/tool/recorder/page.tsx"),
+          route(
+            ":workspaceSlug/tool/recorder/:recordingId",
+            "./(all)/[workspaceSlug]/(projects)/tool/recorder/page.tsx",
+            { id: "recording-detail" }
+          ),
+        ]),
 
         // Workspace Views
         layout("./(all)/[workspaceSlug]/(projects)/workspace-views/layout.tsx", [

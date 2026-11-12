@@ -91,7 +91,7 @@ afterEach(async () => {
 
 const trigger = () => host.querySelector("button")!;
 
-it("opens a flyout to the right with Notepad and Whiteboard, and closes it after choosing one", async () => {
+it("opens a flyout to the right with all tools, and closes it after choosing one", async () => {
   mocks.pathname = "/personal/home";
   await act(() => root.render(<SidebarToolMenu />));
   expect(trigger().textContent).toBe("Tools");
@@ -100,6 +100,7 @@ it("opens a flyout to the right with Notepad and Whiteboard, and closes it after
   await act(async () => trigger().click());
   expect(host.querySelector("[data-side]")?.getAttribute("data-side")).toBe("right");
   expect(Array.from(host.querySelectorAll("a")).map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+    ["Recorder", "/personal/tool/recorder/"],
     ["Notepad", "/personal/tool/pages/"],
     ["Whiteboard", "/personal/tool/whiteboards/"],
   ]);
@@ -109,6 +110,7 @@ it("opens a flyout to the right with Notepad and Whiteboard, and closes it after
 });
 
 it.each([
+  ["/personal/tool/recorder/recording", "Recorder"],
   ["/personal/tool/shared-whiteboards/owner/board", "Whiteboard"],
   ["/personal/tool/whiteboards/board", "Whiteboard"],
   ["/personal/tool/pages/page", "Notepad"],
