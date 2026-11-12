@@ -63,7 +63,7 @@ RUN apk --no-cache add "bash~=5.3"
 COPY ./bin ./bin/
 
 RUN mkdir -p /code/plane/logs
-RUN chmod +x ./bin/*
+RUN sed -i 's/\r$//' ./bin/* && chmod +x ./bin/*
 RUN chmod -R 777 /code
 
 # Expose container port and run entry point script
