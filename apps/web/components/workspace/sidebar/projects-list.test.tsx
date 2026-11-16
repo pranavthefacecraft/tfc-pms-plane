@@ -10,11 +10,16 @@ vi.mock("@plane/i18n", () => ({ useTranslation: () => ({ t: (key: string) => key
 vi.mock("next/navigation", () => ({
   useParams: () => ({ workspaceSlug: "team" }),
   usePathname: () => mocks.pathname,
+  useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock("@plane/blocks/emoji-icon-picker", () => ({ Logo: () => <svg data-project-icon /> }));
 vi.mock("@/hooks/use-app-router", () => ({ useAppRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/hooks/store/use-command-palette", () => ({
-  useCommandPalette: () => ({ toggleCreateProjectModal: vi.fn() }),
+  useCommandPalette: () => ({
+    toggleCreateProjectModal: vi.fn(),
+    getIsProjectListOpen: () => false,
+    toggleProjectListOpen: vi.fn(),
+  }),
 }));
 vi.mock("@/hooks/store/user", () => ({
   useUserPermissions: () => ({ allowPermissions: () => true }),
@@ -34,6 +39,14 @@ vi.mock("@/hooks/store/use-project", () => ({
   }),
 }));
 vi.mock("@/components/project/create-project-modal", () => ({ CreateProjectModal: () => null }));
+vi.mock("@/components/project/leave-project-modal", () => ({ LeaveProjectModal: () => null }));
+vi.mock("@/components/project/publish-project/modal", () => ({ PublishProjectModal: () => null }));
+vi.mock("@/hooks/use-platform-os", () => ({ usePlatformOS: () => ({ isMobile: false }) }));
+vi.mock("@/components/issues/issue-layouts/utils", () => ({
+  HIGHLIGHT_CLASS: "highlight",
+  highlightIssueOnDrop: vi.fn(),
+}));
+vi.mock("./project-navigation", () => ({ ProjectNavigation: () => null }));
 vi.mock("./projects-list-item", () => ({ SidebarProjectsListItem: () => <div data-project-row /> }));
 vi.mock("@makeplane/propel/components/collapsible", () => ({
   Collapsible: ({ children }: { children: ReactNode }) => <section>{children}</section>,
@@ -52,7 +65,7 @@ it.each([true, false])("keeps project icon links, current selection and project 
   const project = host.querySelector('a[aria-label="Project one"]');
   expect(allProjects?.getAttribute("href")).toBe("/team/projects/");
   expect(allProjects?.querySelector("svg")).not.toBeNull();
-  expect(project?.getAttribute("href")).toBe("/team/projects/one/overview/");
+  expect(project?.getAttribute("href")).toBe("/team/projects/one/board/");
   expect(project?.getAttribute("title")).toBe("Project one");
   expect(project?.textContent).toBe("");
   expect(project?.querySelector("[data-project-icon]")).not.toBeNull();
@@ -71,4 +84,23 @@ it("matches expanded project and creation row gaps to the main menu", () => {
   expect(list?.classList.contains("gap-3")).toBe(true);
   expect(list?.classList.contains("pt-3")).toBe(true);
   expect(list?.textContent).toContain("Create a project");
+});
+
+it("opens Board from an expanded sidebar project row", async () => {
+  const { SidebarProjectsListItem } =
+    await vi.importActual<typeof import("./projects-list-item")>("./projects-list-item");
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
+    <MemoryRouter>
+      <SidebarProjectsListItem
+        projectId="one"
+        projectListType="JOINED"
+        isLastChild
+        disableDrag
+        handleCopyText={vi.fn()}
+      />
+    </MemoryRouter>
+  );
+  const link = host.querySelector('a[href="/team/projects/one/board"]');
+  expect(link?.textContent).toContain("Project one");
 });

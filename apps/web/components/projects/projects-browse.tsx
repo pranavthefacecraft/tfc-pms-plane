@@ -164,12 +164,12 @@ export const ProjectsBrowse = observer(function ProjectsBrowse({ workspaceSlug }
   const rows = browseProjects(projects, query, direction);
 
   const openProject = (project: TProject) => {
-    if (project.member_role) router.push(`/${workspaceSlug}/projects/${project.id}/overview`);
+    if (project.member_role) router.push(`/${workspaceSlug}/projects/${project.id}/board`);
     else setJoining(project);
   };
 
   return (
-    <main className="h-full overflow-y-auto bg-surface-1 px-5 py-6 md:px-8" aria-label="Projects">
+    <main className="bg-pms-content h-full overflow-y-auto px-5 py-6 md:px-8 dark:bg-surface-1" aria-label="Projects">
       <PageHead title="Projects" />
       <div className="mx-auto max-w-[1400px]">
         <h1 className="mb-5 text-24 font-semibold">Projects</h1>

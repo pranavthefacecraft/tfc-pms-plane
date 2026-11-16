@@ -105,7 +105,7 @@ export const InviteCollaboratorsDialog = observer(function InviteCollaboratorsDi
   const addEmail = () => void invite(term, role, term);
   const copyLink = async () => {
     try {
-      await copyUrlToClipboard(`${workspaceSlug}/projects/${project.id}/overview`);
+      await copyUrlToClipboard(`${workspaceSlug}/projects/${project.id}/board`);
       setToast({ type: "success", title: "Link copied", message: "The project link is on your clipboard." });
     } catch {
       setToast({ type: "error", title: "Could not copy link", message: "Copy the address from the browser instead." });

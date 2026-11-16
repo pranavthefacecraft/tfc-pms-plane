@@ -110,7 +110,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   // derived values
   const project = getPartialProjectById(projectId);
 
-  const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, "overview") : "";
+  const defaultTabUrl = project ? getTabUrl(workspaceSlug.toString(), project.id, "board") : "";
 
   // toggle project list open
   const setIsProjectListOpen = useCallback(

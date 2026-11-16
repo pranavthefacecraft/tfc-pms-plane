@@ -98,6 +98,8 @@ it.each(["/team/notifications/", "/team/notifications/item/", "/team/"])(
     expect(host.querySelector("nav")?.textContent).toBe("Workspace navigation");
     expect(host.querySelector('[data-testid="sidebar"]')?.getAttribute("data-width")).toBe("250");
     expect(host.querySelector("main section")?.textContent).toBe("Inbox list and content");
+    expect([...host.querySelectorAll(".bg-pms-content")]).toEqual([host.querySelector("main")]);
+    expect(host.querySelector("main")?.classList.contains("dark:bg-surface-1")).toBe(true);
     expect(host.querySelector("header")?.getAttribute("data-workspace-switcher")).toBe("false");
   }
 );

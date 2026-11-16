@@ -85,7 +85,7 @@ function ToolPageRow({ page, workspaceSlug, toolType, ...actions }: ToolPageRowP
       : "Restricted project"
     : "—";
   const projectHref = attachment?.is_accessible
-    ? `/${workspaceSlug}/projects/${attachment.project_id}/overview`
+    ? `/${workspaceSlug}/projects/${attachment.project_id}/board`
     : undefined;
   const href = getWorkspacePageHref(workspaceSlug, page.id, toolType);
   const collaborators =

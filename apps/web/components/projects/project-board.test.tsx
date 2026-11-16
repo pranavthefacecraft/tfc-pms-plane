@@ -188,7 +188,7 @@ describe("ProjectBoard", () => {
     expect(mocks.toast).toHaveBeenCalledWith({ type: "success", title: "Moved to Done" });
   });
 
-  it("adds tasks in a stage and adds new stages", async () => {
+  it("adds tasks in a stage and creates stages after the last column", async () => {
     await render();
     await act(async () =>
       column("Review").querySelector<HTMLButtonElement>('[aria-label="Add task in Review"]')!.click()
@@ -197,8 +197,12 @@ describe("ProjectBoard", () => {
       project_id: "p1",
       section_id: "s3",
     });
-    await act(async () => button("Add Stage").click());
+    const addStage = button("Add Stage");
+    const stageAction = column("Done").nextElementSibling;
+    expect(stageAction?.contains(addStage)).toBe(true);
+    await act(async () => addStage.click());
     const input = host.querySelector<HTMLInputElement>('[aria-label="Stage name"]')!;
+    expect(stageAction?.contains(input)).toBe(true);
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
     await act(async () => {
       setValue.call(input, " QA ");

@@ -195,7 +195,7 @@ describe("CreateProjectDialog", () => {
     fillRequired();
     await act(async () => button("Create Project").click());
     expect(mocks.applyTemplate).toHaveBeenCalledWith(expect.anything(), "acme", "new", "general");
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/overview");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/board");
   });
 
   it("skips templates when none was chosen", async () => {
@@ -288,7 +288,7 @@ describe("CreateProjectDialog", () => {
       expect.objectContaining({ type: "success", message: "Project created. Invitations sent to 1 person." })
     );
     expect(onClose).toHaveBeenCalled();
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/overview");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/board");
   });
 
   it("retries with the next identifier when one is already taken", async () => {
@@ -298,7 +298,7 @@ describe("CreateProjectDialog", () => {
     fillRequired();
     await act(async () => button("Create Project").click());
     expect(mocks.createProject.mock.calls.map(([, data]) => data.identifier)).toEqual(["WR2", "WR3"]);
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/overview");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/board");
   });
 
   it("shows an error and stays open when the name is taken", async () => {
@@ -323,7 +323,7 @@ describe("CreateProjectDialog", () => {
     await act(async () => button("Create Project").click());
     expect(mocks.bulkAdd).toHaveBeenCalledWith("acme", "new", { members: [{ member_id: "eve", role: 15 }] });
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "warning", title: "Project created" }));
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/overview");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/board");
   });
 
   it("removes teammates and keeps Enter from submitting the form", () => {

@@ -130,7 +130,7 @@ describe("cosmetic project settings shell", () => {
     expect(host.querySelector('img[alt="PMS by Clevdex"]')?.getAttribute("src")).toBe("/clevdex-pms-lockup.svg");
     expect(host.textContent).toContain("Existing project settings navigation");
     await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Back to project"]')!.click());
-    expect(mocks.back).toHaveBeenCalledWith("/team/projects/p1/overview/");
+    expect(mocks.back).toHaveBeenCalledWith("/team/projects/p1/board/");
   });
   it("keeps existing sidebar links and changes only the selected appearance", async () => {
     await render("");

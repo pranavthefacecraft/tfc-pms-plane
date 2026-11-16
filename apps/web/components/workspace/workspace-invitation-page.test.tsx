@@ -86,7 +86,7 @@ describe("workspace/project invitation acceptance", () => {
       [...host.querySelectorAll("button")].find((button) => button.textContent === "Accept")!.click()
     );
     expect(mocks.join).toHaveBeenCalledWith("acme", "i1", { accepted: true, token: "invite-token" });
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/p1/overview");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/p1/board");
   });
   it("keeps workspace-only invitations workspace-labelled", async () => {
     mocks.get.mockResolvedValue({

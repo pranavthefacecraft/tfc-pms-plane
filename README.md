@@ -156,6 +156,7 @@ Credential and email-code forms include a required signup agreement checkbox and
 a **Keep me signed in** option for sign-in. Unchecked sign-in creates a browser-session
 cookie; checked sign-in uses the configured `SESSION_COOKIE_AGE`. Older clients,
 OAuth, and admin/space authentication retain their existing session behavior.
+The sign-in card omits the legal footer; signup keeps its agreement checkbox and policy notice.
 Legal links share the existing terms/privacy configuration; its `#` placeholders
 must be replaced with published policy URLs before relying on them as legal documents.
 
@@ -175,11 +176,18 @@ Shared-whiteboard visitors use their own workspace's navigation and creation
 actions, never the board owner's workspace actions.
 
 The sidebar **Projects** list shows each project as a single row that opens its
-Overview and is highlighted while you are inside it. The per-project sub-menu
+Board and is highlighted while you are inside it. Project cards, search results,
+creation/join flows and shared project links also open Board by default.
+Overview and the other project tabs remain directly accessible. The per-project sub-menu
 (Overview, Work items, Analytics, Modules, Views, Settings, Intake) and its chevron
 are hidden with `SHOW_PROJECT_SUB_MENU` in
 `apps/web/components/workspace/sidebar/projects-list-item.tsx`; the project page tabs
 and the settings gear cover those links, and the pages themselves are unchanged.
+
+The main PMS content background is `#f2f2f2` in light mode, using the shared
+`bg-pms-content` utility across project pages, Activity, My Tasks, Tools and settings.
+Sidebar, top-bar, card and authentication surfaces, and existing dark-mode backgrounds,
+are unchanged.
 
 Scheduling date pickers (work items/drafts, Intake, cycles, modules, snooze
 and token expiry) disable dates before the user's local today. Custom date
@@ -705,7 +713,8 @@ a stage column (To Do, In Progress, Review, Done and so on) with a task count, t
 today or overdue in orange) and open the task's peek view. Drag a card to another stage
 to move it to that section; dropping it on a stage named Done/Complete/Completed also
 completes it, and moving a completed task out of one reopens it. **+ Add task** in a
-column creates a task in that stage, and **+ Add Stage** creates a new project section.
+column creates a task in that stage, and **+ Add Stage** to the right of the last column
+creates a new project section. Its inline form stays in the same horizontally scrollable row.
 Guests can view the board but cannot move cards or add tasks and stages. The Work items
 Board layout is unchanged.
 

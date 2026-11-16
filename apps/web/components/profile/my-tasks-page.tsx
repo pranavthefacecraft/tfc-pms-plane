@@ -505,7 +505,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
     <div className="relative h-full">
       {/* The shared timeline's full-screen mode renders into this container. */}
       <div id="full-screen-portal" className="absolute inset-0 w-full empty:hidden" />
-      <main className="h-full overflow-y-auto bg-surface-1 px-5 py-6 md:px-8" aria-label="My Tasks">
+      <main className="bg-pms-content h-full overflow-y-auto px-5 py-6 md:px-8 dark:bg-surface-1" aria-label="My Tasks">
         <PageHead title="My Tasks" />
         <div className="mx-auto max-w-[1400px]">
           <header className="mb-5 flex items-center gap-3">

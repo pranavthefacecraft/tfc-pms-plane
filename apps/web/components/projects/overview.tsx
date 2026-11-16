@@ -517,7 +517,7 @@ export const ProjectOverview = observer(function ProjectOverview({
   );
   if (!classic)
     return (
-      <div className="min-h-full bg-surface-1">
+      <div className="bg-pms-content min-h-full dark:bg-surface-1">
         <PageHead title={`${project.name} - Overview`} />
         <ProjectPageHeader workspaceSlug={workspaceSlug} projectId={projectId} name={project.name} active="overview" />
         <main className="px-6 py-6 md:px-8">
@@ -533,7 +533,7 @@ export const ProjectOverview = observer(function ProjectOverview({
     );
   // The previous layout (health, task progress, dates and owner picker) stays reachable at ?view=classic.
   return (
-    <div className="min-h-full bg-surface-2">
+    <div className="bg-pms-content min-h-full dark:bg-surface-2">
       <PageHead title={`${project.name} - Overview`} />
       <header className="border-b border-subtle bg-surface-1 px-6 py-5 md:px-10">
         <div className="mx-auto max-w-6xl">

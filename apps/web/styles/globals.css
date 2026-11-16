@@ -4,6 +4,10 @@
 @import "./emoji.css";
 @plugin "@tailwindcss/typography";
 
+@utility bg-pms-content {
+  background-color: #f2f2f2;
+}
+
 body:has(.auth-page) {
   background-color: #fdfdfe;
 }

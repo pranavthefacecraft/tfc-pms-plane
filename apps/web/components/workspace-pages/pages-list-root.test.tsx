@@ -154,7 +154,7 @@ it("matches Notepads columns and uses actual project and editor data", async () 
     "",
   ]);
   expect(host.querySelector('a[href="/team/tool/pages/note/"]')?.textContent).toBe("Project Brief");
-  expect(host.querySelector('a[href="/team/projects/project/overview/"]')?.textContent).toBe("Website Redesign");
+  expect(host.querySelector('a[href="/team/projects/project/board/"]')?.textContent).toBe("Website Redesign");
   expect(host.textContent).toContain("Ima");
   expect(host.textContent).not.toContain("Pranav");
   expect(host.textContent).toContain("WEB-8 Draft brief");
@@ -302,7 +302,7 @@ it.each([true, false])(
     await click("Attach selected project");
     await render();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
-    expect(host.querySelector('a[href="/team/projects/new-project/overview/"]')?.textContent).toBe("New project");
+    expect(host.querySelector('a[href="/team/projects/new-project/board/"]')?.textContent).toBe("New project");
     expect(state.globalMutate).toHaveBeenCalledWith(
       "WORKSPACE_TOOL_PAGE_DETAIL_team_note",
       expect.objectContaining({ id: "note" }),

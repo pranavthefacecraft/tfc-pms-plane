@@ -23,7 +23,7 @@ export const ProjectShell = observer(function ProjectShell({ children }: { child
         <div className="relative flex size-full overflow-hidden">
           <ProjectAppSidebar />
           <ExtendedProjectSidebar />
-          <main className="relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
+          <main className="bg-pms-content relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden dark:bg-surface-1">
             <TopNavigationRoot showWorkspaceMenu={false} showSidebarToggle={!!sidebarCollapsed} />
             {children}
           </main>

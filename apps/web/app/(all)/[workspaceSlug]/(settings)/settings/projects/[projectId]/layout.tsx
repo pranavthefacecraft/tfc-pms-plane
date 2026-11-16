@@ -25,7 +25,7 @@ function ProjectDetailSettingsLayout({ params }: Pick<Route.ComponentProps, "par
   const pathname = usePathname();
 
   return (
-    <div className="relative flex size-full overflow-hidden bg-surface-1">
+    <div className="bg-pms-content relative flex size-full overflow-hidden dark:bg-surface-1">
       <div className="hidden h-full shrink-0 md:block">
         <ProjectSettingsSidebarRoot projectId={projectId} />
       </div>

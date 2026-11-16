@@ -158,11 +158,11 @@ describe("ProjectsBrowse", () => {
     expect(rowNames()).toEqual(["Operations"]);
   });
 
-  it("opens joined projects and asks to join the others", () => {
+  it("opens joined projects in Board and asks to join the others", () => {
     render();
     const [website, operations] = host.querySelectorAll<HTMLTableRowElement>("tbody tr");
     act(() => website.click());
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/web/overview");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/web/board");
     act(() => operations.click());
     expect(host.textContent).toContain("Join Operations");
   });

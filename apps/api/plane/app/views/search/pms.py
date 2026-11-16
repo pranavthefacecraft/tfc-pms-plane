@@ -240,7 +240,7 @@ class PMSSearchEndpoint(BaseAPIView):
                         project,
                         "projects",
                         project.name,
-                        f"/{project.workspace.slug}/projects/{project.id}/overview",
+                        f"/{project.workspace.slug}/projects/{project.id}/board",
                         project.identifier,
                     )
                 )

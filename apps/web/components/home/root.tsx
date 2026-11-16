@@ -53,7 +53,7 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
       )}
       <>
         <HomePeekOverviewsRoot />
-        <ContentWrapper className="mx-auto scrollbar-hide gap-6 bg-surface-1 px-page-x">
+        <ContentWrapper className="bg-pms-content mx-auto scrollbar-hide gap-6 px-page-x dark:bg-surface-1">
           {workspaceSlug && (
             <div className="mx-auto w-full max-w-[1100px]">
               <ActivityOverview key={workspaceSlug.toString()} workspaceSlug={workspaceSlug.toString()} />

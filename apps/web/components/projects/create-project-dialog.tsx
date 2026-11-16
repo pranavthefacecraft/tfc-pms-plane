@@ -432,7 +432,7 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
       setDraft(EMPTY_PROJECT_DRAFT);
       setTouched(false);
       onClose();
-      router.push(`/${workspaceSlug}/projects/${project.id}/overview`);
+      router.push(`/${workspaceSlug}/projects/${project.id}/board`);
     } finally {
       setBusy(false);
     }

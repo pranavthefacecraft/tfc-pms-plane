@@ -20,7 +20,7 @@ function ProjectListPage({ params }: Pick<Route.ComponentProps, "params">) {
     <>
       <PageHead title={name ? `${name} - List` : "List"} />
       <ContentWrapper>
-        <div className="min-h-full bg-surface-1">
+        <div className="bg-pms-content min-h-full dark:bg-surface-1">
           <ProjectPageHeader workspaceSlug={workspaceSlug} projectId={projectId} name={name} active="list" />
           <main className="px-6 py-6 md:px-8">
             <ProjectList key={`${workspaceSlug}:${projectId}`} workspaceSlug={workspaceSlug} projectId={projectId} />

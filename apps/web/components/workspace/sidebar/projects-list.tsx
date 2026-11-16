@@ -74,7 +74,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList({ compa
     projectPreferences.showLimitedProjects && joinedProjects.length > projectPreferences.limitedProjectsCount;
 
   const handleCopyText = (projectId: string) => {
-    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/overview`).then(() => {
+    copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/board`).then(() => {
       setToast({
         type: "success",
         title: t("link_copied"),
@@ -182,7 +182,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList({ compa
           return (
             <Link
               key={projectId}
-              href={`/${workspaceSlug}/projects/${projectId}/overview`}
+              href={`/${workspaceSlug}/projects/${projectId}/board`}
               aria-label={project.name}
               title={project.name}
             >

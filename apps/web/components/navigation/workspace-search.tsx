@@ -54,7 +54,7 @@ function recentSearchItems(recents: TActivityEntityData[], workspaceSlug: string
           kind: "projects",
           name: item.name,
           detail: item.identifier,
-          href: `/${workspaceSlug}/projects/${item.id}/overview`,
+          href: `/${workspaceSlug}/projects/${item.id}/board`,
         },
       ];
     if (recent.entity_name === "page" && "owned_by" in item)

@@ -172,6 +172,11 @@ export const ProjectBoard = observer(function ProjectBoard({
                 {...actions}
               />
             ))}
+            {list.canEdit && (
+              <div className="shrink-0">
+                <AddStage onCreate={list.addSection} />
+              </div>
+            )}
           </div>
           {list.empty && list.filtered && <NoMatchingTasks filtered onReset={list.reset} />}
           {list.truncated && (
@@ -179,7 +184,6 @@ export const ProjectBoard = observer(function ProjectBoard({
               Showing the first 1,000 tasks. Use Work items for the full board.
             </p>
           )}
-          {list.canEdit && <AddStage onCreate={list.addSection} />}
         </>
       )}
       <IssuePeekOverview />

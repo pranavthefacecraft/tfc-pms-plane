@@ -52,6 +52,17 @@ def test_search_matches_menu_destination_across_active_workspaces(session_client
     assert response["Cache-Control"] == "no-store"
 
 
+def test_project_search_opens_board_in_the_matching_workspace(session_client, workspace, create_user):
+    second = Workspace.objects.create(owner=create_user, name="Second", slug="second")
+    WorkspaceMember.objects.create(workspace=second, member=create_user, role=15)
+    projects = [make_project(space, create_user)[0] for space in (workspace, second)]
+    response = session_client.get(URL, {"search": "search", "category": "projects"})
+    assert response.status_code == 200
+    assert {item["href"] for item in response.data["results"]} == {
+        f"/{project.workspace.slug}/projects/{project.id}/board" for project in projects
+    }
+
+
 def test_cross_workspace_tasks_and_personal_owner_isolation(session_client, workspace, create_user):
     second = Workspace.objects.create(owner=create_user, name="Second", slug="second")
     WorkspaceMember.objects.create(workspace=second, member=create_user, role=15)

@@ -45,7 +45,7 @@ export function JoinProjectModal(props: TJoinProjectModalProps) {
 
     await joinProject(workspaceSlug, project.id)
       .then(() => {
-        router.push(`/${workspaceSlug}/projects/${project.id}/overview`);
+        router.push(`/${workspaceSlug}/projects/${project.id}/board`);
         handleClose();
         return;
       })

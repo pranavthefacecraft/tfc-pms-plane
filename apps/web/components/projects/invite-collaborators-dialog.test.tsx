@@ -197,6 +197,6 @@ describe("InviteCollaboratorsDialog", () => {
     expect(host.textContent).toContain("Only project admins can invite collaborators.");
     const copy = [...host.querySelectorAll("button")].find((button) => button.textContent === "Copy project link")!;
     await act(async () => copy.click());
-    expect(mocks.copy).toHaveBeenCalledWith("acme/projects/p1/overview");
+    expect(mocks.copy).toHaveBeenCalledWith("acme/projects/p1/board");
   });
 });

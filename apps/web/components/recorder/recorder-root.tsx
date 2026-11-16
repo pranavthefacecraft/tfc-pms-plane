@@ -12,7 +12,7 @@ import { RecordingActions } from "./recording-actions";
 
 export function RecorderRoot({ workspaceSlug, recordingId }: { workspaceSlug: string; recordingId?: string }) {
   return (
-    <div className="h-full overflow-y-auto bg-surface-1 p-6">
+    <div className="bg-pms-content h-full overflow-y-auto p-6 dark:bg-surface-1">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex items-center justify-between">
           <h1 className="text-24 font-semibold">Recorder</h1>

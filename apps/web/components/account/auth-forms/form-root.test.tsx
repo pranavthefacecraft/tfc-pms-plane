@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { EAuthModes, EAuthSteps } from "@plane/constants";
+import { TermsAndConditions } from "../terms-and-conditions";
 import { AuthFormRoot } from "./form-root";
 
 const { config } = vi.hoisted(() => ({
@@ -92,6 +93,21 @@ it("keeps the SMTP-unavailable explanation instead of offering a broken reset li
 it("does not show password recovery on sign-up", async () => {
   await renderForm(EAuthModes.SIGN_UP);
   expect(host.textContent).not.toContain("Forgot password?");
+});
+
+it("hides the legal footer on sign-in", async () => {
+  await act(() => root.render(<TermsAndConditions authType={EAuthModes.SIGN_IN} />));
+  expect(host.textContent).toBe("");
+  expect(host.querySelector("a")).toBeNull();
+});
+
+it("keeps the legal footer and policy links on sign-up", async () => {
+  await act(() => root.render(<TermsAndConditions authType={EAuthModes.SIGN_UP} />));
+  expect(host.textContent).toContain("By creating an account");
+  expect(Array.from(host.querySelectorAll("a"), (link) => link.textContent)).toEqual([
+    "Terms of Service",
+    "Privacy Policy",
+  ]);
 });
 
 it("requires agreement before continuing signup and keeps sign-in preference selectable", async () => {

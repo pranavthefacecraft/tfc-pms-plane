@@ -78,7 +78,7 @@ function WorkspaceInvitationPage() {
           const project = projects[0];
           router.push(
             project
-              ? `/${invitationDetail.workspace.slug}/projects/${project.id}/overview`
+              ? `/${invitationDetail.workspace.slug}/projects/${project.id}/board`
               : `/${invitationDetail.workspace.slug}`
           );
         } else {

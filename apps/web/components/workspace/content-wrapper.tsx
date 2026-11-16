@@ -26,7 +26,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   );
 
   return (
-    <div className="relative flex size-full flex-col overflow-hidden bg-canvas transition-all duration-300 ease-in-out">
+    <div className="bg-pms-content relative flex size-full flex-col overflow-hidden transition-all duration-300 ease-in-out dark:bg-canvas">
       {!hasSidebarHeader && <TopNavigationRoot />}
       <div className="relative flex size-full overflow-hidden">
         {/* Conditionally render AppRailRoot based on context */}

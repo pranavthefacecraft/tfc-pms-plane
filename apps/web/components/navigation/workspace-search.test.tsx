@@ -51,7 +51,7 @@ const results: TPMSSearchResult[] = [
     kind: "projects",
     name: "Design project",
     detail: "DES",
-    href: "/team/projects/project/overview",
+    href: "/team/projects/project/board",
     workspace_slug: "team",
     workspace_name: "Team",
   },
