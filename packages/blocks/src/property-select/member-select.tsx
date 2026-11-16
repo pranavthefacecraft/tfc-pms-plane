@@ -5,6 +5,7 @@
  */
 
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { Avatar } from "@makeplane/propel/components/avatar";
 import { AvatarGroup } from "@makeplane/propel/components/avatar-group";
 import type { AvatarGroupSize } from "@makeplane/propel/components/avatar-group";
@@ -116,6 +117,7 @@ type MemberSelectCommonProps = {
   filterOption?: (member: MemberOption) => boolean;
   /** Badge text on a {@link MemberOption.suspended} row. Defaults to "Suspended". */
   suspendedLabel?: string;
+  emptyMessage?: ReactNode | ((query: string) => ReactNode);
 };
 
 export type MemberSelectProps = MemberSelectCommonProps &
@@ -217,6 +219,7 @@ export function MemberSelect(props: MemberSelectProps) {
   const combinedFilterOption = (member: MemberOption) => excludeSelected(member) && (filterOption?.(member) ?? true);
 
   const sharedProps = {
+    emptyMessage: props.emptyMessage,
     infinite: true as const,
     getValues,
     disabled,

@@ -36,9 +36,17 @@ export function TermsAndConditions({ authType = EAuthModes.SIGN_IN }: TermsAndCo
     <div className="flex items-center justify-center">
       <p className="text-center text-13 whitespace-pre-line text-tertiary">
         {`${MESSAGES[authType]}, you understand and agree to \n our `}
-        <LegalLink href={LEGAL_LINKS.termsOfService}>Terms of Service</LegalLink> and{" "}
-        <LegalLink href={LEGAL_LINKS.privacyPolicy}>Privacy Policy</LegalLink>.
+        <LegalPolicyLinks />.
       </p>
     </div>
+  );
+}
+
+export function LegalPolicyLinks({ termsLabel = "Terms of Service" }: { termsLabel?: string }) {
+  return (
+    <>
+      <LegalLink href={LEGAL_LINKS.termsOfService}>{termsLabel}</LegalLink> and{" "}
+      <LegalLink href={LEGAL_LINKS.privacyPolicy}>Privacy Policy</LegalLink>
+    </>
   );
 }

@@ -17,15 +17,20 @@ import { Button } from "@makeplane/propel/components/button";
 import type { IEmailCheckData } from "@plane/types";
 import { checkEmailValidity } from "@plane/utils";
 import { ForgotPasswordLink } from "./forgot-password-popover";
+import { EAuthModes } from "@plane/constants";
+import { AuthOptions } from "./auth-options";
+import type { TAuthOptions } from "./auth-options";
 // helpers
 type TAuthEmailForm = {
   defaultEmail: string;
   onSubmit: (data: IEmailCheckData) => Promise<void>;
   passwordRecovery?: { isSMTPConfigured: boolean };
+  mode?: EAuthModes;
+  options?: TAuthOptions;
 };
 
 export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailForm) {
-  const { onSubmit, defaultEmail, passwordRecovery } = props;
+  const { onSubmit, defaultEmail, passwordRecovery, mode, options } = props;
   // states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState(defaultEmail);
@@ -38,6 +43,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
 
   const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (mode === EAuthModes.SIGN_UP && !options?.acceptedTerms) return;
     setIsSubmitting(true);
     const payload: IEmailCheckData = {
       email: email,
@@ -46,7 +52,11 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
     setIsSubmitting(false);
   };
 
-  const isButtonDisabled = email.length === 0 || Boolean(emailError?.email) || isSubmitting;
+  const isButtonDisabled =
+    email.length === 0 ||
+    Boolean(emailError?.email) ||
+    isSubmitting ||
+    (mode === EAuthModes.SIGN_UP && !options?.acceptedTerms);
 
   const [isFocused, setIsFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +112,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
           </p>
         )}
       </div>
+      {mode && options && <AuthOptions mode={mode} options={options} />}
       <Button
         type="submit"
         variant="primary"

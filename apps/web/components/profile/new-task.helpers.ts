@@ -4,6 +4,7 @@ import { customFields } from "@/components/projects/custom-fields/service";
 import { IssueService } from "@/services/issue/issue.service";
 import { IssueAttachmentService } from "@/services/issue/issue_attachment.service";
 import type { TPersonalTaskData } from "@/services/personal-task.service";
+import { ProjectCollaboratorsService } from "@/services/project-collaborators.service";
 
 export type TNewTaskDraft = TPersonalTaskData & {
   projectId: string;
@@ -15,6 +16,7 @@ export type TNewTaskDraft = TPersonalTaskData & {
   dependencies: { id: string; name: string }[];
   files: File[];
   subtasks: { id: string; name: string }[];
+  inviteEmails?: string[];
 };
 export type TTaskSaveProgress = { issue?: TIssue; completed: Set<string> };
 /** Creates the main work item; layouts pass their store action so the new task shows up immediately. */
@@ -25,6 +27,7 @@ export const taskValueClass =
   "min-w-0 w-full rounded border-0 bg-transparent px-0 py-1 text-13 text-primary outline-none focus:ring-1 focus:ring-accent-primary disabled:cursor-not-allowed disabled:text-placeholder";
 const issues = new IssueService();
 const attachments = new IssueAttachmentService();
+const collaborators = new ProjectCollaboratorsService();
 
 export function taskDescriptionHTML(description: string) {
   const content = document.createElement("div");
@@ -41,7 +44,8 @@ export function newTaskValidationError(draft: TNewTaskDraft, personalAllowed: bo
 }
 
 export function newTaskHints(hasProject: boolean, personalAllowed: boolean) {
-  const choose = "Choose a project to enable teammates, dependencies, stage, status, files, and subtasks.";
+  const choose =
+    "Choose a project to assign or invite teammates and enable dependencies, project workflow, status, files, and subtasks.";
   return {
     choose: personalAllowed ? `Private to you. ${choose}` : choose,
     saved:
@@ -94,6 +98,19 @@ export async function saveProjectTask(
   const operations = Object.entries(draft.fieldValues).map(([fieldId, value]) =>
     step(`field-${fieldId}`, () => customFields.setValue(slug, draft.projectId, issue.id, fieldId, value || null))
   );
+  const inviteEmails = draft.inviteEmails;
+  if (inviteEmails?.length) {
+    operations.push(
+      step("assignee-invitations", () =>
+        collaborators.invite(
+          slug,
+          draft.projectId,
+          inviteEmails.map((email) => ({ email, role: 15 })),
+          issue.id
+        )
+      )
+    );
+  }
   if (draft.dependencies.length) {
     operations.push(
       step("dependencies", () =>

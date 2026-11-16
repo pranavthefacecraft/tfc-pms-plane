@@ -94,6 +94,21 @@ it("does not show password recovery on sign-up", async () => {
   expect(host.textContent).not.toContain("Forgot password?");
 });
 
+it("requires agreement before continuing signup and keeps sign-in preference selectable", async () => {
+  await renderForm(EAuthModes.SIGN_UP, "new@example.com");
+  const checkbox = host.querySelector<HTMLInputElement>('[type="checkbox"]')!;
+  const submit = host.querySelector<HTMLButtonElement>('[type="submit"]')!;
+  expect(checkbox.required).toBe(true);
+  expect(submit.disabled).toBe(true);
+  await act(() => checkbox.click());
+  expect(submit.disabled).toBe(false);
+  await renderForm(EAuthModes.SIGN_IN, "new@example.com");
+  expect(host.textContent).toContain("Keep me signed in");
+  expect(host.querySelector<HTMLInputElement>('[name="remember_me_choice"]')?.value).toBe("false");
+  await act(() => host.querySelector<HTMLInputElement>('[type="checkbox"]')!.click());
+  expect(host.querySelector<HTMLInputElement>('[name="remember_me_choice"]')?.value).toBe("true");
+});
+
 it("does not show password recovery when password authentication is disabled", async () => {
   config.is_email_password_enabled = false;
   await renderForm();

@@ -9,7 +9,7 @@ import { cn } from "@plane/utils";
 export const SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME =
   "border border-transparent hover:border-[#CBDCF8] hover:bg-[#EAF2FF] dark:hover:border-transparent dark:hover:bg-layer-transparent-hover";
 export const SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME =
-  "border-[#CBDCF8] bg-[#EAF2FF] dark:border-transparent dark:bg-layer-transparent-active";
+  "border-[#CBDCF8] bg-[#EAF2FF] text-[#135DDD] dark:border-transparent dark:bg-layer-transparent-active";
 
 type TSidebarNavItem = {
   className?: string;
@@ -26,7 +26,6 @@ export function SidebarNavItem(props: TSidebarNavItem) {
         SIDEBAR_NAV_ITEM_INTERACTION_CLASSNAME,
         {
           [SIDEBAR_NAV_ITEM_ACTIVE_CLASSNAME]: isActive,
-          "text-primary": isActive,
           "text-[#3A4D66] dark:text-secondary": !isActive,
         },
         className

@@ -47,6 +47,7 @@ const personal: TaskRow = {
     start_date: null,
     target_date: null,
     completed_at: null,
+    stage: "todo",
     created_at: "2026-10-31",
     updated_at: "2026-10-31",
   },

@@ -211,6 +211,39 @@ def test_unauthenticated_access_denied(api_client, url):
     assert api_client.get(url).status_code in (401, 403)
 
 
+@pytest.mark.parametrize("stage", ["todo", "in_progress", "done"])
+def test_personal_stages_persist_and_keep_completion_consistent(session_client, url, stage):
+    response = session_client.post(url, {"name": "Workflow", "stage": stage}, format="json")
+    assert response.status_code == 201, response.data
+    assert response.data["stage"] == stage
+    assert bool(response.data["completed_at"]) == (stage == "done")
+    detail = f"{url}{response.data['id']}/"
+    response = session_client.patch(detail, {"stage": "done"}, format="json")
+    completed_at = response.data["completed_at"]
+    response = session_client.patch(detail, {"stage": "done", "name": "Keep completion time"}, format="json")
+    assert response.data["completed_at"] == completed_at
+    response = session_client.patch(detail, {"is_completed": False}, format="json")
+    assert response.data["stage"] == "todo" and response.data["completed_at"] is None
+    response = session_client.patch(detail, {"stage": "in_progress"}, format="json")
+    assert response.data["stage"] == "in_progress" and response.data["completed_at"] is None
+
+
+@pytest.mark.parametrize(
+    "data", [{"stage": "invalid"}, {"stage": "done", "is_completed": False}, {"stage": "todo", "is_completed": True}]
+)
+def test_rejects_invalid_or_conflicting_stages(session_client, url, data):
+    assert session_client.post(url, {"name": "Invalid stage", **data}, format="json").status_code == 400
+    assert not PersonalTask.objects.exists()
+
+
+def test_moving_in_progress_task_uses_started_state(session_client, url, project, workspace, create_user):
+    state = State.objects.create(workspace=workspace, project=project, name="Doing", group="started")
+    task = PersonalTask.objects.create(owner=create_user, workspace=workspace, name="Started", stage="in_progress")
+    response = session_client.post(f"{url}{task.id}/move/", {"project_id": str(project.id)}, format="json")
+    assert response.status_code == 201, response.data
+    assert Issue.objects.get(id=response.data["id"]).state_id == state.id
+
+
 @pytest.mark.parametrize("completed", [False, True])
 def test_move_requires_matching_state(session_client, url, project, workspace, create_user, completed):
     task = PersonalTask.objects.create(

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { RefObject } from "react";
 import { observer } from "mobx-react";
 import { X } from "lucide-react";
 import { Dialog, DialogTitle } from "@makeplane/propel/components/dialog";
@@ -7,6 +8,8 @@ import type { TIssue } from "@plane/types";
 import { Button } from "@makeplane/propel/components/button";
 import { setToast } from "@plane/blocks/toast";
 import { TaskFormContent } from "@/components/common/task-form-content";
+import { TaskDateField } from "./task-date-field";
+import { PersonalTaskStageSelect } from "./personal-task-stage-select";
 import { useProject } from "@/hooks/store/use-project";
 import type { TPersonalTask } from "@/services/personal-task.service";
 import { personalTaskService } from "@/services/personal-task.service";
@@ -61,11 +64,13 @@ function useNewTaskForm({
     target_date: null,
     projectId: "",
     assignees: [],
+    inviteEmails: [],
     stateId: "",
     fieldValues: {},
     dependencies: [],
     files: [],
     subtasks: [],
+    stage: "todo",
     ...defaults,
   }));
   const [busy, setBusy] = useState(false);
@@ -102,7 +107,7 @@ function useNewTaskForm({
         setToast({
           type: "success",
           title: "Task saved",
-          message: `"${issue.name}" was saved in ${getProjectById(draft.projectId)?.name}. Assigned tasks appear in each assignee's My tasks.`,
+          message: `"${issue.name}" was saved in ${getProjectById(draft.projectId)?.name}. Assigned tasks appear in each assignee's My tasks.${draft.inviteEmails?.length ? " Invitations were queued; new teammates will be assigned after accepting." : ""}`,
         });
       } else {
         const task = await personalTaskService.create(workspaceSlug, {
@@ -111,6 +116,7 @@ function useNewTaskForm({
           priority: draft.priority,
           start_date: draft.start_date,
           target_date: draft.target_date,
+          stage: draft.stage,
         });
         onSaved(task);
         setToast({
@@ -152,6 +158,7 @@ function useNewTaskForm({
 }
 
 export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
+  const projectSelect = useRef<HTMLSelectElement>(null);
   const { workspaceSlug, onClose } = props;
   const {
     draft,
@@ -174,17 +181,16 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
   const scheduleFields = (
     <>
       <TaskProperty label="Due date">
-        <input
-          aria-label="Due date"
-          type="date"
-          className={taskValueClass}
+        <TaskDateField
+          label="Due date"
           value={draft.target_date ?? ""}
           min={draft.start_date ?? undefined}
           disabled={disabled}
-          onChange={(event) => change({ target_date: event.target.value || null })}
+          onChange={(target_date) => change({ target_date })}
         />
       </TaskProperty>
       <TaskProjectPicker
+        selectRef={projectSelect}
         draft={draft}
         projects={projects}
         disabled={disabled}
@@ -196,6 +202,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
             projectId,
             sectionId: undefined,
             assignees: [],
+            inviteEmails: [],
             stateId: "",
             fieldValues: {},
             dependencies: [],
@@ -283,7 +290,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
             />
           ) : (
             <>
-              <PrivateProjectFields />
+              <PrivateProjectFields disabled={disabled} onChooseProject={() => projectSelect.current?.focus()} />
               {scheduleFields}
               <TaskProperty label="Dependencies">
                 <button type="button" disabled className="py-1 text-13 text-placeholder">
@@ -292,7 +299,12 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
               </TaskProperty>
               {priorityField}
               <TaskProperty label="Stage">
-                <span className="text-13 text-placeholder">To do</span>
+                <PersonalTaskStageSelect
+                  className={taskValueClass}
+                  value={draft.stage ?? "todo"}
+                  disabled={disabled}
+                  onChange={(stage) => change({ stage })}
+                />
               </TaskProperty>
               <TaskProperty label="Status">
                 <span className="rounded-full bg-layer-1 px-2 py-1 text-12 text-secondary">No status</span>
@@ -302,14 +314,12 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
           <TaskAttachments draft={draft} disabled={disabled} onChange={change} />
           {!draft.projectId && <p className="mb-3 text-12 text-secondary">{hints.choose}</p>}
           <TaskProperty label="Start date">
-            <input
-              aria-label="Start date"
-              type="date"
-              className={taskValueClass}
+            <TaskDateField
+              label="Start date"
               value={draft.start_date ?? ""}
               max={draft.target_date ?? undefined}
               disabled={disabled}
-              onChange={(event) => change({ start_date: event.target.value || null })}
+              onChange={(start_date) => change({ start_date })}
             />
           </TaskProperty>
           <label className="my-3 flex flex-col gap-2 border-y border-subtle bg-layer-1 p-3 text-13 font-medium">
@@ -450,6 +460,7 @@ function TaskSubtasks({
 }
 
 function TaskProjectPicker({
+  selectRef,
   draft,
   projects,
   disabled,
@@ -457,6 +468,7 @@ function TaskProjectPicker({
   personalAllowed,
   onChange,
 }: {
+  selectRef: RefObject<HTMLSelectElement | null>;
   draft: TNewTaskDraft;
   projects: ReturnType<typeof useNewTaskForm>["projects"];
   disabled: boolean;
@@ -468,6 +480,7 @@ function TaskProjectPicker({
   return (
     <TaskProperty label="Link to Project">
       <select
+        ref={selectRef}
         aria-label="Link to Project"
         className={taskValueClass}
         value={draft.projectId}

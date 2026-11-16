@@ -14,6 +14,11 @@ class PersonalTask(BaseModel):
     start_date = models.DateField(null=True, blank=True)
     target_date = models.DateField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    stage = models.CharField(
+        max_length=20,
+        choices=(("todo", "To do"), ("in_progress", "In progress"), ("done", "Done")),
+        default="todo",
+    )
     moved_at = models.DateTimeField(null=True, blank=True)
     moved_issue = models.ForeignKey("db.Issue", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     share_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)

@@ -273,6 +273,9 @@ class ProjectJoinEndpoint(BaseAPIView):
                     project_member.role = project_invite.role
                     project_member.save()
 
+                from plane.app.views.project.collaborator_invite import apply_pending_task_assignments
+
+                apply_pending_task_assignments(project_invite, user)
                 return Response(
                     {"message": "Project Invitation Accepted"},
                     status=status.HTTP_200_OK,

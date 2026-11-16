@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NewTaskPanel } from "./new-task-panel";
+import type { TNewTaskDraft } from "./new-task.helpers";
 
 const state = vi.hoisted(() => ({
   create: vi.fn(),
@@ -16,8 +17,24 @@ const state = vi.hoisted(() => ({
   toast: vi.fn(),
   close: vi.fn(),
   saved: vi.fn(),
+  invite: vi.fn(),
+  pickerClose: vi.fn(),
+}));
+vi.mock("@plane/blocks/select", () => ({ useSelectContext: () => ({ close: state.pickerClose }) }));
+vi.mock("@/services/project-collaborators.service", () => ({
+  ProjectCollaboratorsService: class {
+    invite = state.invite;
+  },
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
+vi.mock("@/hooks/store/user", () => ({
+  useUserProfile: () => ({ data: { start_of_the_week: 1 } }),
+  useUserPermissions: () => ({
+    getProjectRoleByWorkspaceSlugAndProjectId: () => 20,
+    getWorkspaceRoleByWorkspaceSlug: () => 20,
+  }),
+}));
+vi.mock("@/hooks/store/use-instance", () => ({ useInstance: () => ({ config: { is_smtp_configured: true } }) }));
 vi.mock("@/hooks/store/use-project", () => ({
   useProject: () => ({
     joinedProjectIds: ["project", "other"],
@@ -48,20 +65,25 @@ vi.mock("@/components/dropdowns/member/member-select", () => ({
     value,
     onChange,
     disabled,
+    emptyMessage,
   }: {
     value: string[];
     onChange: (ids: string[]) => void;
     disabled: boolean;
+    emptyMessage?: (query: string) => ReactNode;
   }) => (
-    <select
-      aria-label="Assigned to"
-      disabled={disabled}
-      value={value[0] ?? ""}
-      onChange={(event) => onChange([event.target.value])}
-    >
-      <option value="">Choose teammate</option>
-      <option value="teammate">Alex</option>
-    </select>
+    <>
+      <select
+        aria-label="Assigned to"
+        disabled={disabled}
+        value={value[0] ?? ""}
+        onChange={(event) => onChange([event.target.value])}
+      >
+        <option value="">Choose teammate</option>
+        <option value="teammate">Alex</option>
+      </select>
+      {emptyMessage?.("new@example.com")}
+    </>
   ),
 }));
 vi.mock("@/components/core/modals/existing-issues-list-modal", () => ({
@@ -106,11 +128,11 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 const button = (text: string) => Array.from(host.querySelectorAll("button")).find((item) => item.textContent === text)!;
-async function render() {
+async function render(defaults?: Partial<TNewTaskDraft>) {
   await act(() =>
     root.render(
       <SWRConfig value={{ provider: () => new Map(), shouldRetryOnError: false }}>
-        <NewTaskPanel workspaceSlug="team" onClose={state.close} onSaved={state.saved} />
+        <NewTaskPanel workspaceSlug="team" onClose={state.close} onSaved={state.saved} defaults={defaults} />
       </SWRConfig>
     )
   );
@@ -155,6 +177,7 @@ it("matches the field list and keeps project-only actions disabled for private t
     name: "My task",
     description: "",
     priority: "medium",
+    stage: "todo",
     start_date: null,
     target_date: null,
   });
@@ -196,9 +219,8 @@ it("resets project-specific selections when returning to a private task", async 
 });
 
 it("saves selected project assignees, dates, priority, workflow and status", async () => {
-  await render();
+  await render({ target_date: "2026-11-02" });
   await change("Task name", "Project task");
-  await change("Due date", "2026-11-02");
   await change("Link to Project", "project");
   await change("Assigned to", "teammate");
   await change("Stage", "doing");
@@ -221,6 +243,33 @@ it("saves selected project assignees, dates, priority, workflow and status", asy
   expect(state.toast).toHaveBeenCalledWith(
     expect.objectContaining({ type: "success", message: expect.stringContaining("Marketing") })
   );
+});
+
+it("persists a selected personal stage without exposing private tasks to other teammates", async () => {
+  await render();
+  await change("Task name", "Doing privately");
+  await change("Stage", "in_progress");
+  await save();
+  expect(state.create).toHaveBeenCalledWith("team", expect.objectContaining({ stage: "in_progress" }));
+  expect(state.invite).not.toHaveBeenCalled();
+});
+
+it("confirms editor access before queuing an email assignment and clears it when switching projects", async () => {
+  await render();
+  await change("Task name", "Invite and assign");
+  await change("Link to Project", "project");
+  await act(() => button("Invite: new@example.com").click());
+  expect(state.pickerClose).toHaveBeenCalledOnce();
+  expect(host.textContent).toContain("Editor access");
+  await change("Invite email", "New@Example.com");
+  await act(() => button("Invite on save").click());
+  expect(state.issue).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("new@example.com");
+  state.invite.mockResolvedValue({ added: [], invited: ["new@example.com"] });
+  await save();
+  expect(state.invite).toHaveBeenCalledWith("team", "project", [{ email: "new@example.com", role: 15 }], "issue");
+  await change("Link to Project", "other");
+  expect(host.querySelector('[aria-label="Remove invitation new@example.com"]')).toBeNull();
 });
 
 it("uses existing Stage custom options rather than hardcoding workflow labels", async () => {

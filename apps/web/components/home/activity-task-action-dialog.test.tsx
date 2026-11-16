@@ -57,6 +57,7 @@ const [personal] = overviewTasks(
       start_date: null,
       target_date: "2026-10-30",
       completed_at: null,
+      stage: "todo",
       created_at: "2026-10-30T12:00:00Z",
       updated_at: "2026-10-30T12:00:00Z",
     },

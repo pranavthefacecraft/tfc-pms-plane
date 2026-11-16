@@ -17,6 +17,8 @@ def user_login(request, user, is_app=False, is_admin=False, is_space=False):
     # If is admin cookie set the custom age
     if is_admin:
         request.session.set_expiry(settings.ADMIN_SESSION_COOKIE_AGE)
+    elif is_app and request.POST.get("remember_me_choice") in ("true", "false"):
+        request.session.set_expiry(settings.SESSION_COOKIE_AGE if request.POST["remember_me_choice"] == "true" else 0)
 
     device_info = {
         "user_agent": request.META.get("HTTP_USER_AGENT", ""),

@@ -74,9 +74,11 @@ export const SidebarToolMenu = observer(function SidebarToolMenu({ compact = fal
               href={href}
               onClick={handleLinkClick}
               aria-current={isActive ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-md px-2 py-2 text-14 font-semibold text-primary hover:bg-layer-1-hover ${isActive ? "bg-layer-1" : ""}`}
+              className={`flex items-center gap-3 rounded-md px-2 py-2 text-14 font-semibold hover:bg-layer-1-hover ${isActive ? "bg-[#EAF2FF] text-[#135DDD]" : "text-primary"}`}
             >
-              <span className={`grid size-8 shrink-0 place-items-center rounded-md ${tile}`}>
+              <span
+                className={`grid size-8 shrink-0 place-items-center rounded-md ${isActive ? "text-[#135DDD]" : tile}`}
+              >
                 <Icon className="size-4" aria-hidden="true" />
               </span>
               {label}

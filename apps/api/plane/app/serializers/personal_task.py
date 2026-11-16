@@ -18,6 +18,7 @@ class PersonalTaskSerializer(serializers.ModelSerializer):
             "start_date",
             "target_date",
             "completed_at",
+            "stage",
             "is_completed",
             "created_at",
             "updated_at",
@@ -33,6 +34,12 @@ class PersonalTaskSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"target_date": "Due date must be on or after the start date."})
         if "is_completed" in attrs:
             completed = attrs.pop("is_completed")
+            stage = "done" if completed else "todo"
+            if "stage" in attrs and (attrs["stage"] == "done") != completed:
+                raise serializers.ValidationError({"stage": "Stage and completion must agree."})
+            attrs.setdefault("stage", stage)
+        if "stage" in attrs:
+            completed = attrs["stage"] == "done"
             attrs["completed_at"] = (
                 (getattr(self.instance, "completed_at", None) or timezone.now()) if completed else None
             )

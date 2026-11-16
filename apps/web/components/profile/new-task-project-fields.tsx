@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import type { ISearchIssueResponse } from "@plane/types";
 import type { IState } from "@plane/types";
-import { MemberSelect } from "@/components/dropdowns/member/member-select";
+import { TaskAssigneeSelect } from "./task-assignee-select";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { customFields } from "@/components/projects/custom-fields/service";
@@ -20,11 +20,25 @@ export function TaskProperty({ label, children }: { label: string; children: Rea
   );
 }
 
-export function PrivateProjectFields() {
+export function PrivateProjectFields({
+  disabled,
+  onChooseProject,
+}: {
+  disabled: boolean;
+  onChooseProject: () => void;
+}) {
   return (
     <>
       <TaskProperty label="Assigned to">
         <span className="text-13">You (private task)</span>
+        <button
+          type="button"
+          disabled={disabled}
+          className="block text-left text-12 text-[#135DDD]"
+          onClick={onChooseProject}
+        >
+          Choose a project to assign or invite teammates
+        </button>
       </TaskProperty>
     </>
   );
@@ -98,15 +112,7 @@ export function NewTaskProjectFields({
       }}
     >
       <TaskProperty label="Assigned to">
-        <MemberSelect
-          projectId={draft.projectId}
-          value={draft.assignees}
-          onChange={(assignees) => onChange({ assignees })}
-          multiple
-          variant="select-ghost-md"
-          placeholder="Choose teammate"
-          disabled={disabled || !ready}
-        />
+        <TaskAssigneeSelect slug={slug} draft={draft} onChange={onChange} disabled={disabled || !ready} />
       </TaskProperty>
       {scheduleFields}
       <TaskProperty label="Dependencies">

@@ -91,6 +91,30 @@ describe("MemberSelect suspended members", () => {
     expect(within(popup().getByRole("option", { name: /Bob/ })).getByText("Deactivated")).toBeDefined();
   });
 
+  it("offers a clickable invitation action using the unmatched search email", async () => {
+    const user = userEvent.setup();
+    const invite = vi.fn();
+    render(
+      <MemberSelect
+        getValues={async ({ search }) => ({ results: search ? [] : [ADA], next_page_results: false })}
+        value={null}
+        onChange={vi.fn()}
+        variant="select-ghost-md"
+        placeholder="Assignee"
+        emptyMessage={(query) => (
+          <button type="button" onClick={() => invite(query)}>
+            Invite: {query}
+          </button>
+        )}
+      />
+    );
+    await openMembers(user, "Assignee");
+    const search = popup().getByRole("combobox", { name: "Search members..." });
+    await user.type(search, "new@example.com");
+    await user.click(await popup().findByRole("button", { name: "Invite: new@example.com" }));
+    expect(invite).toHaveBeenCalledWith("new@example.com");
+  });
+
   it("still shows an assigned suspended member and lets them be removed", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

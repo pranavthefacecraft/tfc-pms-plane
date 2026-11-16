@@ -217,6 +217,23 @@ class TestSignInEndpoint:
         assert "_auth_user_id" in django_client.session
 
     @pytest.mark.django_db
+    @pytest.mark.parametrize("remember", ["true", "false", None])
+    def test_remember_me_controls_real_session_cookie(
+        self, django_client, setup_user, setup_instance, settings, remember
+    ):
+        data = {"email": "user@plane.so", "password": "user@123"}
+        if remember is not None:
+            data["remember_me_choice"] = remember
+        response = django_client.post(reverse("sign-in"), data)
+        assert response.status_code == 302 and "error_code" not in response.url
+        assert "_auth_user_id" in django_client.session
+        cookie = response.cookies[settings.SESSION_COOKIE_NAME]
+        if remember == "false":
+            assert cookie["max-age"] == "" and cookie["expires"] == ""
+        else:
+            assert int(cookie["max-age"]) == settings.SESSION_COOKIE_AGE
+
+    @pytest.mark.django_db
     def test_next_path_redirection(self, django_client, setup_user, setup_instance):
         """Test sign-in with next_path parameter"""
         url = reverse("sign-in")

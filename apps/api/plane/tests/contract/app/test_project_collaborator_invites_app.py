@@ -5,6 +5,7 @@
 """Contract tests for teammates added from the Create Project form."""
 
 from unittest import mock
+from django.urls import reverse
 
 import pytest
 from rest_framework import status
@@ -19,6 +20,9 @@ from plane.db.models import (
     User,
     WorkspaceMember,
     WorkspaceMemberInvite,
+    Issue,
+    IssueAssignee,
+    PendingTaskAssignee,
 )
 from plane.bgtasks.workspace_invitation_task import workspace_invitation
 
@@ -49,6 +53,141 @@ def post_invite(session_client, django_capture_on_commit_callbacks):
             return session_client.post(url, payload, format="json")
 
     return post
+
+
+@pytest.fixture
+def issue(workspace, project):
+    return Issue.objects.create(workspace=workspace, project=project, name="Invited task")
+
+
+@pytest.mark.contract
+@pytest.mark.django_db
+class TestTaskAssigneeInvitations:
+    @mock.patch("plane.app.views.project.collaborator_invite.issue_activity")
+    @mock.patch(TASK_PATH)
+    @pytest.mark.parametrize("join_path", ["workspace", "bulk", "project"])
+    def test_pending_assignment_is_idempotent_and_applies_only_after_accepting(
+        self, mail, activity, post_invite, session_client, workspace, project, issue, join_path
+    ):
+        payload = {"issue_id": str(issue.id), "invites": [{"email": "New@Example.com", "role": 15}]}
+        for _ in range(2):
+            response = post_invite(_url(workspace, project), payload)
+            assert response.status_code == 200, response.data
+        assert not User.objects.filter(email="new@example.com").exists()
+        assert not IssueAssignee.objects.filter(issue=issue).exists()
+        assert PendingTaskAssignee.objects.filter(issue=issue).count() == 1
+        mail.delay.assert_called_once()
+        invite = WorkspaceMemberInvite.objects.get(email="new@example.com")
+        user = User.objects.create(email=invite.email, username="new-task-invite")
+        session_client.force_authenticate(user=user)
+        url = f"/api/workspaces/{workspace.slug}/invitations/{invite.id}/join/"
+        data = {"token": invite.token, "accepted": True}
+        if join_path == "bulk":
+            url = "/api/users/me/workspaces/invitations/"
+            data = {"invitations": [str(invite.id)]}
+        elif join_path == "project":
+            project_invite = ProjectMemberInvite.objects.get(project=project, email=user.email)
+            url = reverse(
+                "project-join", kwargs={"slug": workspace.slug, "project_id": project.id, "pk": project_invite.id}
+            )
+            data = {"token": project_invite.token, "accepted": True}
+        response = session_client.post(url, data, format="json")
+        assert response.status_code == (204 if join_path == "bulk" else 200), response.data
+        assert IssueAssignee.objects.filter(issue=issue, assignee=user).count() == 1
+
+    @mock.patch("plane.app.views.project.collaborator_invite.issue_activity")
+    def test_assigns_existing_workspace_editor_immediately(self, activity, post_invite, workspace, project, issue):
+        user = _member(workspace, "editor@example.com", 15)
+        payload = {"issue_id": str(issue.id), "invites": [{"email": user.email, "role": 15}]}
+        for _ in range(2):
+            assert post_invite(_url(workspace, project), payload).status_code == 200
+        assert IssueAssignee.objects.filter(issue=issue, assignee=user).count() == 1
+        activity.delay.assert_called_once()
+        assert activity.delay.call_args.kwargs["notification"] is True
+        assert not PendingTaskAssignee.objects.exists()
+
+    @mock.patch("plane.app.views.project.collaborator_invite.issue_activity")
+    @mock.patch(TASK_PATH)
+    @pytest.mark.parametrize("restriction", ["declined", "revoked", "inviter-removed", "issue-deleted"])
+    def test_does_not_assign_cancelled_or_ineligible_invitations(
+        self,
+        mail,
+        activity,
+        post_invite,
+        session_client,
+        workspace,
+        project,
+        issue,
+        create_user,
+        restriction,
+        monkeypatch,
+    ):
+        monkeypatch.setattr("plane.db.mixins.soft_delete_related_objects.delay", lambda *args, **kwargs: None)
+        response = post_invite(
+            _url(workspace, project),
+            {"issue_id": str(issue.id), "invites": [{"email": "later@example.com", "role": 15}]},
+        )
+        assert response.status_code == 200, response.data
+        invite = WorkspaceMemberInvite.objects.get(email="later@example.com")
+        user = User.objects.create(email=invite.email, username="later-task-invite")
+        if restriction == "revoked":
+            ProjectMemberInvite.objects.get(project=project, email=user.email).delete()
+        elif restriction == "inviter-removed":
+            ProjectMember.objects.filter(project=project, member=create_user).update(is_active=False)
+        elif restriction == "issue-deleted":
+            issue.delete()
+        session_client.force_authenticate(user=user)
+        response = session_client.post(
+            f"/api/workspaces/{workspace.slug}/invitations/{invite.id}/join/",
+            {"token": invite.token, "accepted": restriction != "declined"},
+            format="json",
+        )
+        assert response.status_code == 200, response.data
+        assert not IssueAssignee.objects.filter(issue_id=issue.id, assignee=user).exists()
+
+    @mock.patch(TASK_PATH)
+    @pytest.mark.parametrize(
+        "restriction", ["workspace-viewer", "project-viewer", "suspended", "inactive-user", "smtp"]
+    )
+    def test_rejects_ineligible_assignees_before_sending_or_assigning(
+        self, mail, session_client, workspace, project, issue, restriction
+    ):
+        email = "blocked@example.com"
+        user = _member(workspace, email, 5 if restriction == "workspace-viewer" else 15)
+        if restriction == "project-viewer":
+            ProjectMember.objects.create(project=project, workspace=workspace, member=user, role=5)
+        elif restriction == "suspended":
+            WorkspaceMember.objects.filter(workspace=workspace, member=user).update(is_active=False)
+        elif restriction == "inactive-user":
+            User.objects.filter(id=user.id).update(is_active=False)
+        elif restriction == "smtp":
+            email = "outside@example.com"
+        with mock.patch("plane.app.views.project.collaborator_invite.get_email_configuration", return_value=(None,)):
+            response = session_client.post(
+                _url(workspace, project),
+                {"issue_id": str(issue.id), "invites": [{"email": email, "role": 15}]},
+                format="json",
+            )
+        assert response.status_code == 400, response.data
+        mail.delay.assert_not_called()
+        assert not IssueAssignee.objects.filter(issue=issue).exists()
+        assert not PendingTaskAssignee.objects.exists()
+
+    @mock.patch(TASK_PATH)
+    def test_issue_must_belong_to_project_and_inviter_must_be_project_admin(
+        self, mail, session_client, workspace, project, issue, create_user
+    ):
+        other = Project.objects.create(workspace=workspace, name="Other", identifier="OTHER")
+        foreign_issue = Issue.objects.create(workspace=workspace, project=other, name="Other task")
+        payload = {"issue_id": str(foreign_issue.id), "invites": [{"email": "new@example.com", "role": 15}]}
+        assert session_client.post(_url(workspace, project), payload, format="json").status_code == 404
+        payload["issue_id"] = "not-a-uuid"
+        assert session_client.post(_url(workspace, project), payload, format="json").status_code == 400
+        payload["issue_id"] = str(issue.id)
+        ProjectMember.objects.filter(project=project, member=create_user).update(role=15)
+        WorkspaceMember.objects.filter(workspace=workspace, member=create_user).update(role=15)
+        assert session_client.post(_url(workspace, project), payload, format="json").status_code == 403
+        assert not ProjectMemberInvite.objects.exists()
 
 
 @pytest.mark.contract

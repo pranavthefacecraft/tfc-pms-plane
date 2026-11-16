@@ -10,6 +10,7 @@ export type TPersonalTask = {
   start_date: string | null;
   target_date: string | null;
   completed_at: string | null;
+  stage: "todo" | "in_progress" | "done";
   created_at: string;
   updated_at: string;
 };
@@ -18,6 +19,7 @@ export type TPersonalTaskData = Pick<
   "name" | "description" | "priority" | "start_date" | "target_date"
 > & {
   is_completed?: boolean;
+  stage?: TPersonalTask["stage"];
 };
 export const personalTasksKey = (slug: string, userId: string) => ["personal-tasks", slug, userId];
 export type TSharedPersonalTask = Pick<

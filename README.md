@@ -150,6 +150,13 @@ application URL. Email clients may block remote images until the recipient
 allows them. Login codes, reset links and invitation links are unchanged.
 Deploy both the web asset and API/worker templates when updating email branding.
 
+Credential and email-code forms include a required signup agreement checkbox and
+a **Keep me signed in** option for sign-in. Unchecked sign-in creates a browser-session
+cookie; checked sign-in uses the configured `SESSION_COOKIE_AGE`. Older clients,
+OAuth, and admin/space authentication retain their existing session behavior.
+Legal links share the existing terms/privacy configuration; its `#` placeholders
+must be replaced with published policy URLs before relying on them as legal documents.
+
 ## TFCPMS navigation
 
 The workspace top bar uses `#FAFAFA` in light mode and includes a Create menu for work
@@ -278,8 +285,21 @@ Dependencies, Priority, Stage, Status, Attach File, Description, and Subtasks
 layout, with task name, optional start date, and an explicit Save button.
 No project creates a private personal task; choosing a joined project enables
 project members, blocked-by dependencies, attachments, and new subtasks.
+The assignee picker supports **Invite: email** when searching and **Invite by email**
+for project admins (including workspace admins who belong to the project).
+Saving adds existing eligible workspace editors immediately; new teammates receive
+the standard workspace/project invitation and are assigned after accepting.
+Invitations require configured SMTP and a running Celery worker. Declined or revoked
+invitations, removed inviters, suspended/viewer accounts, and removed tasks do not
+receive pending assignments. A private task must first be linked to a project before
+assigning or inviting someone else; choosing an email alone never shares a private task.
 Normal priority maps to the existing medium priority. Stage uses a project's
 single-select Stage custom field when present, otherwise its workflow state.
+Personal tasks support **To do**, **In progress**, and **Done** in creation and editing;
+Done and the existing completion checkbox stay synchronized. Moving an In progress
+personal task to a project requires a Started-group workflow state.
+Clicking the date text or its adjacent calendar icon opens the date picker, with
+start/due date bounds and an explicit clear action.
 Status uses the project's single-select Status custom field; if absent, the
 form explains that it is not configured rather than inventing a value.
 Changing projects resets project-specific selections while preserving name,
@@ -291,7 +311,9 @@ explains that a task name is required and new personal tasks default to today
 when both dates are empty.
 Meetings and bookings are not yet
 connected. Loading and request errors are shown separately from empty states.
-The date-window project-task API requires the updated backend, but no migration.
+These task-panel changes require the updated API/worker and migration
+`db.0140_personal_stages_pending_assignees`; it backfills completed personal tasks
+to Done and stores pending email assignments.
 The left-sidebar workspace switcher is temporarily hidden, not removed; its
 component and functionality are retained for future use. The top-bar switcher
 in collapsed mode is unchanged. The top Projects heading and customization icon

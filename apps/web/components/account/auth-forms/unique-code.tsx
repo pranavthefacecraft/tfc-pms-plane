@@ -17,6 +17,8 @@ import { EAuthModes } from "@/helpers/authentication.helper";
 import useTimer from "@/hooks/use-timer";
 // services
 import { AuthService } from "@/services/auth.service";
+import { AuthOptions } from "./auth-options";
+import type { TAuthOptions } from "./auth-options";
 
 // services
 const authService = new AuthService();
@@ -28,6 +30,7 @@ type TAuthUniqueCodeForm = {
   handleEmailClear: () => void;
   generateEmailUniqueCode: (email: string) => Promise<{ code: string } | undefined>;
   nextPath: string | undefined;
+  options: TAuthOptions;
 };
 
 type TUniqueCodeFormValues = {
@@ -41,7 +44,7 @@ const defaultValues: TUniqueCodeFormValues = {
 };
 
 export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
-  const { mode, email, handleEmailClear, generateEmailUniqueCode, nextPath } = props;
+  const { mode, email, handleEmailClear, generateEmailUniqueCode, nextPath, options } = props;
   // derived values
   const defaultResetTimerValue = 5;
   // states
@@ -77,14 +80,22 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
   }, [csrfToken]);
 
   const isRequestNewCodeDisabled = isRequestingNewCode || resendTimerCode > 0;
-  const isButtonDisabled = isRequestingNewCode || !uniqueCodeFormData.code || isSubmitting;
+  const isButtonDisabled =
+    isRequestingNewCode ||
+    !uniqueCodeFormData.code ||
+    isSubmitting ||
+    (mode === EAuthModes.SIGN_UP && !options.acceptedTerms);
 
   return (
     <form
       className="space-y-4"
       method="POST"
       action={`${API_BASE_URL}/auth/${mode === EAuthModes.SIGN_IN ? "magic-sign-in" : "magic-sign-up"}/`}
-      onSubmit={() => {
+      onSubmit={(event) => {
+        if (mode === EAuthModes.SIGN_UP && !options.acceptedTerms) {
+          event.preventDefault();
+          return;
+        }
         setIsSubmitting(true);
       }}
       onError={() => {
@@ -94,6 +105,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
       <input type="hidden" value={uniqueCodeFormData.email} name="email" />
       {nextPath && <input type="hidden" value={nextPath} name="next_path" />}
+      <AuthOptions mode={mode} options={options} />
       <div className="space-y-1">
         <label htmlFor="email" className="text-13 font-medium text-tertiary">
           {t("auth.common.email.label")}

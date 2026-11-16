@@ -33,9 +33,11 @@ vi.mock("next/navigation", () => ({
 vi.mock("@plane/blocks/toast", () => ({ setToast: state.toast }));
 vi.mock("@/hooks/use-app-router", () => ({ useAppRouter: () => ({ push: state.push }) }));
 vi.mock("@/hooks/store/user", () => ({
+  useUserProfile: () => ({ data: { start_of_the_week: 1 } }),
   useUser: () => ({ data: { id: "me" } }),
   useUserPermissions: () => ({ allowPermissions: () => state.authorized }),
 }));
+vi.mock("@/hooks/store/use-instance", () => ({ useInstance: () => ({ config: { is_smtp_configured: true } }) }));
 vi.mock("@/hooks/store/use-project", () => ({
   useProject: () => ({
     joinedProjectIds: state.projects,
@@ -82,6 +84,7 @@ const task: TPersonalTask = {
   start_date: "2026-10-27",
   target_date: "2026-10-29",
   completed_at: null,
+  stage: "todo",
   created_at: "2026-10-27T00:00:00Z",
   updated_at: "2026-10-27T00:00:00Z",
 };
@@ -139,6 +142,7 @@ it("creates a task without project data and closes only after saving", async () 
     name: "My task",
     description: "",
     priority: "none",
+    stage: "todo",
     start_date: null,
     target_date: null,
   });
@@ -164,6 +168,24 @@ it("preserves input and shows errors when saving fails", async () => {
   expect(state.toast).toHaveBeenCalled();
   expect(state.toast).not.toHaveBeenCalledWith(expect.objectContaining({ type: "success" }));
   log.mockRestore();
+});
+
+it("loads and updates a personal task stage in the editor", async () => {
+  await render(
+    <PersonalTaskDialog
+      workspaceSlug="workspace"
+      task={{ ...task, stage: "in_progress" }}
+      onClose={state.close}
+      onSaved={state.saved}
+    />
+  );
+  const stage = Array.from(host.querySelectorAll("select")).find((select) =>
+    Array.from(select.options).some((option) => option.value === "in_progress")
+  )!;
+  expect(stage.value).toBe("in_progress");
+  await change(stage, "done");
+  await submit();
+  expect(state.update).toHaveBeenCalledWith("workspace", "task", expect.objectContaining({ stage: "done" }));
 });
 
 it("opens Add task as a side panel and retains personal-task saving", async () => {

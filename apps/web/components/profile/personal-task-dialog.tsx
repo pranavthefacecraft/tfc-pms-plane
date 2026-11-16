@@ -14,6 +14,8 @@ import type { TPersonalTask, TPersonalTaskData } from "@/services/personal-task.
 import { personalTaskError, personalTaskService } from "@/services/personal-task.service";
 import { TaskFormContent } from "@/components/common/task-form-content";
 import type { TTaskFormPresentation } from "@/components/common/task-form-content";
+import { TaskDateField } from "./task-date-field";
+import { PersonalTaskStageSelect } from "./personal-task-stage-select";
 
 type Props = {
   workspaceSlug: string;
@@ -39,8 +41,9 @@ export function PersonalTaskDialog({
   const [name, setName] = useState(task?.name ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [priority, setPriority] = useState<TPersonalTask["priority"]>(task?.priority ?? "none");
-  const [startDate, setStartDate] = useState(task?.start_date ?? "");
-  const [targetDate, setTargetDate] = useState(task?.target_date ?? "");
+  const [stage, setStage] = useState<TPersonalTask["stage"]>(task?.stage ?? "todo");
+  const [startDate, setStartDate] = useState<string | null>(task?.start_date ?? null);
+  const [targetDate, setTargetDate] = useState<string | null>(task?.target_date ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pending = useRef(false);
@@ -57,8 +60,9 @@ export function PersonalTaskDialog({
       name: name.trim(),
       description,
       priority,
-      start_date: startDate || null,
-      target_date: targetDate || null,
+      stage,
+      start_date: startDate,
+      target_date: targetDate,
     };
     try {
       const saved = task
@@ -179,28 +183,37 @@ export function PersonalTaskDialog({
                   </option>
                 ))}
               </select>
+              <label htmlFor={`${id}-stage`} className="text-13">
+                Stage
+              </label>
+              <PersonalTaskStageSelect
+                id={`${id}-stage`}
+                className={fieldClass}
+                value={stage}
+                disabled={busy}
+                onChange={setStage}
+              />
               <div className="grid grid-cols-2 gap-3">
-                <label className="text-13">
-                  Start date
-                  <input
-                    type="date"
-                    className={fieldClass}
+                <div className="space-y-1 text-13">
+                  <span>Start date</span>
+                  <TaskDateField
+                    label="Start date"
                     value={startDate}
+                    max={targetDate}
                     disabled={busy}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={setStartDate}
                   />
-                </label>
-                <label className="text-13">
-                  Due date
-                  <input
-                    type="date"
-                    className={fieldClass}
+                </div>
+                <div className="space-y-1 text-13">
+                  <span>Due date</span>
+                  <TaskDateField
+                    label="Due date"
                     value={targetDate}
-                    min={startDate || undefined}
+                    min={startDate}
                     disabled={busy}
-                    onChange={(e) => setTargetDate(e.target.value)}
+                    onChange={setTargetDate}
                   />
-                </label>
+                </div>
               </div>
               {error && (
                 <p role="alert" className="text-13 text-danger-primary">

@@ -77,8 +77,7 @@ export const SidebarItemBase = observer(function SidebarItemBase({
       <SidebarNavItem
         isActive={isActive}
         className={cn({
-          "dark:hover:text-custom-primary-100 hover:text-[#135DDD]": isActivity,
-          "dark:text-custom-primary-100 text-[#135DDD]": isActivity && isActive,
+          "hover:text-[#135DDD]": isActivity,
         })}
       >
         <div className={compact ? "flex w-full justify-center py-2" : "flex items-center gap-1.5 py-[1px]"}>

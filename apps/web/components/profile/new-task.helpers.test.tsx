@@ -2,7 +2,18 @@ import { beforeEach, expect, it, vi } from "vitest";
 import type { TNewTaskDraft, TTaskSaveProgress } from "./new-task.helpers";
 import { newTaskError, saveProjectTask, taskDescriptionHTML } from "./new-task.helpers";
 
-const state = vi.hoisted(() => ({ create: vi.fn(), relation: vi.fn(), upload: vi.fn(), field: vi.fn() }));
+const state = vi.hoisted(() => ({
+  create: vi.fn(),
+  relation: vi.fn(),
+  upload: vi.fn(),
+  field: vi.fn(),
+  invite: vi.fn(),
+}));
+vi.mock("@/services/project-collaborators.service", () => ({
+  ProjectCollaboratorsService: class {
+    invite = state.invite;
+  },
+}));
 vi.mock("@/services/issue/issue.service", () => ({
   IssueService: class {
     createIssue = state.create;
@@ -84,6 +95,21 @@ it("does not checkpoint a failed parent creation", async () => {
   await expect(saveProjectTask("team", draft(), progress)).rejects.toThrow("permission denied");
   expect(progress.issue).toBeUndefined();
   expect(state.field).not.toHaveBeenCalled();
+});
+
+it("queues email assignments against the saved task and does not resend them when another detail retries", async () => {
+  const progress: TTaskSaveProgress = { completed: new Set() };
+  const data = { ...draft(), inviteEmails: ["new@example.com"] };
+  state.upload.mockRejectedValueOnce(new Error("offline"));
+  state.invite.mockResolvedValue({ added: [], invited: data.inviteEmails });
+  await expect(saveProjectTask("team", data, progress)).rejects.toThrow("offline");
+  await saveProjectTask("team", data, progress);
+  expect(state.invite).toHaveBeenCalledExactlyOnceWith(
+    "team",
+    "project",
+    [{ email: "new@example.com", role: 15 }],
+    "parent"
+  );
 });
 
 it("creates through a layout store action and keeps the chosen section", async () => {

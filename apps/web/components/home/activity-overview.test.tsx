@@ -62,6 +62,7 @@ const personal: TPersonalTask = {
   start_date: "2026-10-29",
   target_date: "2026-10-31",
   completed_at: null,
+  stage: "todo",
   created_at: "2026-10-29T12:00:00Z",
   updated_at: "2026-10-29T12:00:00Z",
 };

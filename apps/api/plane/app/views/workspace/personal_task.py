@@ -122,7 +122,13 @@ class MovePersonalTaskEndpoint(BaseAPIView):
             task = get_object_or_404(owned_tasks(request, slug).select_for_update(), pk=pk)
             if task.moved_at is not None:
                 return Response({"error": "This personal task has already been moved."}, status=409)
-            groups = ["completed"] if task.completed_at else ["backlog", "unstarted", "started"]
+            groups = (
+                ["completed"]
+                if task.completed_at
+                else ["started"]
+                if task.stage == "in_progress"
+                else ["backlog", "unstarted", "started"]
+            )
             state = (
                 State.objects.filter(project=project, group__in=groups).order_by("-default", "sequence", "id").first()
             )

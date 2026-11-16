@@ -23,6 +23,8 @@ import { ForgotPasswordLink } from "@/components/account/auth-forms/forgot-passw
 import { EAuthModes, EAuthSteps } from "@/helpers/authentication.helper";
 // services
 import { AuthService } from "@/services/auth.service";
+import { AuthOptions } from "./auth-options";
+import type { TAuthOptions } from "./auth-options";
 
 type Props = {
   email: string;
@@ -31,6 +33,7 @@ type Props = {
   handleEmailClear: () => void;
   handleAuthStep: (step: EAuthSteps) => void;
   nextPath: string | undefined;
+  options: TAuthOptions;
 };
 
 type TPasswordFormValues = {
@@ -47,7 +50,7 @@ const defaultValues: TPasswordFormValues = {
 const authService = new AuthService();
 
 export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props) {
-  const { email, isSMTPConfigured, handleAuthStep, handleEmailClear, mode, nextPath } = props;
+  const { email, isSMTPConfigured, handleAuthStep, handleEmailClear, mode, nextPath, options } = props;
   // plane imports
   const { t } = useTranslation();
   // ref
@@ -97,10 +100,12 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
     () =>
       !isSubmitting &&
       !!passwordFormData.password &&
-      (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
+      (mode === EAuthModes.SIGN_UP
+        ? options.acceptedTerms && passwordFormData.password === passwordFormData.confirm_password
+        : true)
         ? false
         : true,
-    [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
+    [isSubmitting, mode, options.acceptedTerms, passwordFormData.confirm_password, passwordFormData.password]
   );
 
   const password = passwordFormData?.password ?? "";
@@ -133,6 +138,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         action={`${API_BASE_URL}/auth/${mode === EAuthModes.SIGN_IN ? "sign-in" : "sign-up"}/`}
         onSubmit={async (event) => {
           event.preventDefault(); // Prevent form from submitting by default
+          if (mode === EAuthModes.SIGN_UP && !options.acceptedTerms) return;
           await handleCSRFToken();
           const isPasswordValid =
             mode === EAuthModes.SIGN_UP
@@ -259,6 +265,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           </div>
         )}
 
+        <AuthOptions mode={mode} options={options} />
         <div className="space-y-2.5">
           {mode === EAuthModes.SIGN_IN ? (
             <>

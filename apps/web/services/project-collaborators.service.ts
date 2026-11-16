@@ -19,10 +19,12 @@ export class ProjectCollaboratorsService extends APIService {
   async invite(
     workspaceSlug: string,
     projectId: string,
-    invites: TCollaboratorInvite[]
+    invites: TCollaboratorInvite[],
+    issueId?: string
   ): Promise<TCollaboratorInviteResult> {
     const response = await this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/collaborator-invites/`, {
       invites,
+      ...(issueId ? { issue_id: issueId } : {}),
     });
     return response.data;
   }

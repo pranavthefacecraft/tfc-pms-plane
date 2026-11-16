@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useMemo } from "react";
+import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
@@ -44,6 +45,7 @@ type MemberSelectWebCommonProps = {
   tooltip?: SelectTooltip;
   /** Tab order of the trigger, for forms that sequence focus explicitly (`ETabIndices`). */
   tabIndex?: number;
+  emptyMessage?: ReactNode | ((query: string) => ReactNode);
 };
 
 export type MemberSelectWebProps = MemberSelectWebCommonProps &
@@ -160,6 +162,7 @@ export const MemberSelect = observer(function MemberSelect(props: MemberSelectWe
   if (props.multiple) {
     return (
       <MemberSelectBlock
+        emptyMessage={props.emptyMessage}
         multiple
         testId={testId}
         getValues={getValues}
@@ -180,6 +183,7 @@ export const MemberSelect = observer(function MemberSelect(props: MemberSelectWe
   }
   return (
     <MemberSelectBlock
+      emptyMessage={props.emptyMessage}
       multiple={false}
       testId={testId}
       getValues={getValues}

@@ -44,6 +44,14 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
   const nextPath = searchParams.get("next_path");
   // states
   const [isExistingEmail, setIsExistingEmail] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const options = {
+    acceptedTerms,
+    rememberMe,
+    onAcceptedTermsChange: setAcceptedTerms,
+    onRememberMeChange: setRememberMe,
+  };
   // hooks
   const { config } = useInstance();
 
@@ -106,6 +114,8 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
   if (authStep === EAuthSteps.EMAIL) {
     return (
       <AuthEmailForm
+        mode={authMode}
+        options={options}
         defaultEmail={email}
         onSubmit={handleEmailVerification}
         passwordRecovery={
@@ -117,6 +127,7 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
   if (authStep === EAuthSteps.UNIQUE_CODE) {
     return (
       <AuthUniqueCodeForm
+        options={options}
         mode={authMode}
         email={email}
         isExistingEmail={isExistingEmail}
@@ -129,6 +140,7 @@ export const AuthFormRoot = observer(function AuthFormRoot(props: TAuthFormRoot)
   if (authStep === EAuthSteps.PASSWORD) {
     return (
       <AuthPasswordForm
+        options={options}
         mode={authMode}
         isSMTPConfigured={isSMTPConfigured}
         email={email}

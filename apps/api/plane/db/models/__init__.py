@@ -7,6 +7,7 @@ from .api import APIActivityLog, APIToken
 from .asset import FileAsset
 from .base import BaseModel
 from .recording import Recording
+from .pending_task_assignee import PendingTaskAssignee
 from .cycle import Cycle, CycleIssue, CycleUserProperties
 from .custom_field import ProjectCustomField, IssueCustomFieldValue
 from .deploy_board import DeployBoard

@@ -329,7 +329,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   </div>
                   <p
                     className={cn("truncate text-13 font-medium", {
-                      "dark:text-custom-primary-100 text-[#135DDD]": shouldHighlightProject,
+                      "text-[#135DDD]": shouldHighlightProject,
                       "text-[#526A8B] dark:text-secondary": !shouldHighlightProject,
                     })}
                   >
