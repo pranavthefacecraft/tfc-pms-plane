@@ -134,6 +134,8 @@ the web service, checks its image ID and Docker health, and checks public web
 and API availability. Identity checks accept the verified archive's configuration
 or manifest digest to support both classic and containerd Docker image stores;
 the original checksummed archive is transferred without re-exporting it.
+Artifact verification supports direct OCI image manifests and BuildKit indexes
+with provenance, verifying the Linux amd64 image configuration and manifest checksums.
 Detected deployment failures attempt to restore the
 previous image and still fail the workflow. A lost SSH connection or runner
 termination can require manual recovery: inspect the running web image and
