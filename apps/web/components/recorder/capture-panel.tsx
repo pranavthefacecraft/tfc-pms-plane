@@ -4,10 +4,10 @@ import { Input } from "@makeplane/propel/components/input";
 import type { RecordingMode } from "./cap/stream-manager";
 import { recordingService } from "@/services/recording.service";
 import type { TRecordingUpload } from "@/services/recording.service";
-import { useRecorder } from "./use-recorder";
+import { useRecorderSession } from "./recorder-provider";
 
 export function CapturePanel({ workspaceSlug, onSaved }: { workspaceSlug: string; onSaved: () => void }) {
-  const capture = useRecorder();
+  const capture = useRecorderSession();
   const [name, setName] = useState("Screen recording");
   const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
@@ -149,31 +149,11 @@ export function CapturePanel({ workspaceSlug, onSaved }: { workspaceSlug: string
         </p>
       )}
       <p className="text-12 text-tertiary">Webcam overlay, editing and AI transcripts are planned for a later phase.</p>
-      {capture.blocker.state === "blocked" && (
-        <div role="alert" className="space-y-2 rounded border border-subtle-1 p-3">
-          <p>Your recording is not saved. Stay to save or download it before leaving.</p>
-          <Button
-            size="md"
-            stretch="auto"
-            variant="secondary"
-            label="Stay here"
-            onClick={() => capture.blocker.reset?.()}
-          />
-          <Button
-            size="md"
-            stretch="auto"
-            variant="secondary"
-            label="Leave and discard local recording"
-            disabled={busy}
-            onClick={() => capture.blocker.proceed?.()}
-          />
-        </div>
-      )}
     </section>
   );
 }
 
-function CaptureControls({ capture }: { capture: ReturnType<typeof useRecorder> }) {
+function CaptureControls({ capture }: { capture: ReturnType<typeof useRecorderSession> }) {
   const [mode, setMode] = useState<RecordingMode>("fullscreen");
   const [microphone, setMicrophone] = useState(true);
   const [systemAudio, setSystemAudio] = useState(false);

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useBlocker } from "react-router";
 import { acquireStreams, buildCompositeStream, releaseStreams } from "./cap/stream-manager";
 import type { ManagedStreams, RecordingMode } from "./cap/stream-manager";
 import { getSupportedMimeType } from "./cap/mime-types";
@@ -24,7 +23,6 @@ export function useRecorder() {
   const resumedAt = useRef<number | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const mounted = useRef(true);
-  const blocker = useBlocker(phase !== "idle");
   const cleanup = useCallback(() => {
     listeners.current?.abort();
     listeners.current = null;
@@ -196,5 +194,5 @@ export function useRecorder() {
       cleanup();
     };
   }, [cleanup]);
-  return { phase, blob, durationMs, error, warning, start, stop, pause, resume, discard, blocker };
+  return { phase, blob, durationMs, error, warning, start, stop, pause, resume, discard };
 }

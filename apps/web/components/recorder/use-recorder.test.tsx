@@ -1,8 +1,8 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useRecorder } from "./use-recorder";
+import { RecorderProvider, useRecorderSession } from "./recorder-provider";
 
 const mocks = vi.hoisted(() => ({
   acquire: vi.fn(),
@@ -45,9 +45,9 @@ class FakeRecorder extends EventTarget {
     });
   }
 }
-let value: ReturnType<typeof useRecorder> | undefined;
+let value: ReturnType<typeof useRecorderSession> | undefined;
 function Harness() {
-  value = useRecorder();
+  value = useRecorderSession();
   return <p>{value.phase}</p>;
 }
 function current() {
@@ -77,8 +77,18 @@ beforeEach(async () => {
   document.body.append(host);
   root = createRoot(host);
   router = createMemoryRouter([
-    { path: "/", element: <Harness /> },
-    { path: "/away", element: <p>Away</p> },
+    {
+      path: "/",
+      element: (
+        <RecorderProvider workspaceSlug="test">
+          <Outlet />
+        </RecorderProvider>
+      ),
+      children: [
+        { index: true, element: <Harness /> },
+        { path: "away", element: <Harness /> },
+      ],
+    },
   ]);
   await act(() => root.render(<RouterProvider router={router} />));
 });
@@ -148,15 +158,15 @@ it("surfaces capture errors and permits a later retry", async () => {
   vi.restoreAllMocks();
 });
 
-it("blocks navigation until the user chooses to leave or saves/discards", async () => {
+it("keeps an active recording running when navigating between workspace pages", async () => {
   await act(() => current().start("fullscreen", false, false));
   await act(() => router.navigate("/away"));
-  expect(current().blocker.state).toBe("blocked");
-  await act(() => current().blocker.reset?.());
-  expect(router.state.location.pathname).toBe("/");
-  await act(() => current().discard());
-  await act(() => router.navigate("/away"));
   expect(router.state.location.pathname).toBe("/away");
+  expect(current().phase).toBe("recording");
+  expect(active.state).toBe("recording");
+  await act(() => router.navigate("/"));
+  expect(current().phase).toBe("recording");
+  expect(active.state).toBe("recording");
 });
 
 it("stops and releases devices on unmount without retaining a discarded blob", async () => {

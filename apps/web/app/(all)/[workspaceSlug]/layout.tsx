@@ -11,6 +11,7 @@ import { WorkspaceContentWrapper } from "@/components/workspace/content-wrapper"
 import { AppRailVisibilityProvider } from "@/lib/app-rail";
 import { GlobalModals } from "@/components/common/modal/global";
 import { WorkspaceAuthWrapper } from "@/layouts/auth-layout/workspace-wrapper";
+import { RecorderProvider } from "@/components/recorder/recorder-provider";
 import type { Route } from "./+types/layout";
 
 export default function WorkspaceLayout(props: Route.ComponentProps) {
@@ -29,10 +30,12 @@ export function WorkspaceShell({ workspaceSlug, children }: { workspaceSlug: str
   return (
     <WorkspaceAuthWrapper>
       <AppRailVisibilityProvider>
-        <WorkspaceContentWrapper>
-          <GlobalModals workspaceSlug={workspaceSlug} />
-          {children}
-        </WorkspaceContentWrapper>
+        <RecorderProvider workspaceSlug={workspaceSlug}>
+          <WorkspaceContentWrapper>
+            <GlobalModals workspaceSlug={workspaceSlug} />
+            {children}
+          </WorkspaceContentWrapper>
+        </RecorderProvider>
       </AppRailVisibilityProvider>
     </WorkspaceAuthWrapper>
   );

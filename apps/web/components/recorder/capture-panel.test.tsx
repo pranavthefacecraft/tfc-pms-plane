@@ -25,15 +25,14 @@ vi.mock("@/services/recording.service", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/recording.service")>();
   return { recordingService: { ...mocks, uploadRemainingParts: actual.recordingService.uploadRemainingParts } };
 });
-vi.mock("./use-recorder", () => ({
-  useRecorder: () => ({
+vi.mock("./recorder-provider", () => ({
+  useRecorderSession: () => ({
     phase: "recorded",
     blob: mocks.blob,
     durationMs: 1000,
     error: "",
     warning: "",
     discard: mocks.discard,
-    blocker: { state: "unblocked" },
   }),
 }));
 let host: HTMLDivElement;
