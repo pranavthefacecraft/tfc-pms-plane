@@ -12,10 +12,12 @@ export function TaskSearch({
   query,
   setQuery,
   noun = "tasks",
+  spacious = false,
 }: {
   query: string;
   setQuery: (query: string) => void;
   noun?: string;
+  spacious?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,14 +30,16 @@ export function TaskSearch({
         type="button"
         aria-label="Open search"
         title={`Search ${noun}`}
-        className="grid size-8 place-items-center rounded border border-subtle hover:bg-layer-1-hover"
+        className={`grid shrink-0 place-items-center border border-subtle hover:bg-layer-1-hover ${spacious ? "size-9 rounded-md bg-white dark:bg-surface-1" : "size-8 rounded"}`}
         onClick={() => setOpen(true)}
       >
-        <Search className="size-3.5" />
+        <Search className={spacious ? "size-4" : "size-3.5"} />
       </button>
     );
   return (
-    <label className="flex h-8 items-center gap-2 rounded border border-[#135DDD] px-2">
+    <label
+      className={`flex items-center gap-2 border border-[#135DDD] px-2 ${spacious ? "h-9 rounded-md bg-white dark:bg-surface-1" : "h-8 rounded"}`}
+    >
       <Search className="size-3.5" />
       <input
         ref={inputRef}

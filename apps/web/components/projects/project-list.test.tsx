@@ -59,7 +59,9 @@ vi.mock("@/hooks/store/use-issue-detail", () => ({
   useIssueDetail: () => ({ peekIssue: undefined, setPeekIssue: mocks.setPeekIssue }),
 }));
 vi.mock("@/hooks/store/use-member", () => ({
-  useMember: () => ({ getUserDetails: (id: string) => ({ display_name: id === "me" ? "Mia Lee" : "Ann" }) }),
+  useMember: () => ({
+    getUserDetails: (id: string) => ({ display_name: id === "me" ? "Mia Lee" : id === "one-letter" ? "P" : "Ann" }),
+  }),
 }));
 vi.mock("@/components/issues/peek-overview", () => ({ IssuePeekOverview: () => null }));
 vi.mock("@/components/issues/create-task-entry", () => ({
@@ -92,6 +94,8 @@ const TASKS = [
     priority: "medium",
     target_date: "2026-10-29",
     comment_count: 2,
+    attachment_count: 1,
+    status_name: "On Track",
     assignee_ids: ["me"],
   }),
   task({ id: "t2", name: "Copy", section_id: "s2", priority: "low", target_date: "2026-11-03" }),
@@ -193,26 +197,73 @@ describe("ProjectList", () => {
       "Name",
       "Collaborators",
       "Priority",
+      "Status",
       "Due date",
     ]);
     expect([...host.querySelectorAll("tbody th")].map((cell) => cell.textContent)).toEqual([
-      "To Do1",
-      "In Progress1",
-      "No section1",
+      "To Do",
+      "In Progress",
+      "No section",
     ]);
-    expect(rows()).toContain("Wireframes2MLMediumToday");
+    expect(rows()).toContain("Wireframes12MLMediumOn TrackToday");
+    expect(host.querySelector('[aria-label="1 attachments"]')).not.toBeNull();
     expect(host.querySelector('[aria-label="2 comments"]')).not.toBeNull();
     expect(host.querySelector('[aria-label="Mia Lee"]')?.textContent).toBe("ML");
     expect(mocks.list).toHaveBeenCalledWith("acme", "p1");
   });
 
+  it("shows two letters for collaborators with a single-word or one-letter name", async () => {
+    mocks.list.mockResolvedValue({
+      ...RESPONSE,
+      results: [task({ assignee_ids: ["ann", "one-letter"] })],
+    });
+    await render();
+    expect(host.querySelector('[aria-label="Ann"]')?.textContent).toBe("AN");
+    expect(host.querySelector('[aria-label="P"]')?.textContent).toBe("PP");
+  });
+
   it("collapses a group and opens a task in the peek overview", async () => {
     await render();
-    await act(async () => button("To Do1").click());
+    await act(async () => button("To Do").click());
     expect(rows().some((row) => row?.startsWith("Wireframes"))).toBe(false);
-    expect(button("To Do1").getAttribute("aria-expanded")).toBe("false");
+    expect(button("To Do").getAttribute("aria-expanded")).toBe("false");
     await act(async () => button("Copy").click());
     expect(mocks.setPeekIssue).toHaveBeenCalledWith({ workspaceSlug: "acme", projectId: "p1", issueId: "t2" });
+  });
+
+  it("expands nested tasks and preselects the parent and section when adding a subtask", async () => {
+    mocks.list.mockResolvedValue({
+      ...RESPONSE,
+      results: [...TASKS, task({ id: "child", name: "Mobile layout", parent_id: "t1", section_id: "s1" })],
+    });
+    await render();
+    expect(button("Mobile layout")).toBeUndefined();
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Subtasks for Wireframes"]')!.click());
+    expect(button("Mobile layout")).toBeDefined();
+    await act(async () => button("Add Subtask").click());
+    expect(JSON.parse(host.querySelector('[data-testid="create-modal"]')!.textContent!)).toEqual({
+      project_id: "p1",
+      section_id: "s1",
+      parent_id: "t1",
+    });
+  });
+
+  it("sorts tasks within their section", async () => {
+    mocks.list.mockResolvedValue({
+      ...RESPONSE,
+      results: [...TASKS, task({ id: "t4", name: "Assets", section_id: "s1" })],
+    });
+    await render();
+    const sort = host.querySelector<HTMLSelectElement>('[aria-label="Sort tasks"]')!;
+    await act(async () => {
+      sort.value = "name";
+      sort.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(
+      rows()
+        .slice(1, 3)
+        .map((row) => row?.split(/None|12/)[0])
+    ).toEqual(["Assets", "Wireframes"]);
   });
 
   it("completes and reopens tasks with the project's states", async () => {
@@ -288,6 +339,6 @@ describe("ProjectList", () => {
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not load");
     mocks.list.mockResolvedValue(RESPONSE);
     await act(async () => button("Retry").click());
-    expect(rows()).toContain("Wireframes2MLMediumToday");
+    expect(rows()).toContain("Wireframes12MLMediumOn TrackToday");
   });
 });

@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { EIssuesStoreType } from "@plane/types";
 import { TaskSearch } from "@/components/common/task-search";
@@ -15,14 +16,14 @@ import type { TProjectTaskListState } from "./use-project-task-list";
  * `sectionId` is undefined for the top "Add task" button, so the project's default section is used.
  * `targetDate` presets the due date when adding from a Calendar day.
  */
-export type TCreateTarget = { sectionId?: string | null; targetDate?: string };
+export type TCreateTarget = { sectionId?: string | null; targetDate?: string; parentId?: string };
 
-export function AddTaskButton({ onClick }: { onClick: () => void }) {
+export function AddTaskButton({ onClick, outlined }: { onClick: () => void; outlined?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#135DDD] px-4 text-13 font-medium text-white hover:bg-[#0F4FC0]"
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-medium ${outlined ? "h-[38px] w-[116px] gap-2 border border-subtle bg-white text-14 text-primary hover:bg-layer-1-hover dark:bg-surface-1" : "h-8 gap-1.5 bg-[#135DDD] px-4 text-13 text-white hover:bg-[#0F4FC0]"}`}
     >
       <Plus className="size-4" />
       Add task
@@ -34,16 +35,20 @@ export function AddTaskButton({ onClick }: { onClick: () => void }) {
 export function ProjectTasksToolbar({
   list,
   onAdd,
+  sort,
 }: {
   list: Pick<TProjectTaskListState, "canEdit" | "filters" | "setFilters" | "query" | "setQuery">;
   onAdd: () => void;
+  sort?: ReactNode;
 }) {
+  const isList = Boolean(sort);
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      {list.canEdit ? <AddTaskButton onClick={onAdd} /> : <span />}
-      <div className="flex items-center gap-2">
-        <ProjectListFilters filters={list.filters} onApply={list.setFilters} />
-        <TaskSearch query={list.query} setQuery={list.setQuery} />
+      {list.canEdit ? <AddTaskButton onClick={onAdd} outlined={isList} /> : <span />}
+      <div className={`flex items-center ${isList ? "ml-auto flex-wrap justify-end gap-3" : "gap-2"}`}>
+        <ProjectListFilters filters={list.filters} onApply={list.setFilters} spacious={isList} />
+        {sort}
+        <TaskSearch query={list.query} setQuery={list.setQuery} spacious={isList} />
       </div>
     </div>
   );
@@ -100,6 +105,7 @@ export function ProjectTaskCreateModal({
         project_id: projectId,
         ...(target?.sectionId !== undefined && { section_id: target.sectionId }),
         ...(target?.targetDate && { target_date: target.targetDate }),
+        ...(target?.parentId && { parent_id: target.parentId }),
       }}
       storeType={EIssuesStoreType.PROJECT}
       isProjectSelectionDisabled

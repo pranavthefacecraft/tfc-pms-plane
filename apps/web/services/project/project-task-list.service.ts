@@ -20,6 +20,8 @@ export type TProjectListTask = {
   parent_id: string | null;
   section_id: string | null;
   comment_count: number;
+  attachment_count?: number;
+  status_name?: string | null;
   assignee_ids: string[];
 };
 

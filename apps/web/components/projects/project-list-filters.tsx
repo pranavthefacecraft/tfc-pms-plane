@@ -29,9 +29,11 @@ const GROUPS = [
 export function ProjectListFilters({
   filters,
   onApply,
+  spacious = false,
 }: {
   filters: TProjectListFilters;
   onApply: (filters: TProjectListFilters) => void;
+  spacious?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(filters);
@@ -53,7 +55,7 @@ export function ProjectListFilters({
           <button
             type="button"
             aria-label={count ? `Filter (${count} active)` : "Filter"}
-            className={`flex h-8 items-center gap-2 rounded border px-3 text-12 ${count ? "border-[#135DDD] text-[#135DDD]" : "border-subtle"}`}
+            className={`inline-flex items-center justify-center gap-1 rounded-md border bg-white px-3 hover:bg-layer-1-hover dark:bg-surface-1 ${spacious ? "h-9 min-w-[100px] text-14" : "h-8 text-12"} ${count ? "border-[#135DDD] text-[#135DDD]" : "border-subtle"}`}
           />
         }
       >

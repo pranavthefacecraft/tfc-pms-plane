@@ -11,10 +11,13 @@ from django.utils import timezone
 from rest_framework import status
 
 from plane.db.models import (
+    FileAsset,
     Issue,
     IssueAssignee,
     IssueComment,
+    IssueCustomFieldValue,
     Project,
+    ProjectCustomField,
     ProjectMember,
     Section,
     State,
@@ -61,6 +64,23 @@ class TestProjectTaskList:
             target_date=date(2026, 10, 29),
         )
         second = Issue.objects.create(name="Scope", project=project, workspace=workspace, state=done, section=gone)
+        status_field = ProjectCustomField.objects.get(name="Status", project=project)
+        on_track = next(option["id"] for option in status_field.options if option["name"] == "On Track")
+        IssueCustomFieldValue.objects.create(
+            issue=first,
+            field=status_field,
+            value=on_track,
+            project=project,
+            workspace=workspace,
+        )
+        for uploaded in (True, False):
+            FileAsset.objects.create(
+                issue=first,
+                project=project,
+                workspace=workspace,
+                entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+                is_uploaded=uploaded,
+            )
         IssueAssignee.objects.create(issue=first, assignee=create_user, project=project, workspace=workspace)
         removed = IssueAssignee.objects.create(issue=first, assignee=teammate, project=project, workspace=workspace)
         removed.deleted_at = timezone.now()
@@ -85,12 +105,15 @@ class TestProjectTaskList:
         tasks = {task["name"]: task for task in response.data["results"]}
         assert tasks["Wireframes"]["section_id"] == section.id
         assert tasks["Wireframes"]["comment_count"] == 2
+        assert tasks["Wireframes"]["attachment_count"] == 1
+        assert tasks["Wireframes"]["status_name"] == "On Track"
         assert tasks["Wireframes"]["assignee_ids"] == [create_user.id]
         assert tasks["Wireframes"]["priority"] == "medium"
         assert str(tasks["Wireframes"]["target_date"]) == "2026-10-29"
         assert tasks["Wireframes"]["state_group"] == "unstarted"
         assert tasks["Scope"]["section_id"] is None
         assert tasks["Scope"]["comment_count"] == 0
+        assert tasks["Scope"]["status_name"] is None
         assert tasks["Scope"]["assignee_ids"] == []
         assert tasks["Scope"]["state_group"] == "completed"
         assert second.id in {task["id"] for task in response.data["results"]}
