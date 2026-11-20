@@ -9,6 +9,7 @@ import type { EditorRefApi } from "@plane/editor";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PeekOverviewIssueDetails } from "./issue-detail";
+import { IssueView } from "./view";
 
 const mocks = vi.hoisted(() => ({
   issue: { id: "task", project_id: "project", name: "Task", description_html: "<p>Details</p>" },
@@ -16,7 +17,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
-vi.mock("@plane/types", () => ({ EFileAssetType: { ISSUE_DESCRIPTION: "issue" } }));
 vi.mock("@/hooks/store/use-issue-detail", () => ({
   useIssueDetail: () => ({ issue: { getIssueById: () => mocks.issue } }),
 }));
@@ -39,6 +39,17 @@ vi.mock("@/components/projects/custom-fields/task-fields", () => ({
 vi.mock("@/components/issues/issue-type-switcher", () => ({ IssueTypeSwitcher: () => null }));
 vi.mock("../issue-detail/parent", () => ({ IssueParentDetail: () => null }));
 vi.mock("../issue-detail/reactions", () => ({ IssueReaction: () => null }));
+vi.mock("../issue-detail/issue-activity", () => ({ IssueActivity: () => null }));
+vi.mock("../issue-detail-widgets", () => ({ IssueDetailWidgets: () => null }));
+vi.mock("./error", () => ({ IssuePeekOverviewError: () => null }));
+vi.mock("./loader", () => ({ IssuePeekOverviewLoader: () => null }));
+vi.mock("./header", () => ({
+  IssuePeekOverviewHeader: ({ setPeekMode }: { setPeekMode: (mode: string) => void }) => (
+    <button type="button" onClick={() => setPeekMode("modal")}>
+      Switch to modal
+    </button>
+  ),
+}));
 vi.mock("../title-input", () => ({ IssueTitleInput: () => <div data-section="title" /> }));
 vi.mock("../issue-detail/summary-properties", () => ({
   IssueSummaryProperties: () => <div data-section="dependencies" />,
@@ -111,5 +122,36 @@ describe("task preview properties placement", () => {
   ])("preserves read-only state for disabled=%s archived=%s", async (disabled, archived) => {
     await render(disabled, archived);
     expect(mocks.properties).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }));
+  });
+
+  it("dims the project area only while task details are shown in the side panel", async () => {
+    const projectPortal = document.createElement("div");
+    projectPortal.id = "project-task-details-portal";
+    const fullScreenPortal = document.createElement("div");
+    fullScreenPortal.id = "full-screen-portal";
+    host.before(projectPortal, fullScreenPortal);
+    try {
+      await act(() =>
+        root.render(
+          <IssueView
+            workspaceSlug="workspace"
+            projectId="project"
+            issueId="task"
+            issueOperations={operations}
+            is_archived={false}
+          />
+        )
+      );
+      const switchMode = projectPortal.querySelector("button")!;
+      expect(projectPortal.querySelector('[aria-hidden="true"]')).not.toBeNull();
+      expect(fullScreenPortal.childElementCount).toBe(0);
+
+      await act(() => switchMode.click());
+      expect(projectPortal.childElementCount).toBe(0);
+      expect(fullScreenPortal.querySelector("button")?.textContent).toBe("Switch to modal");
+    } finally {
+      projectPortal.remove();
+      fullScreenPortal.remove();
+    }
   });
 });

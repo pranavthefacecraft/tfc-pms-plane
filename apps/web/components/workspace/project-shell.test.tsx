@@ -101,6 +101,9 @@ it.each(["/team/notifications/", "/team/notifications/item/", "/team/"])(
     expect([...host.querySelectorAll(".bg-pms-content")]).toEqual([host.querySelector("main")]);
     expect(host.querySelector("main")?.classList.contains("dark:bg-surface-1")).toBe(true);
     expect(host.querySelector("header")?.getAttribute("data-workspace-switcher")).toBe("false");
+    const taskDetailsPortal = host.querySelector("main #project-task-details-portal");
+    expect(taskDetailsPortal?.parentElement).toBe(host.querySelector("main section")?.parentElement);
+    expect(taskDetailsPortal?.parentElement?.previousElementSibling).toBe(host.querySelector("header"));
   }
 );
 

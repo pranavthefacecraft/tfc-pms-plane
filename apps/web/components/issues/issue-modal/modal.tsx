@@ -8,10 +8,12 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import type { EIssuesStoreType, TIssue } from "@plane/types";
+import { EIssuesStoreType } from "@plane/types";
+import type { TIssue } from "@plane/types";
 // local imports
 import { CreateUpdateIssueModalBase } from "./base";
 import { IssueModalProvider } from "./provider";
+import { EditTaskPanel } from "./edit-task-panel";
 import type { TTaskFormPresentation } from "@/components/common/task-form-content";
 
 export interface IssuesModalProps {
@@ -39,7 +41,7 @@ export interface IssuesModalProps {
 
 export const CreateUpdateIssueModal = observer(function CreateUpdateIssueModal(props: IssuesModalProps) {
   // router params
-  const { cycleId, moduleId } = useParams();
+  const { cycleId, moduleId, workspaceSlug } = useParams();
   // derived values
   const dataForPreload = {
     ...props.data,
@@ -48,6 +50,27 @@ export const CreateUpdateIssueModal = observer(function CreateUpdateIssueModal(p
   };
 
   if (!props.isOpen) return null;
+  if (
+    workspaceSlug &&
+    props.data?.id &&
+    props.data.project_id &&
+    !props.isDraft &&
+    !props.beforeFormSubmit &&
+    !props.modalTitle &&
+    !props.primaryButtonText &&
+    !props.templateId &&
+    props.storeType === EIssuesStoreType.PROJECT
+  ) {
+    return (
+      <EditTaskPanel
+        key={props.data.id}
+        slug={workspaceSlug.toString()}
+        projectId={props.data.project_id}
+        issueId={props.data.id}
+        onClose={props.onClose}
+      />
+    );
+  }
   return (
     <IssueModalProvider
       templateId={props.templateId}

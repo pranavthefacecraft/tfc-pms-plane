@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
 // plane imports
@@ -25,6 +25,12 @@ import type { TPeekModes } from "./header";
 import { IssuePeekOverviewHeader } from "./header";
 import { PeekOverviewIssueDetails } from "./issue-detail";
 import { IssuePeekOverviewLoader } from "./loader";
+
+// The shell owns the portal for the lifetime of the task view.
+const subscribeToPortal = () => () => {};
+const getServerPortal = () => null;
+const getFullScreenPortal = () => document.getElementById("full-screen-portal");
+const getSidePeekPortal = () => document.getElementById("project-task-details-portal") ?? getFullScreenPortal();
 
 interface IIssueView {
   workspaceSlug: string;
@@ -102,7 +108,13 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
     const editorImageFullScreenModalElement = document.querySelector(".editor-image-full-screen-modal");
     const dropdownElement = document.activeElement?.tagName === "INPUT";
     const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();
-    if (!isAnyModalOpen && !dropdownElement && !isAnyDropbarOpen && !editorImageFullScreenModalElement) {
+    if (
+      !isAnyModalOpen &&
+      !isAnyLocalModalOpen &&
+      !dropdownElement &&
+      !isAnyDropbarOpen &&
+      !editorImageFullScreenModalElement
+    ) {
       removeRoutePeekId();
       const issueElement = document.getElementById(`issue-${issueId}`);
       if (issueElement) issueElement?.focus();
@@ -122,18 +134,24 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
       ? "absolute z-[25] flex flex-col overflow-hidden rounded-sm border border-subtle bg-surface-1 transition-all duration-300"
       : `h-full w-full`,
     !embedIssue && {
-      "top-0 right-0 bottom-0 w-full border-0 border-l md:w-[50%]": peekMode === "side-peek",
+      "pointer-events-auto top-0 right-0 bottom-0 w-full border-0 border-l md:w-[40vw]": peekMode === "side-peek",
       "top-[8.33%] left-[8.33%] size-5/6": peekMode === "modal",
       "absolute inset-0 m-4": peekMode === "full-screen",
     }
   );
 
-  const shouldUsePortal = !embedIssue;
-
-  const portalContainer = document.getElementById("full-screen-portal") as HTMLElement;
+  const portalContainer = useSyncExternalStore(
+    subscribeToPortal,
+    embedIssue ? getServerPortal : peekMode === "side-peek" ? getSidePeekPortal : getFullScreenPortal,
+    getServerPortal
+  );
+  const showBackdrop = portalContainer?.id === "project-task-details-portal";
 
   const content = (
     <div className="w-full text-body-sm-regular">
+      {issueId && showBackdrop && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/12" />
+      )}
       {issueId && (
         <div
           ref={issuePeekOverviewRef}
@@ -247,5 +265,5 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
     </div>
   );
 
-  return <>{shouldUsePortal && portalContainer ? createPortal(content, portalContainer) : content}</>;
+  return <>{portalContainer ? createPortal(content, portalContainer) : content}</>;
 });

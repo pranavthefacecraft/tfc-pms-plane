@@ -10,19 +10,18 @@ import { ArrowDown, ArrowUp, Plus, Search } from "lucide-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Logo } from "@plane/blocks/emoji-icon-picker";
 import type { TProject } from "@plane/types";
+import { CollaboratorAvatars, collaboratorAddButtonClass } from "@/components/common/collaborator-avatars";
 import { PageHead } from "@/components/core/page-title";
 import { CreateProjectModal } from "@/components/project/create-project-modal";
 import { JoinProjectModal } from "@/components/project/join-project-modal";
-import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { useCurrentTime } from "@/hooks/use-current-time";
 import { InviteCollaboratorsDialog } from "./invite-collaborators-dialog";
-import { browseProjects, initials, lastModifiedLabel } from "./projects-browse.helpers";
+import { browseProjects, lastModifiedLabel } from "./projects-browse.helpers";
 import type { TSortDirection } from "./projects-browse.helpers";
 
-const MAX_AVATARS = 2;
 const NO_MEMBERS: string[] = [];
 
 function ProjectIcon({ project }: { project: TProject }) {
@@ -37,7 +36,7 @@ function ProjectIcon({ project }: { project: TProject }) {
   );
 }
 
-const ProjectCollaborators = observer(function ProjectCollaborators({
+function ProjectCollaborators({
   ids,
   onInvite,
   projectName,
@@ -46,33 +45,9 @@ const ProjectCollaborators = observer(function ProjectCollaborators({
   onInvite?: () => void;
   projectName: string;
 }) {
-  const { getUserDetails } = useMember();
-  const hidden = ids.length - MAX_AVATARS;
   return (
-    <div className="flex items-center -space-x-1">
-      {ids.slice(0, MAX_AVATARS).map((id) => {
-        const person = getUserDetails(id);
-        const name =
-          person?.display_name || `${person?.first_name ?? ""} ${person?.last_name ?? ""}`.trim() || "Team member";
-        return (
-          <span
-            key={id}
-            title={name}
-            aria-label={name}
-            className="grid size-7 place-items-center rounded-full border-2 border-white bg-[#1764E8] text-10 font-medium text-white"
-          >
-            {initials(name)}
-          </span>
-        );
-      })}
-      {hidden > 0 && (
-        <span
-          className="grid size-7 place-items-center rounded-full border-2 border-white bg-[#E8DFFD] text-10 font-medium text-[#7955BE]"
-          aria-label={`${hidden} more collaborators`}
-        >
-          +{hidden}
-        </span>
-      )}
+    <div className="flex items-center gap-1.5">
+      <CollaboratorAvatars ids={ids} variant="project" />
       {onInvite && (
         <button
           type="button"
@@ -83,14 +58,14 @@ const ProjectCollaborators = observer(function ProjectCollaborators({
           onKeyDown={(event) => event.stopPropagation()}
           aria-label={`Add collaborators to ${projectName}`}
           title="Add collaborators"
-          className="!ml-1 grid size-7 place-items-center rounded-full border border-dashed border-[#A8B5C9] text-secondary hover:border-[#135DDD] hover:text-[#135DDD]"
+          className={collaboratorAddButtonClass}
         >
-          <Plus className="size-3.5" />
+          <Plus aria-hidden="true" className="size-3.5" />
         </button>
       )}
     </div>
   );
-});
+}
 
 function ProjectRow({
   project,

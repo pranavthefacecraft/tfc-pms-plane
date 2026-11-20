@@ -43,7 +43,7 @@ it("renders an accessible, responsive right-side panel without a backdrop", asyn
   expect(panel).not.toBeNull();
   expect(panel.classList.contains("right-0")).toBe(true);
   expect(panel.classList.contains("inset-y-0")).toBe(true);
-  expect(panel.classList.contains("md:w-1/2")).toBe(true);
+  expect(panel.classList.contains("md:w-[40vw]")).toBe(true);
   expect(panel.classList.contains("w-full")).toBe(true);
   expect(panel.classList.contains("overflow-y-auto")).toBe(true);
   expect(panel.getAttribute("aria-modal")).not.toBe("true");

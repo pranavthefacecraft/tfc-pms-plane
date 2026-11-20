@@ -34,6 +34,7 @@ export type TMyTasksResponse = {
 };
 export type TMyTaskListItem = TMyTask & {
   project_name: string;
+  updated_at?: string;
   assignee_ids: string[];
   section_id: string | null;
   section_name: string | null;

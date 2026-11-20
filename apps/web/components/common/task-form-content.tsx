@@ -17,7 +17,7 @@ export function TaskFormContent({
 
   return (
     <BaseDialog.Portal>
-      <BaseDialog.Popup className="shadow-xl fixed inset-y-0 right-0 z-30 flex w-full flex-col overflow-y-auto border-l border-subtle bg-surface-1 outline-none md:w-1/2">
+      <BaseDialog.Popup className="shadow-xl fixed inset-y-0 right-0 z-30 flex w-full flex-col overflow-y-auto border-l border-subtle bg-surface-1 outline-none md:w-[40vw]">
         {children}
       </BaseDialog.Popup>
     </BaseDialog.Portal>

@@ -6,12 +6,26 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { Check, ChevronDown, GitBranch, ListOrdered, MessageSquare, Paperclip, Plus } from "lucide-react";
+import { Check, ChevronDown, GitBranch, MessageSquare, Paperclip, Plus } from "lucide-react";
+import {
+  Menu,
+  MenuContent,
+  MenuGroup,
+  MenuLabel,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuTrigger,
+} from "@makeplane/propel/components/menu";
 import type { TIssuePriorities } from "@plane/types";
-import { CollaboratorAvatars } from "@/components/common/collaborator-avatars";
+import { CollaboratorAvatars, collaboratorAddButtonClass } from "@/components/common/collaborator-avatars";
+import { sortTasks, TaskSortMenu } from "@/components/common/task-sort";
+import type { TaskSortOrder } from "@/components/common/task-sort";
+import { MemberSelect } from "@/components/dropdowns/member/member-select";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import type { TProjectListTask } from "@/services/project/project-task-list.service";
 import { AddStage } from "./add-stage";
+import { useCustomFields } from "./custom-fields/service";
+import type { CustomField } from "./custom-fields/service";
 import { PRIORITY_LABELS, dueDateDetails, isCompleted } from "./project-list.helpers";
 import type { TProjectListGroup } from "./project-list.helpers";
 import {
@@ -26,15 +40,20 @@ import { useProjectTaskList } from "./use-project-task-list";
 type TRowActions = {
   today: string;
   canEdit: boolean;
+  projectId: string;
   busy: Set<string>;
   onToggle: (task: TProjectListTask) => Promise<void>;
+  onSetPriority: (task: TProjectListTask, priority: TIssuePriorities) => Promise<void>;
+  onAddCollaborator: (task: TProjectListTask, memberId: string) => Promise<void>;
+  statusField?: CustomField;
+  onSetStatus: (task: TProjectListTask, fieldId: string, value: string | null) => Promise<void>;
   onOpen: (task: TProjectListTask) => void;
   onAdd: (target: TCreateTarget) => void;
 };
 
 const COLUMN_COUNT = 5;
 const priorityClasses: Record<TIssuePriorities, string> = {
-  urgent: "bg-red-900 text-white",
+  urgent: "bg-[#701A24] text-white",
   high: "bg-[#9B1818] text-white",
   medium: "bg-[#FDE68A] text-[#111827]",
   low: "bg-[#E2E7EF] text-[#3A4D66]",
@@ -50,18 +69,137 @@ const statusClasses: Record<string, string> = {
   completed: "bg-[#E8FAF2] text-[#00664F]",
   blocked: "bg-[#FDEFEF] text-[#A81919]",
   "at risk": "bg-amber-100 text-amber-900",
+  "needs attention": "bg-[#FDE68A] text-[#573A03]",
+  "on hold": "bg-[#EFE8FE] text-[#6338A7]",
 };
 const neutralStatus = "bg-[#E2E7EF] text-[#3A4D66]";
 const badge = "inline-flex min-h-6 items-center gap-1 whitespace-nowrap px-2 text-14 leading-5 font-medium";
+const priorityOptions = ["none", "low", "medium", "high", "urgent"] as const satisfies readonly TIssuePriorities[];
+
+function TaskPriority({
+  task,
+  canEdit,
+  busy,
+  onSetPriority,
+}: Pick<TaskRowProps, "task" | "canEdit" | "busy" | "onSetPriority">) {
+  const priority = task.priority ?? "none";
+  const className = `${badge} rounded-md ${priorityClasses[priority]}`;
+  if (!canEdit) return <span className={className}>{PRIORITY_LABELS[priority]}</span>;
+
+  return (
+    <Menu>
+      <MenuTrigger
+        disabled={busy.has(task.id)}
+        render={
+          <button
+            type="button"
+            className={`${className} cursor-pointer disabled:cursor-wait`}
+            aria-label={`Set priority for ${task.name}: ${PRIORITY_LABELS[priority]}`}
+          >
+            {PRIORITY_LABELS[priority]}
+          </button>
+        }
+      />
+      <MenuContent align="start">
+        <MenuGroup>
+          <MenuLabel>Set Priority</MenuLabel>
+          <MenuRadioGroup
+            value={priority}
+            onValueChange={(value) => {
+              const next = priorityOptions.find((option) => option === value);
+              if (next && next !== priority) void onSetPriority(task, next);
+            }}
+          >
+            {priorityOptions.map((option) => (
+              <div
+                key={option}
+                className={`[&>[role=menuitemradio][data-highlighted]]:ring-accent-primary mb-1 rounded-md [&>[role=menuitemradio]]:bg-transparent! [&>[role=menuitemradio]]:text-inherit! [&>[role=menuitemradio][data-highlighted]]:ring-2 [&>[role=menuitemradio][data-highlighted]]:ring-inset ${option === "none" ? "text-primary" : option === "low" ? "bg-[#C8D9F5] text-[#3A4D66]" : priorityClasses[option]}`}
+              >
+                <MenuRadioItem
+                  value={option}
+                  label={option === "none" ? "No Priority" : PRIORITY_LABELS[option]}
+                  closeOnClick
+                />
+              </div>
+            ))}
+          </MenuRadioGroup>
+        </MenuGroup>
+      </MenuContent>
+    </Menu>
+  );
+}
+
+function statusColors(name: string | null | undefined) {
+  const key = name?.toLowerCase() ?? "";
+  return Object.hasOwn(statusClasses, key) ? statusClasses[key] : neutralStatus;
+}
 
 function TaskStatusBadge({ name }: { name: string | null | undefined }) {
-  const key = name?.toLowerCase() ?? "";
-  const colors = Object.hasOwn(statusClasses, key) ? statusClasses[key] : neutralStatus;
   return (
-    <span className={`${badge} rounded-full ${colors}`}>
+    <span className={`${badge} rounded-full ${statusColors(name)}`}>
       {!name && <span aria-hidden="true" className="size-1.5 rounded-full bg-[#6E829E]" />}
       {name || "No Status"}
     </span>
+  );
+}
+
+function TaskStatus({
+  task,
+  canEdit,
+  busy,
+  statusField,
+  onSetStatus,
+}: Pick<TaskRowProps, "task" | "canEdit" | "busy" | "statusField" | "onSetStatus">) {
+  const name = task.status_name;
+  if (!canEdit || !statusField?.options.length) return <TaskStatusBadge name={name} />;
+  // The list returns the name; option names are unique within each field.
+  const selected = statusField.options.find((option) => option.name === name)?.id ?? "";
+  const options = [...statusField.options, ...(name ? [{ id: "", name: "No Status" }] : [])];
+  return (
+    <Menu>
+      <MenuTrigger
+        disabled={busy.has(task.id)}
+        render={
+          <button
+            type="button"
+            className="cursor-pointer rounded-full disabled:cursor-wait"
+            aria-label={`Set status for ${task.name}: ${name || "No Status"}`}
+          >
+            <TaskStatusBadge name={name} />
+          </button>
+        }
+      />
+      <MenuContent align="start">
+        <MenuGroup>
+          <MenuLabel>Set Status</MenuLabel>
+          <MenuRadioGroup
+            value={selected}
+            onValueChange={(value) => {
+              const next = options.find((option) => option.id === value);
+              if (next && next.id !== selected) void onSetStatus(task, statusField.id, next.id || null);
+            }}
+          >
+            {options.map((option) => (
+              <div
+                key={option.id}
+                className="mb-1 [&_.truncate]:sr-only [&_[aria-checked=true]]:bg-[#F2F5FD] dark:[&_[aria-checked=true]]:bg-layer-2"
+              >
+                <MenuRadioItem
+                  value={option.id}
+                  label={option.name}
+                  icon={
+                    <span aria-hidden="true">
+                      <TaskStatusBadge name={option.id ? option.name : null} />
+                    </span>
+                  }
+                  closeOnClick
+                />
+              </div>
+            ))}
+          </MenuRadioGroup>
+        </MenuGroup>
+      </MenuContent>
+    </Menu>
   );
 }
 
@@ -96,7 +234,7 @@ function TaskNameCell({ task, depth, childCount, expanded, onExpand, canEdit, bu
   const completed = isCompleted(task);
   const pending = busy.has(task.id);
   return (
-    <td className="max-w-[520px] py-2 pr-3" style={{ paddingInlineStart: 12 + Math.min(depth, 8) * 20 }}>
+    <td className="max-w-[520px] pr-3" style={{ paddingInlineStart: 12 + Math.min(depth, 8) * 20 }}>
       <div className="flex items-center gap-2">
         {(childCount > 0 || canEdit) && (
           <button
@@ -121,7 +259,7 @@ function TaskNameCell({ task, depth, childCount, expanded, onExpand, canEdit, bu
         <button
           type="button"
           onClick={() => onOpen(task)}
-          className={`truncate text-left hover:underline ${completed ? "text-secondary line-through" : "text-primary"}`}
+          className={`min-w-0 flex-1 cursor-pointer truncate py-2 text-left hover:underline ${completed ? "text-secondary line-through" : "text-primary"}`}
         >
           {task.name}
         </button>
@@ -132,32 +270,42 @@ function TaskNameCell({ task, depth, childCount, expanded, onExpand, canEdit, bu
 }
 
 function ProjectListRow(props: TaskRowProps) {
-  const { task, today, canEdit, onOpen } = props;
+  const { task, today, canEdit, projectId, busy, onAddCollaborator } = props;
   const due = dueDateDetails(task, today);
-  const priority = task.priority ?? "none";
   return (
     <tr className="border-b border-subtle hover:bg-layer-transparent-hover">
       <TaskNameCell {...props} />
       <td className="px-2 py-1">
-        <div className="flex items-center gap-1">
-          <CollaboratorAvatars ids={task.assignee_ids} pastel />
+        <div className="flex items-center gap-1.5">
+          <CollaboratorAvatars ids={task.assignee_ids} variant="project" />
           {canEdit && (
-            <button
-              type="button"
-              aria-label={`Edit collaborators for ${task.name}`}
-              onClick={() => onOpen(task)}
-              className="border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100 grid size-5 place-items-center rounded-full border border-dashed"
-            >
-              <Plus className="size-3" />
-            </button>
+            <MemberSelect
+              projectId={projectId}
+              excludeIds={task.assignee_ids}
+              value={null}
+              onChange={(memberId) => void onAddCollaborator(task, memberId)}
+              variant="icon-sm"
+              placeholder={`Add collaborator to ${task.name}`}
+              searchPlaceholder="Name or email"
+              emptyMessage="No additional team members found"
+              emptyTriggerIcon={<Plus aria-hidden="true" className="size-3.5" />}
+              disabled={busy.has(task.id)}
+              className={collaboratorAddButtonClass}
+            />
           )}
         </div>
       </td>
       <td className="px-2 py-1">
-        <span className={`${badge} rounded-md ${priorityClasses[priority]}`}>{PRIORITY_LABELS[priority]}</span>
+        <TaskPriority task={task} canEdit={canEdit} busy={props.busy} onSetPriority={props.onSetPriority} />
       </td>
       <td className="px-2 py-1">
-        <TaskStatusBadge name={task.status_name} />
+        <TaskStatus
+          task={task}
+          canEdit={canEdit}
+          busy={props.busy}
+          statusField={props.statusField}
+          onSetStatus={props.onSetStatus}
+        />
       </td>
       <td
         className={`px-2 py-1 text-12 whitespace-nowrap ${due.label === "Today" ? "text-red-700 dark:text-red-300 font-medium" : due.className}`}
@@ -169,19 +317,14 @@ function ProjectListRow(props: TaskRowProps) {
 }
 
 type TaskTree = { task: TProjectListTask; children: TaskTree[] };
-type SortOrder = "default" | "name" | "priority" | "due";
-const priorityOrder = ["urgent", "high", "medium", "low", "none"];
 
-function taskTree(tasks: TProjectListTask[], sort: SortOrder) {
-  const ordered = tasks.slice();
-  // oxlint-disable-next-line unicorn/no-array-sort -- sort a fresh copy; the web target lacks toSorted.
-  if (sort !== "default")
-    ordered.sort((left, right) => {
-      if (sort === "name") return left.name.localeCompare(right.name);
-      if (sort === "priority")
-        return priorityOrder.indexOf(left.priority ?? "none") - priorityOrder.indexOf(right.priority ?? "none");
-      return (left.target_date ?? "9999").localeCompare(right.target_date ?? "9999");
-    });
+function taskTree(tasks: TProjectListTask[], sort: TaskSortOrder, today: string) {
+  const ordered = sortTasks(tasks, sort, today, (task) => ({
+    name: task.name,
+    due: task.target_date,
+    completed: isCompleted(task),
+    updatedAt: task.updated_at,
+  }));
   const nodes = new Map(ordered.map((task): [string, TaskTree] => [task.id, { task, children: [] }]));
   const roots: TaskTree[] = [];
   for (const node of nodes.values()) {
@@ -258,7 +401,7 @@ function ProjectListGroup({
   group: TProjectListGroup;
   collapsed: boolean;
   onCollapse: (key: string) => void;
-  sort: SortOrder;
+  sort: TaskSortOrder;
   showMatches: boolean;
 }) {
   return (
@@ -277,7 +420,7 @@ function ProjectListGroup({
         </th>
       </tr>
       {!collapsed &&
-        taskTree(group.tasks, sort).map((node) => (
+        taskTree(group.tasks, sort, actions.today).map((node) => (
           <ProjectTaskBranch key={node.task.id} node={node} depth={0} showMatches={showMatches} {...actions} />
         ))}
       {!collapsed && actions.canEdit && (
@@ -309,7 +452,7 @@ export const ProjectList = observer(function ProjectList({
   const list = useProjectTaskList(workspaceSlug, projectId);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState<TCreateTarget | null>(null);
-  const [sort, setSort] = useState<SortOrder>("default");
+  const [sort, setSort] = useState<TaskSortOrder>("default");
   const collapse = (key: string) =>
     setCollapsed((previous) => {
       const next = new Set(previous);
@@ -317,11 +460,17 @@ export const ProjectList = observer(function ProjectList({
       else next.add(key);
       return next;
     });
+  const { data: fields } = useCustomFields(workspaceSlug, projectId);
   const actions: TRowActions = {
     today: list.today,
     canEdit: list.canEdit,
+    projectId,
     busy: list.busy,
     onToggle: list.toggle,
+    onSetPriority: list.setPriority,
+    onAddCollaborator: list.addCollaborator,
+    statusField: fields?.find((field) => field.field_type === "single_select" && field.name.toLowerCase() === "status"),
+    onSetStatus: list.setStatus,
     onOpen: list.open,
     onAdd: setCreating,
   };
@@ -330,25 +479,7 @@ export const ProjectList = observer(function ProjectList({
       <ProjectTasksToolbar
         list={list}
         onAdd={() => setCreating({})}
-        sort={
-          <label className="relative inline-flex h-9 min-w-[92px] items-center rounded-md border border-subtle bg-white text-14 hover:bg-layer-1-hover dark:bg-surface-1">
-            <ListOrdered aria-hidden="true" className="pointer-events-none absolute left-4 size-3.5" />
-            <select
-              aria-label="Sort tasks"
-              value={sort}
-              className="h-full w-full cursor-pointer appearance-none rounded-md bg-transparent pr-3 pl-9"
-              onChange={(event) => {
-                const value = event.target.value;
-                if (value === "default" || value === "name" || value === "priority" || value === "due") setSort(value);
-              }}
-            >
-              <option value="default">Sort</option>
-              <option value="name">Name</option>
-              <option value="priority">Priority</option>
-              <option value="due">Due date</option>
-            </select>
-          </label>
-        }
+        sort={<TaskSortMenu value={sort} onChange={setSort} />}
       />
       {list.failed || list.loading ? (
         <ProjectTasksLoadState failed={list.failed} onRetry={list.retry} />

@@ -83,6 +83,7 @@ export function NewTaskProjectFields({
   onReady,
   scheduleFields,
   priorityField,
+  issueId,
 }: {
   slug: string;
   draft: TNewTaskDraft;
@@ -91,6 +92,7 @@ export function NewTaskProjectFields({
   onReady: (ready: boolean) => void;
   scheduleFields: ReactNode;
   priorityField: ReactNode;
+  issueId?: string;
 }) {
   const { fetchProjectStates } = useProjectState();
   const [choosingDependencies, setChoosingDependencies] = useState(false);
@@ -155,6 +157,7 @@ export function NewTaskProjectFields({
           isOpen
           handleClose={() => setChoosingDependencies(false)}
           searchParams={{}}
+          shouldHideIssue={(task) => task.id === issueId}
           selectedWorkItemIds={draft.dependencies.map((task) => task.id)}
           handleOnSubmit={async (tasks: ISearchIssueResponse[]) => {
             const merged = new Map(draft.dependencies.map((task) => [task.id, task]));

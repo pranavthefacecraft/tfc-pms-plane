@@ -7,7 +7,8 @@
 import { observer } from "mobx-react";
 import { useMember } from "@/hooks/store/use-member";
 
-const pastelBackgrounds = ["bg-[#FFD2DD]", "bg-[#DED0F7]", "bg-[#A7F3D0]"];
+export const collaboratorAddButtonClass =
+  "grid size-8 shrink-0 cursor-pointer place-items-center rounded-full border border-dashed border-[#135DDD] bg-[#EAF2FF] p-0 text-[#3A4D66] hover:bg-[#DCEAFF] disabled:cursor-not-allowed";
 
 function initials(name: string) {
   const words = name
@@ -20,18 +21,21 @@ function initials(name: string) {
   return first[0] + (second?.[0] ?? first[1] ?? first[0]);
 }
 
-/** Up to three overlapping initials avatars for a task's collaborators, then a "+N" overflow. */
 export const CollaboratorAvatars = observer(function CollaboratorAvatars({
   ids,
-  pastel = false,
+  variant = "compact",
 }: {
   ids: string[];
-  pastel?: boolean;
+  variant?: "compact" | "project";
 }) {
   const { getUserDetails } = useMember();
+  if (!ids.length) return null;
+  const project = variant === "project";
+  const maxVisible = project ? 2 : 3;
+  const hidden = ids.length - maxVisible;
   return (
-    <div className={`flex items-center ${pastel ? "gap-1" : "-space-x-1"}`}>
-      {ids.slice(0, 3).map((id) => {
+    <div className={`flex shrink-0 items-center ${project ? "-space-x-2" : "-space-x-1"}`}>
+      {ids.slice(0, maxVisible).map((id) => {
         const person = getUserDetails(id);
         const name =
           person?.display_name || `${person?.first_name ?? ""} ${person?.last_name ?? ""}`.trim() || "Team member";
@@ -40,13 +44,24 @@ export const CollaboratorAvatars = observer(function CollaboratorAvatars({
             key={id}
             title={name}
             aria-label={name}
-            className={`grid size-6 shrink-0 place-items-center rounded-full font-medium ${pastel ? `${pastelBackgrounds[id.charCodeAt(0) % pastelBackgrounds.length]} text-11 text-[#111827]` : "border-surface-1 border-2 bg-[#1764E8] text-10 text-white"}`}
+            className={`grid shrink-0 place-items-center rounded-full font-medium text-white ${project ? "size-8 bg-[#135DDD] text-14" : "border-surface-1 size-6 border-2 bg-[#1764E8] text-10"}`}
           >
             {initials(name)}
           </span>
         );
       })}
-      {ids.length > 3 && <span className="pl-2 text-11 text-secondary">+{ids.length - 3}</span>}
+      {hidden > 0 && (
+        <span
+          aria-label={`${hidden} more collaborators`}
+          className={
+            project
+              ? "grid size-8 shrink-0 place-items-center rounded-full bg-[#EAF2FF] text-14 font-semibold text-[#135DDD]"
+              : "pl-2 text-11 text-secondary"
+          }
+        >
+          +{hidden}
+        </span>
+      )}
     </div>
   );
 });

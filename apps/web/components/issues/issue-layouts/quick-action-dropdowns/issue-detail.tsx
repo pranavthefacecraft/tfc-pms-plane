@@ -167,7 +167,7 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
       if (item.key === "edit") {
         return {
           ...item,
-          shouldRender: isEditingAllowed && !isPeekMode,
+          shouldRender: isEditingAllowed,
         };
       }
       // Customize delete action for work item

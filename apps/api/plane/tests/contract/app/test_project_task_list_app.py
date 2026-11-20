@@ -106,6 +106,7 @@ class TestProjectTaskList:
         assert tasks["Wireframes"]["section_id"] == section.id
         assert tasks["Wireframes"]["comment_count"] == 2
         assert tasks["Wireframes"]["attachment_count"] == 1
+        assert tasks["Wireframes"]["updated_at"] is not None
         assert tasks["Wireframes"]["status_name"] == "On Track"
         assert tasks["Wireframes"]["assignee_ids"] == [create_user.id]
         assert tasks["Wireframes"]["priority"] == "medium"

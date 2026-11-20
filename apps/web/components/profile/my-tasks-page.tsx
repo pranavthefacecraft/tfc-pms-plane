@@ -13,6 +13,8 @@ import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import { PageHead } from "@/components/core/page-title";
 import { CollaboratorAvatars } from "@/components/common/collaborator-avatars";
 import { TaskSearch } from "@/components/common/task-search";
+import { sortTasks, TaskSortMenu } from "@/components/common/task-sort";
+import type { TaskSortOrder } from "@/components/common/task-sort";
 import { zonedDateKey } from "@/components/home/activity-overview.helpers";
 import { IssueService } from "@/services/issue/issue.service";
 import { MyTasksService } from "@/services/workspace-my-tasks.service";
@@ -501,6 +503,16 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
     reschedule,
   } = useMyTasks(workspaceSlug);
   const [layout, setLayout] = useState<TLayout>("list");
+  const [sort, setSort] = useState<TaskSortOrder>("default");
+  const rows =
+    layout === "list"
+      ? sortTasks(visible, sort, today, (row) => ({
+          name: row.name,
+          due: row.due,
+          completed: row.completed,
+          updatedAt: row.personal?.updated_at ?? row.project?.updated_at,
+        }))
+      : visible;
   return (
     <div className="relative h-full">
       {/* The shared timeline's full-screen mode renders into this container. */}
@@ -531,6 +543,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
             )}
             <div className="flex flex-wrap items-center gap-2">
               <TaskFilters filters={filters} onApply={setFilters} projects={projects} />
+              {layout === "list" && <TaskSortMenu value={sort} onChange={setSort} />}
               <TaskSearch query={query} setQuery={setQuery} />
             </div>
           </div>
@@ -549,7 +562,7 @@ export const MyTasksPage = observer(function MyTasksPage({ workspaceSlug }: { wo
               workspaceSlug={workspaceSlug}
               userId={user?.id}
               canEditPersonal={canEditPersonal}
-              rows={visible}
+              rows={rows}
               scopedRows={scoped}
               query={query}
               filtered={filtered}

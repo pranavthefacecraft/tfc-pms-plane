@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
 import { MemberSelect as MemberSelectBlock } from "@plane/blocks/property-select";
-import type { MemberOption, MemberSelectVariant } from "@plane/blocks/property-select";
+import type { MemberOption, MemberSelectProps, MemberSelectVariant } from "@plane/blocks/property-select";
 import type { SelectPaginationParams, SelectTooltip, SelectTooltipOverride } from "@plane/blocks/select";
 import { useTranslation } from "@plane/i18n";
 import type { TPaginatedResponse } from "@plane/types";
@@ -40,6 +40,8 @@ type MemberSelectWebCommonProps = {
   clearLabel?: string;
   disabled?: boolean;
   placeholder?: string;
+  searchPlaceholder?: string;
+  emptyTriggerIcon?: MemberSelectProps["emptyTriggerIcon"];
   onClose?: () => void;
   className?: string;
   tooltip?: SelectTooltip;
@@ -173,6 +175,8 @@ export const MemberSelect = observer(function MemberSelect(props: MemberSelectWe
         showLabel={showLabel}
         disabled={disabled}
         placeholder={placeholder}
+        searchPlaceholder={props.searchPlaceholder}
+        emptyTriggerIcon={props.emptyTriggerIcon}
         onClose={onClose}
         className={className}
         tooltip={resolvedTooltip}
@@ -195,6 +199,8 @@ export const MemberSelect = observer(function MemberSelect(props: MemberSelectWe
       clearLabel={clearLabel}
       disabled={disabled}
       placeholder={placeholder}
+      searchPlaceholder={props.searchPlaceholder}
+      emptyTriggerIcon={props.emptyTriggerIcon}
       onClose={onClose}
       className={className}
       tooltip={resolvedTooltip}

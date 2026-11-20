@@ -25,7 +25,10 @@ export const ProjectShell = observer(function ProjectShell({ children }: { child
           <ExtendedProjectSidebar />
           <main className="bg-pms-content relative isolate flex h-full min-w-0 flex-1 flex-col overflow-hidden dark:bg-surface-1">
             <TopNavigationRoot showWorkspaceMenu={false} showSidebarToggle={!!sidebarCollapsed} />
-            {children}
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <div id="project-task-details-portal" className="pointer-events-none absolute inset-0 z-[25]" />
+              {children}
+            </div>
           </main>
         </div>
       </div>

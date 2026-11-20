@@ -89,6 +89,7 @@ class ProjectTaskListEndpoint(BaseAPIView):
                 "priority",
                 "start_date",
                 "target_date",
+                "updated_at",
                 "state_id",
                 "state_group",
                 "parent_id",

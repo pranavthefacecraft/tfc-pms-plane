@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { observer } from "mobx-react";
 import { X } from "lucide-react";
 import { Dialog, DialogTitle } from "@makeplane/propel/components/dialog";
@@ -36,6 +36,13 @@ type Props = {
   /** Limits the projects offered; personal tasks are not offered when set. */
   allowedProjectIds?: string[];
   createIssue?: TCreateTaskIssue;
+  edit?: {
+    issueId: string;
+    save: (draft: TNewTaskDraft, progress: TTaskSaveProgress) => Promise<void>;
+    descriptionEditor: (disabled: boolean) => ReactNode;
+    attachments: { id: string; name: string }[];
+    subtasks: { id: string; name: string }[];
+  };
 };
 
 const priorities = [
@@ -54,6 +61,7 @@ function useNewTaskForm({
   projectLocked,
   allowedProjectIds,
   createIssue,
+  edit,
 }: Props) {
   const { joinedProjectIds, getProjectById } = useProject();
   const [draft, setDraft] = useState<TNewTaskDraft>(() => ({
@@ -101,7 +109,10 @@ function useNewTaskForm({
     setBusy(true);
     setError("");
     try {
-      if (draft.projectId) {
+      if (edit) {
+        await edit.save(draft, progress.current);
+        setToast({ type: "success", title: "Task saved", message: "Your changes were saved." });
+      } else if (draft.projectId) {
         const issue = await saveProjectTask(workspaceSlug, draft, progress.current, createIssue);
         onSaved(undefined, issue);
         setToast({
@@ -127,10 +138,10 @@ function useNewTaskForm({
       }
       onClose();
     } catch (cause) {
-      console.error("New task save failed", cause);
-      const saved = Boolean(progress.current.issue);
+      console.error("Task save failed", cause);
+      const saved = Boolean(progress.current.issue) || progress.current.completed.has("issue-update");
       setPartial(saved);
-      const message = `${saved ? "The task was created, but some details were not saved. Retry to finish without creating another task. " : ""}${newTaskError(cause)}`;
+      const message = `${saved ? (edit ? "Some changes were saved. Retry to finish saving the remaining changes. " : "The task was created, but some details were not saved. Retry to finish without creating another task. ") : ""}${newTaskError(cause)}`;
       setError(message);
       setToast({ type: "error", title: saved ? "Task partially saved" : "Task could not be saved", message });
     } finally {
@@ -159,7 +170,8 @@ function useNewTaskForm({
 
 export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
   const projectSelect = useRef<HTMLSelectElement>(null);
-  const { workspaceSlug, onClose } = props;
+  const { workspaceSlug, onClose, edit } = props;
+  const title = edit ? "Edit Task" : "New Task";
   const {
     draft,
     busy,
@@ -237,11 +249,13 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
     <Dialog
       open
       modal={false}
+      disablePointerDismissal={Boolean(edit)}
       actionsRef={actions}
       discard={{
         when: partial,
-        description:
-          "The task exists, but some selected details are not saved. Closing discards the remaining draft; the task is kept.",
+        description: edit
+          ? "Closing discards the remaining unsaved changes. Previously saved changes will be kept."
+          : "The task exists, but some selected details are not saved. Closing discards the remaining draft; the task is kept.",
       }}
       onOpenChange={(open) => {
         if (!open && !pending.current) onClose();
@@ -249,7 +263,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
     >
       <TaskFormContent presentation="side-panel" size="md">
         <div className="flex items-center justify-between px-5 pt-6 pb-3">
-          <DialogTitle render={<h2 className="text-24! font-semibold!">New Task</h2>}>New Task</DialogTitle>
+          <DialogTitle render={<h2 className="text-24! font-semibold!">{title}</h2>}>{title}</DialogTitle>
           <button
             type="button"
             aria-label="Close task panel"
@@ -287,6 +301,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
               onReady={setProjectReady}
               scheduleFields={scheduleFields}
               priorityField={priorityField}
+              issueId={edit?.issueId}
             />
           ) : (
             <>
@@ -311,7 +326,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
               </TaskProperty>
             </>
           )}
-          <TaskAttachments draft={draft} disabled={disabled} onChange={change} />
+          <TaskAttachments draft={draft} disabled={disabled} onChange={change} existing={edit?.attachments} />
           {!draft.projectId && <p className="mb-3 text-12 text-secondary">{hints.choose}</p>}
           <TaskProperty label="Start date">
             <TaskDateField
@@ -322,28 +337,43 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
               onChange={(start_date) => change({ start_date })}
             />
           </TaskProperty>
-          <label className="my-3 flex flex-col gap-2 border-y border-subtle bg-layer-1 p-3 text-13 font-medium">
-            Description
-            <textarea
-              aria-label="Description"
-              placeholder="Add a description..."
-              rows={4}
-              maxLength={20000}
-              className="font-normal resize-y bg-transparent outline-none"
-              value={draft.description}
-              disabled={disabled}
-              onChange={(event) => change({ description: event.target.value })}
-            />
-          </label>
-          <TaskSubtasks draft={draft} disabled={disabled} onChange={change} />
+          {edit ? (
+            <section aria-label="Description" className="my-3 border-y border-subtle bg-layer-1 p-3 text-13">
+              <h3 className="mb-2 font-medium">Description</h3>
+              {edit.descriptionEditor(disabled)}
+            </section>
+          ) : (
+            <label className="my-3 flex flex-col gap-2 border-y border-subtle bg-layer-1 p-3 text-13 font-medium">
+              Description
+              <textarea
+                aria-label="Description"
+                placeholder="Add a description..."
+                rows={4}
+                maxLength={20000}
+                className="font-normal resize-y bg-transparent outline-none"
+                value={draft.description}
+                disabled={disabled}
+                onChange={(event) => change({ description: event.target.value })}
+              />
+            </label>
+          )}
+          <TaskSubtasks draft={draft} disabled={disabled} onChange={change} existing={edit?.subtasks} />
           {error && (
             <p role="alert" className="my-3 text-13 text-danger-primary">
               {error}
             </p>
           )}
-          <p className="my-3 text-12 text-secondary">{hints.saved}</p>
+          <p className="my-3 text-12 text-secondary">{edit ? "Changes are applied when you save." : hints.saved}</p>
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="md" stretch="auto" label="Cancel" disabled={busy} onClick={close} />
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              stretch="auto"
+              label="Cancel"
+              disabled={busy}
+              onClick={close}
+            />
             <Button
               variant="primary"
               size="md"
@@ -364,10 +394,12 @@ function TaskAttachments({
   draft,
   disabled,
   onChange,
+  existing,
 }: {
   draft: TNewTaskDraft;
   disabled: boolean;
   onChange: (patch: Partial<TNewTaskDraft>) => void;
+  existing?: { id: string; name: string }[];
 }) {
   const enabled = !disabled && Boolean(draft.projectId);
   return (
@@ -391,6 +423,11 @@ function TaskAttachments({
           }}
         />
       </label>
+      {existing?.map(({ id, name }) => (
+        <p key={id} className="truncate text-12">
+          {name}
+        </p>
+      ))}
       {draft.files.map((file) => (
         <div key={taskFileKey(file)} className="flex gap-2 text-12">
           <span className="truncate">{file.name}</span>
@@ -412,14 +449,21 @@ function TaskSubtasks({
   draft,
   disabled,
   onChange,
+  existing,
 }: {
   draft: TNewTaskDraft;
   disabled: boolean;
   onChange: (patch: Partial<TNewTaskDraft>) => void;
+  existing?: { id: string; name: string }[];
 }) {
   return (
     <section aria-label="Subtasks" className="border-b border-subtle pb-4">
       <h3 className="mb-3 text-13 font-semibold">Subtasks</h3>
+      {existing?.map(({ id, name }) => (
+        <p key={id} className="mb-2 truncate text-13">
+          {name}
+        </p>
+      ))}
       {draft.subtasks.map((task, index) => (
         <div key={task.id} className="mb-2 flex gap-2">
           <input

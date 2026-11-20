@@ -15,6 +15,7 @@ export type TProjectListTask = {
   priority: TIssuePriorities;
   start_date: string | null;
   target_date: string | null;
+  updated_at?: string;
   state_id: string;
   state_group: TStateGroups;
   parent_id: string | null;

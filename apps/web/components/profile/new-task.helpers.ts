@@ -3,6 +3,7 @@ import type { TIssue } from "@plane/types";
 import { customFields } from "@/components/projects/custom-fields/service";
 import { IssueService } from "@/services/issue/issue.service";
 import { IssueAttachmentService } from "@/services/issue/issue_attachment.service";
+import { IssueRelationService } from "@/services/issue/issue_relation.service";
 import type { TPersonalTaskData } from "@/services/personal-task.service";
 import { ProjectCollaboratorsService } from "@/services/project-collaborators.service";
 
@@ -27,6 +28,7 @@ export const taskValueClass =
   "min-w-0 w-full rounded border-0 bg-transparent px-0 py-1 text-13 text-primary outline-none focus:ring-1 focus:ring-accent-primary disabled:cursor-not-allowed disabled:text-placeholder";
 const issues = new IssueService();
 const attachments = new IssueAttachmentService();
+const relations = new IssueRelationService();
 const collaborators = new ProjectCollaboratorsService();
 
 export function taskDescriptionHTML(description: string) {
@@ -89,15 +91,27 @@ export async function saveProjectTask(
     if (!created) throw new Error("The task could not be created.");
     progress.issue = created;
   }
-  const issue = progress.issue;
+  await saveProjectTaskDetails(slug, draft, progress.issue.id, progress);
+  return progress.issue;
+}
+
+export async function saveProjectTaskDetails(
+  slug: string,
+  draft: TNewTaskDraft,
+  issueId: string,
+  progress: TTaskSaveProgress,
+  initial?: Pick<TNewTaskDraft, "fieldValues" | "dependencies">
+) {
   const step = async (key: string, run: () => Promise<unknown>) => {
     if (progress.completed.has(key)) return;
     await run();
     progress.completed.add(key);
   };
-  const operations = Object.entries(draft.fieldValues).map(([fieldId, value]) =>
-    step(`field-${fieldId}`, () => customFields.setValue(slug, draft.projectId, issue.id, fieldId, value || null))
-  );
+  const operations = Object.entries(draft.fieldValues)
+    .filter(([fieldId, value]) => value !== (initial?.fieldValues[fieldId] ?? ""))
+    .map(([fieldId, value]) =>
+      step(`field-${fieldId}`, () => customFields.setValue(slug, draft.projectId, issueId, fieldId, value || null))
+    );
   const inviteEmails = draft.inviteEmails;
   if (inviteEmails?.length) {
     operations.push(
@@ -106,23 +120,38 @@ export async function saveProjectTask(
           slug,
           draft.projectId,
           inviteEmails.map((email) => ({ email, role: 15 })),
-          issue.id
+          issueId
         )
       )
     );
   }
-  if (draft.dependencies.length) {
+  const previousDependencies = new Set(initial?.dependencies.map(({ id }) => id));
+  const nextDependencies = new Set(draft.dependencies.map(({ id }) => id));
+  const added = draft.dependencies.filter(({ id }) => !previousDependencies.has(id));
+  if (added.length) {
     operations.push(
       step("dependencies", () =>
-        issues.createIssueRelation(slug, draft.projectId, issue.id, {
-          related_list: draft.dependencies.map((task) => ({ relation_type: "blocked_by", related_issue: task.id })),
+        issues.createIssueRelation(slug, draft.projectId, issueId, {
+          related_list: added.map((task) => ({ relation_type: "blocked_by", related_issue: task.id })),
         })
       )
     );
   }
+  for (const id of previousDependencies) {
+    if (!nextDependencies.has(id)) {
+      operations.push(
+        step(`remove-dependency-${id}`, () =>
+          relations.deleteIssueRelation(slug, draft.projectId, issueId, {
+            relation_type: "blocked_by",
+            related_issue: id,
+          })
+        )
+      );
+    }
+  }
   operations.push(
     ...draft.files.map((file) =>
-      step(`file-${taskFileKey(file)}`, () => attachments.uploadIssueAttachment(slug, draft.projectId, issue.id, file))
+      step(`file-${taskFileKey(file)}`, () => attachments.uploadIssueAttachment(slug, draft.projectId, issueId, file))
     )
   );
   operations.push(
@@ -130,7 +159,7 @@ export async function saveProjectTask(
       step(`subtask-${subtask.id}`, () =>
         issues.createIssue(slug, draft.projectId, {
           name: subtask.name.trim(),
-          parent_id: issue.id,
+          parent_id: issueId,
           assignee_ids: draft.assignees,
           priority: draft.priority,
           ...(draft.stateId ? { state_id: draft.stateId } : {}),
@@ -142,5 +171,4 @@ export async function saveProjectTask(
   const results = await Promise.allSettled(operations);
   const failure = results.find((result) => result.status === "rejected");
   if (failure?.status === "rejected") throw failure.reason;
-  return issue;
 }

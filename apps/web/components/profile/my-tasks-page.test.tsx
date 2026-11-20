@@ -117,6 +117,7 @@ const project: TMyTaskListItem = {
   section_id: "review",
   section_name: "Waiting for review",
   start_date: "2026-10-30",
+  updated_at: "2026-11-01T10:00:00Z",
 };
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -261,6 +262,25 @@ async function applyFilters(...labels: string[]) {
 function rowNames() {
   return Array.from(host.querySelectorAll("tbody tr")).map((row) => row.textContent ?? "");
 }
+
+it("sorts personal and assigned tasks together by last updated and restores their default order", async () => {
+  await render();
+  const taskNames = () =>
+    [...host.querySelectorAll("tbody tr td:first-child button:last-child")].map((node) => node.textContent);
+  expect(taskNames()).toEqual(["Buy supplies", "Website Builder"]);
+  const choose = async (label: string) => {
+    await click("Sort");
+    const option = [...document.body.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+      (item) => item.textContent?.trim() === label
+    );
+    expect(option).toBeDefined();
+    await act(async () => option?.click());
+  };
+  await choose("Last updated (newest first)");
+  expect(taskNames()).toEqual(["Website Builder", "Buy supplies"]);
+  await choose("Default order");
+  expect(taskNames()).toEqual(["Buy supplies", "Website Builder"]);
+});
 
 it("filters with checkboxes by account, project and completion and resets", async () => {
   await render();

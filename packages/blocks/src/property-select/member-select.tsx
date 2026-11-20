@@ -16,6 +16,7 @@ import { Select } from "../select/select";
 import type { SelectPaginationParams, SelectTooltip, SelectTriggerSize, SelectVariant } from "../select/types";
 import { splitSelectVariant } from "../select/utils";
 import { cn, getAvatarName } from "@plane/utils";
+import type { IconElement } from "../types/icon";
 
 /** Minimal member shape the dropdown needs — the client maps its richer record down to this. */
 export type MemberOption = {
@@ -106,6 +107,8 @@ type MemberSelectCommonProps = {
   disabled?: boolean;
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Replaces the default person glyph when the trigger has no selection. */
+  emptyTriggerIcon?: IconElement;
   onClose?: () => void;
   className?: string;
   tooltip?: SelectTooltip;
@@ -267,7 +270,9 @@ export function MemberSelect(props: MemberSelectProps) {
       data-testid={testId}
       className={cn(isAvatarGroup && AVATAR_GROUP_TRIGGER_CLASSNAME, className)}
       prependIcon={(members) =>
-        members.length === 0 ? props.multiple ? <AssigneeOutline /> : <UserAltOutline /> : undefined
+        members.length === 0
+          ? (props.emptyTriggerIcon ?? (props.multiple ? <AssigneeOutline /> : <UserAltOutline />))
+          : undefined
       }
       label={(members) => triggerLabel(members, showCountOnMultiple, placeholder)}
       tooltip={tooltip}

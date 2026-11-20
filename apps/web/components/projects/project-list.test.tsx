@@ -6,7 +6,7 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { SWRConfig } from "swr";
+import useSWR, { SWRConfig } from "swr";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TProjectListTask, TProjectTaskList } from "@/services/project/project-task-list.service";
 import { ProjectList } from "./project-list";
@@ -21,6 +21,10 @@ import {
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   patchIssue: vi.fn(),
+  updateIssue: vi.fn(),
+  listFields: vi.fn(),
+  setFieldValue: vi.fn(),
+  readFieldValues: vi.fn(),
   fetchSections: vi.fn(),
   createSection: vi.fn(),
   sections: [] as { id: string; name: string; sort_order: number }[],
@@ -29,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
+vi.mock("next/navigation", () => ({ useParams: () => ({ workspaceSlug: "acme" }) }));
 vi.mock("@plane/blocks/toast", () => ({ setToast: mocks.toast }));
 vi.mock("@/services/project/project-task-list.service", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -56,14 +61,32 @@ vi.mock("@/hooks/use-current-time", () => ({
   useCurrentTime: () => ({ currentTime: new Date("2026-10-29T12:00:00Z") }),
 }));
 vi.mock("@/hooks/store/use-issue-detail", () => ({
-  useIssueDetail: () => ({ peekIssue: undefined, setPeekIssue: mocks.setPeekIssue }),
+  useIssueDetail: () => ({
+    peekIssue: undefined,
+    setPeekIssue: mocks.setPeekIssue,
+    updateIssue: mocks.updateIssue,
+  }),
 }));
 vi.mock("@/hooks/store/use-member", () => ({
   useMember: () => ({
-    getUserDetails: (id: string) => ({ display_name: id === "me" ? "Mia Lee" : id === "one-letter" ? "P" : "Ann" }),
+    getUserDetails: (id: string) => ({
+      display_name: id === "me" ? "Mia Lee" : id === "one-letter" ? "P" : "Ann",
+      email: id === "ann" ? "ann@example.test" : undefined,
+    }),
+    project: { getProjectMemberIds: () => ["me", "ann"] },
+    workspace: { isUserSuspended: () => false },
   }),
 }));
 vi.mock("@/components/issues/peek-overview", () => ({ IssuePeekOverview: () => null }));
+vi.mock("./custom-fields/service", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./custom-fields/service")>();
+  return {
+    ...actual,
+    customFields: { setValue: mocks.setFieldValue },
+    useCustomFields: (slug: string, projectId: string) =>
+      useSWR(["project-custom-fields", slug, projectId], mocks.listFields),
+  };
+});
 vi.mock("@/components/issues/create-task-entry", () => ({
   CreateTaskEntry: ({ isOpen, data }: { isOpen: boolean; data: Record<string, unknown> }) =>
     isOpen ? <div data-testid="create-modal">{JSON.stringify(data)}</div> : null,
@@ -108,6 +131,10 @@ const RESPONSE: TProjectTaskList = {
   truncated: false,
   results: TASKS,
 };
+function StatusDetailsProbe() {
+  const { data } = useSWR(["task-custom-field-values", "acme", "p1", "t1"], mocks.readFieldValues);
+  return <output data-testid="detail-status">{data?.status}</output>;
+}
 
 describe("project list helpers", () => {
   it("groups tasks by section order and adds No section only when needed", () => {
@@ -158,15 +185,29 @@ describe("project list helpers", () => {
 describe("ProjectList", () => {
   let host: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
+  const animationsDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, "getAnimations");
 
   beforeEach(() => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    Reflect.defineProperty(Element.prototype, "getAnimations", { configurable: true, value: () => [] });
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+      }
+    );
     vi.clearAllMocks();
+    mocks.updateIssue.mockReset();
     mocks.canEdit = true;
     mocks.sections = [
       { id: "s1", name: "To Do", sort_order: 1 },
       { id: "s2", name: "In Progress", sort_order: 2 },
     ];
     mocks.list.mockResolvedValue(RESPONSE);
+    mocks.listFields.mockResolvedValue([]);
+    mocks.readFieldValues.mockResolvedValue({ status: "on-track" });
     mocks.fetchSections.mockResolvedValue(mocks.sections);
     mocks.patchIssue.mockResolvedValue({});
     host = document.createElement("div");
@@ -176,13 +217,17 @@ describe("ProjectList", () => {
   afterEach(async () => {
     await act(() => root.unmount());
     host.remove();
+    vi.unstubAllGlobals();
+    if (animationsDescriptor) Reflect.defineProperty(Element.prototype, "getAnimations", animationsDescriptor);
+    else Reflect.deleteProperty(Element.prototype, "getAnimations");
   });
 
-  async function render() {
+  async function render(withStatusDetails = false) {
     await act(async () => {
       root.render(
         <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0, shouldRetryOnError: false }}>
           <ProjectList workspaceSlug="acme" projectId="p1" />
+          {withStatusDetails && <StatusDetailsProbe />}
         </SWRConfig>
       );
     });
@@ -190,6 +235,119 @@ describe("ProjectList", () => {
   const button = (label: string) =>
     [...host.querySelectorAll("button")].find((node) => node.textContent?.trim() === label) as HTMLButtonElement;
   const rows = () => [...host.querySelectorAll("tbody tr")].map((row) => row.textContent);
+
+  it("shows two collaborator avatars and groups the rest beside the add control", async () => {
+    mocks.list.mockResolvedValue({
+      ...RESPONSE,
+      results: [task({ assignee_ids: ["me", "ann", "one-letter", "other"] })],
+    });
+    await render();
+    const add = host.querySelector('[aria-label="Add collaborator to Task"]');
+    const stack = add?.previousElementSibling;
+    expect([...stack!.children].map((item) => item.textContent)).toEqual(["ML", "AN", "+2"]);
+    expect(stack?.querySelector('[aria-label="2 more collaborators"]')).not.toBeNull();
+  });
+
+  it("adds a project member from the plus dropdown without replacing existing collaborators or opening details", async () => {
+    // The member list is virtualized and jsdom does not calculate the viewport's height.
+    const height = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(240);
+    try {
+      mocks.updateIssue.mockImplementationOnce(async () => {
+        mocks.list.mockResolvedValue({
+          ...RESPONSE,
+          results: TASKS.map((item) => (item.id === "t1" ? { ...item, assignee_ids: ["me", "ann"] } : item)),
+        });
+      });
+      await render();
+      const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Add collaborator to Wireframes"]')!;
+      expect(trigger.querySelector("svg.lucide-plus")).not.toBeNull();
+      await act(async () => trigger.click());
+      expect(document.body.querySelector('input[placeholder="Name or email"]')).not.toBeNull();
+      const options = await vi.waitFor(() => {
+        const items = [...document.body.querySelectorAll<HTMLElement>('[role="option"]')];
+        expect(items).toHaveLength(1);
+        return items;
+      });
+      expect(options[0].textContent).toContain("Ann");
+      await act(async () => options[0].click());
+      expect(mocks.updateIssue).toHaveBeenCalledExactlyOnceWith("acme", "p1", "t1", { assignee_ids: ["me", "ann"] });
+      expect(host.querySelector('[aria-label="Ann"]')?.textContent).toBe("AN");
+      expect(mocks.setPeekIssue).not.toHaveBeenCalled();
+    } finally {
+      height.mockRestore();
+    }
+  });
+
+  it("shows the selected priority and saves through the task detail store before refreshing the list", async () => {
+    mocks.updateIssue.mockImplementationOnce(async () => {
+      mocks.list.mockResolvedValue({
+        ...RESPONSE,
+        results: TASKS.map((item) => (item.id === "t1" ? { ...item, priority: "high" } : item)),
+      });
+    });
+    await render();
+    const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Set priority for Wireframes: Medium"]')!;
+    await act(() => trigger.click());
+    const menu = document.body.querySelector('[role="menu"]')!;
+    expect(menu.textContent).toContain("Set Priority");
+    const options = [...menu.querySelectorAll<HTMLElement>('[role="menuitemradio"]')];
+    expect(options.map((option) => option.textContent?.trim())).toEqual([
+      "No Priority",
+      "Low",
+      "Medium",
+      "High",
+      "Urgent",
+    ]);
+    expect(options[2].getAttribute("aria-checked")).toBe("true");
+
+    await act(async () => options[3].click());
+    expect(mocks.updateIssue).toHaveBeenCalledExactlyOnceWith("acme", "p1", "t1", { priority: "high" });
+    expect(host.querySelector('[aria-label="Set priority for Wireframes: High"]')).not.toBeNull();
+    expect(mocks.setPeekIssue).not.toHaveBeenCalled();
+  });
+
+  it("keeps priority read-only for users who cannot edit", async () => {
+    mocks.canEdit = false;
+    await render();
+    expect(rows()).toContain("Wireframes12MLMediumOn TrackToday");
+    expect(host.querySelector('[aria-label^="Set priority for "]')).toBeNull();
+  });
+
+  it("uses configured status options, marks the active one, and refreshes the list and details after selection", async () => {
+    mocks.listFields.mockResolvedValue([
+      {
+        id: "status",
+        name: "Status",
+        field_type: "single_select",
+        options: [
+          { id: "on-track", name: "On Track" },
+          { id: "needs-attention", name: "Needs Attention" },
+          { id: "on-hold", name: "On Hold" },
+          { id: "blocked", name: "Blocked" },
+        ],
+      },
+    ]);
+    mocks.setFieldValue.mockImplementationOnce(async () => {
+      mocks.readFieldValues.mockResolvedValue({ status: "needs-attention" });
+      mocks.list.mockResolvedValue({
+        ...RESPONSE,
+        results: TASKS.map((item) => (item.id === "t1" ? { ...item, status_name: "Needs Attention" } : item)),
+      });
+    });
+    await render(true);
+    const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Set status for Wireframes: On Track"]')!;
+    await act(() => trigger.click());
+    const menu = document.body.querySelector('[role="menu"]')!;
+    expect(menu.textContent).toContain("Set Status");
+    const options = [...menu.querySelectorAll<HTMLElement>('[role="menuitemradio"]')];
+    expect(options).toHaveLength(5);
+    expect(options[0].getAttribute("aria-checked")).toBe("true");
+    const needsAttention = options.find((option) => option.textContent?.includes("Needs Attention"))!;
+    await act(async () => needsAttention.click());
+    expect(mocks.setFieldValue).toHaveBeenCalledExactlyOnceWith("acme", "p1", "t1", "status", "needs-attention");
+    expect(host.querySelector('[aria-label="Set status for Wireframes: Needs Attention"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="detail-status"]')?.textContent).toBe("needs-attention");
+  });
 
   it("renders the Figma columns and section groups with task details", async () => {
     await render();
@@ -254,11 +412,18 @@ describe("ProjectList", () => {
       results: [...TASKS, task({ id: "t4", name: "Assets", section_id: "s1" })],
     });
     await render();
-    const sort = host.querySelector<HTMLSelectElement>('[aria-label="Sort tasks"]')!;
-    await act(async () => {
-      sort.value = "name";
-      sort.dispatchEvent(new Event("change", { bubbles: true }));
-    });
+    await act(async () => button("Sort").click());
+    const options = [...document.body.querySelectorAll<HTMLElement>('[role="menuitemradio"]')];
+    expect(options.map((option) => option.textContent?.trim())).toEqual([
+      "Default order",
+      "Due date (earliest first)",
+      "Due date (latest first)",
+      "Due date (expired)",
+      "Name (A–Z)",
+      "Last updated (newest first)",
+    ]);
+    expect(options[0].getAttribute("aria-checked")).toBe("true");
+    await act(async () => options[4].click());
     expect(
       rows()
         .slice(1, 3)

@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NewTaskPanel } from "./new-task-panel";
+import { EditTaskPanel } from "@/components/issues/issue-modal/edit-task-panel";
 import type { TNewTaskDraft } from "./new-task.helpers";
 
 const state = vi.hoisted(() => ({
@@ -19,6 +20,32 @@ const state = vi.hoisted(() => ({
   saved: vi.fn(),
   invite: vi.fn(),
   pickerClose: vi.fn(),
+  retrieve: vi.fn(),
+  update: vi.fn(),
+  removeRelation: vi.fn(),
+  refresh: vi.fn(),
+}));
+vi.mock("@/hooks/use-issues-actions", () => ({ useIssuesActions: () => ({ updateIssue: state.update }) }));
+vi.mock("@/hooks/store/use-issue-detail", () => ({
+  useIssueDetail: () => ({
+    fetchRelations: state.refresh,
+    fetchAttachments: state.refresh,
+    fetchSubIssues: state.refresh,
+    fetchActivities: state.refresh,
+  }),
+}));
+vi.mock("@/hooks/store/use-editor-asset", () => ({ useEditorAsset: () => ({}) }));
+vi.mock("@/hooks/store/use-workspace", () => ({
+  useWorkspace: () => ({ getWorkspaceBySlug: () => ({ id: "team" }) }),
+}));
+vi.mock("@/components/editor/rich-text", () => ({
+  RichTextEditor: ({ initialValue }: { initialValue: string }) => <div data-description={initialValue} />,
+}));
+vi.mock("@/services/issue/issue_relation.service", () => ({
+  IssueRelationService: class {
+    listIssueRelations = async () => ({ blocked_by: [{ id: "previous", name: "Previous dependency" }] });
+    deleteIssueRelation = state.removeRelation;
+  },
 }));
 vi.mock("@plane/blocks/select", () => ({ useSelectContext: () => ({ close: state.pickerClose }) }));
 vi.mock("@/services/project-collaborators.service", () => ({
@@ -49,15 +76,18 @@ vi.mock("@/services/issue/issue.service", () => ({
   IssueService: class {
     createIssue = state.issue;
     createIssueRelation = state.relation;
+    retrieve = state.retrieve;
+    subIssues = async () => ({ sub_issues: [{ id: "child", name: "Existing subtask" }] });
   },
 }));
 vi.mock("@/services/issue/issue_attachment.service", () => ({
   IssueAttachmentService: class {
     uploadIssueAttachment = state.upload;
+    getIssueAttachments = async () => [{ id: "asset", attributes: { name: "brief.pdf" } }];
   },
 }));
 vi.mock("@/components/projects/custom-fields/service", () => ({
-  customFields: { list: state.fields, setValue: state.setField },
+  customFields: { list: state.fields, setValue: state.setField, values: async () => ({ status: "approved" }) },
 }));
 vi.mock("@plane/blocks/toast", () => ({ setToast: state.toast }));
 vi.mock("@/components/dropdowns/member/member-select", () => ({
@@ -97,9 +127,16 @@ vi.mock("@/components/core/modals/existing-issues-list-modal", () => ({
     </button>
   ),
 }));
-vi.mock("@/components/common/task-form-content", () => ({
-  TaskFormContent: ({ children }: { children: ReactNode }) => <section>{children}</section>,
-}));
+vi.mock("@/components/common/task-form-content", async () => {
+  const { Dialog } = await import("@base-ui/react/dialog");
+  return {
+    TaskFormContent: ({ children }: { children: ReactNode }) => (
+      <Dialog.Portal container={host}>
+        <Dialog.Popup>{children}</Dialog.Popup>
+      </Dialog.Portal>
+    ),
+  };
+});
 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -111,6 +148,18 @@ beforeEach(() => {
   state.setField.mockResolvedValue({});
   state.relation.mockResolvedValue({});
   state.upload.mockResolvedValue({});
+  state.update.mockResolvedValue(undefined);
+  state.refresh.mockResolvedValue(undefined);
+  state.removeRelation.mockResolvedValue(undefined);
+  state.retrieve.mockResolvedValue({
+    id: "issue",
+    name: "Existing task",
+    description_html: "<p><strong>Existing description</strong></p>",
+    priority: "low",
+    target_date: "2026-11-25",
+    assignee_ids: ["teammate"],
+    state_id: "todo",
+  });
   state.states.mockResolvedValue([
     { id: "todo", name: "To do" },
     { id: "doing", name: "In progress" },
@@ -148,6 +197,54 @@ async function change(label: string, value: string) {
 async function save() {
   await act(() => host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
 }
+
+async function renderEdit() {
+  await act(() =>
+    root.render(
+      <SWRConfig value={{ provider: () => new Map(), shouldRetryOnError: false }}>
+        <EditTaskPanel slug="team" projectId="project" issueId="issue" onClose={state.close} />
+      </SWRConfig>
+    )
+  );
+}
+
+it("prefills the shared task form and discards edits on cancel", async () => {
+  await renderEdit();
+  expect(host.textContent).toContain("Edit Task");
+  expect(host.querySelector<HTMLInputElement>('[aria-label="Task name"]')?.value).toBe("Existing task");
+  expect(host.querySelector<HTMLSelectElement>('[aria-label="Status"]')?.value).toBe("approved");
+  expect(host.textContent).toContain("Previous dependency");
+  expect(host.textContent).toContain("brief.pdf");
+  expect(host.textContent).toContain("Existing subtask");
+  expect(host.querySelector("[data-description]")?.getAttribute("data-description")).toContain("<strong>");
+  await change("Task name", "Unsaved change");
+  await act(() => button("Cancel").click());
+  expect(state.close).toHaveBeenCalledOnce();
+  expect(state.update).not.toHaveBeenCalled();
+  expect(state.issue).not.toHaveBeenCalled();
+});
+
+it("updates the existing task and only saves changed fields and dependencies", async () => {
+  await renderEdit();
+  await change("Task name", "Updated task");
+  await act(() =>
+    host.querySelector<HTMLButtonElement>('[aria-label="Remove dependency Previous dependency"]')!.click()
+  );
+  await act(() => button("Add dependencies").click());
+  await act(() => button("Choose dependency").click());
+  await save();
+  expect(state.update).toHaveBeenCalledExactlyOnceWith("project", "issue", { name: "Updated task" });
+  expect(state.removeRelation).toHaveBeenCalledExactlyOnceWith("team", "project", "issue", {
+    relation_type: "blocked_by",
+    related_issue: "previous",
+  });
+  expect(state.relation).toHaveBeenCalledExactlyOnceWith("team", "project", "issue", {
+    related_list: [{ relation_type: "blocked_by", related_issue: "dependency" }],
+  });
+  expect(state.setField).not.toHaveBeenCalled();
+  expect(state.issue).not.toHaveBeenCalled();
+  expect(state.close).toHaveBeenCalledOnce();
+});
 
 it("matches the field list and keeps project-only actions disabled for private tasks", async () => {
   await render();

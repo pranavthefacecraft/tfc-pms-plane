@@ -60,6 +60,7 @@ class TestMyTasks:
         assert {item["id"] for item in first["results"] + second["results"]} == {str(task.id) for task in expected}
         assert first["results"][0]["project_name"] == project.name
         assert first["results"][0]["assignee_ids"] == [str(create_user.id)]
+        assert all(task["updated_at"] for task in first["results"] + second["results"])
         ProjectMember.objects.filter(project=project, member=create_user).update(is_active=False)
         assert session_client.get(_url(workspace.slug, view="list")).json() == {"count": 0, "results": []}
 
