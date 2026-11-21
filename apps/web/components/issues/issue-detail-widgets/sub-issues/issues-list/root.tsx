@@ -33,6 +33,7 @@ type Props = {
   subIssueOperations: TSubIssueOperations;
   issueServiceType?: TIssueServiceType;
   storeType: EIssuesStoreType;
+  presentation?: "drawer";
 };
 
 export const SubIssuesListRoot = observer(function SubIssuesListRoot(props: Props) {
@@ -123,6 +124,7 @@ export const SubIssuesListRoot = observer(function SubIssuesListRoot(props: Prop
             canEdit={canEdit}
             parentIssueId={parentIssueId}
             rootIssueId={rootIssueId}
+            presentation={props.presentation}
             handleIssueCrudState={handleIssueCrudState}
             subIssueOperations={subIssueOperations}
             storeType={storeType}

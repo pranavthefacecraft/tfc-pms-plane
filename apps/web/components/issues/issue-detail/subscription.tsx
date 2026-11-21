@@ -14,6 +14,7 @@ import { useTranslation } from "@plane/i18n";
 // UI
 import { Button } from "@makeplane/propel/elements/button";
 import { Icon } from "@makeplane/propel/components/icon";
+import { MenuItem } from "@makeplane/propel/components/menu";
 import { setToast } from "@plane/blocks/toast";
 import { EIssueServiceType } from "@plane/types";
 import { Loader } from "@plane/blocks/skeleton";
@@ -26,10 +27,11 @@ export type TIssueSubscription = {
   projectId: string;
   issueId: string;
   serviceType?: EIssueServiceType;
+  presentation?: "menu";
 };
 
 export const IssueSubscription = observer(function IssueSubscription(props: TIssueSubscription) {
-  const { workspaceSlug, projectId, issueId, serviceType = EIssueServiceType.ISSUES } = props;
+  const { workspaceSlug, projectId, issueId, serviceType = EIssueServiceType.ISSUES, presentation } = props;
   const { t } = useTranslation();
   // hooks
   const {
@@ -51,6 +53,7 @@ export const IssueSubscription = observer(function IssueSubscription(props: TIss
   );
 
   const handleSubscription = async () => {
+    if (!isEditable || loading || isNil(isSubscribed)) return;
     setLoading(true);
     try {
       if (isSubscribed) await removeSubscription(workspaceSlug, projectId, issueId);
@@ -72,6 +75,17 @@ export const IssueSubscription = observer(function IssueSubscription(props: TIss
       });
     }
   };
+
+  if (presentation === "menu") {
+    return (
+      <MenuItem
+        label={t(isSubscribed ? "common.actions.unsubscribe" : "common.actions.subscribe")}
+        disabled={!isEditable || loading || isNil(isSubscribed)}
+        closeOnClick={false}
+        onClick={handleSubscription}
+      />
+    );
+  }
 
   if (isNil(isSubscribed))
     return (

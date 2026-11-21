@@ -18,6 +18,28 @@ export const PRIORITY_LABELS: Record<TIssuePriorities, string> = {
   none: "None",
 };
 
+export const taskPriorityColors: Record<TIssuePriorities, string> = {
+  urgent: "bg-[#701A24] text-white",
+  high: "bg-[#9B1818] text-white",
+  medium: "bg-[#FDE68A] text-[#111827]",
+  low: "bg-[#E2E7EF] text-[#3A4D66]",
+  none: "bg-surface-2 text-secondary",
+};
+
+const taskStatusPalette: Record<string, string> = {
+  "on track": "bg-[#E8FAF2] text-[#00664F]",
+  completed: "bg-[#E8FAF2] text-[#00664F]",
+  blocked: "bg-[#FDEFEF] text-[#A81919]",
+  "at risk": "bg-amber-100 text-amber-900",
+  "needs attention": "bg-[#FDE68A] text-[#573A03]",
+  "on hold": "bg-[#EFE8FE] text-[#6338A7]",
+};
+
+export function taskStatusColors(name: string | null | undefined) {
+  const key = name?.trim().toLowerCase() ?? "";
+  return Object.hasOwn(taskStatusPalette, key) ? taskStatusPalette[key] : "bg-[#E2E7EF] text-[#3A4D66]";
+}
+
 export const LIST_STATUS_OPTIONS = [
   { id: "open", label: "Not completed" },
   { id: "completed", label: "Completed" },

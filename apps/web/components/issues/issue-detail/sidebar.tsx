@@ -15,12 +15,9 @@ import {
   ModuleOutline,
   ParentOutline,
   PriorityOutline,
-  StartDateOutline,
   StateOutline,
   UserOutline,
 } from "@makeplane/propel/icons";
-import { DateSelect } from "@plane/blocks/property-select";
-import { getDate, renderFormattedPayloadDate } from "@plane/utils";
 // components
 import { EstimateSelect } from "@/components/dropdowns/estimate/estimate-select";
 import { ButtonAvatars } from "@/components/dropdowns/member/avatar";
@@ -32,7 +29,6 @@ import { useProjectEstimates } from "@/hooks/store/estimates";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
-import { useUserProfile } from "@/hooks/store/user";
 // components
 import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
@@ -59,7 +55,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
     issue: { getIssueById },
   } = useIssueDetail();
   const { getUserDetails } = useMember();
-  const { data: userProfile } = useUserProfile();
   const issue = getIssueById(issueId);
   if (!issue) return <></>;
 
@@ -67,9 +62,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
 
   // derived values
   const projectDetails = getProjectById(issue.project_id);
-
-  const maxDate = issue.target_date ? getDate(issue.target_date) : null;
-  maxDate?.setDate(maxDate.getDate());
 
   return (
     <>
@@ -119,27 +111,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 </div>
               </SidebarPropertyListItem>
             )}
-
-            <SidebarPropertyListItem icon={StartDateOutline} label={t("common.order_by.start_date")}>
-              <DateSelect
-                disablePastDates
-                testId="work-item-start-date-select"
-                placeholder={t("issue.add.start_date")}
-                value={getDate(issue.start_date) ?? null}
-                onChange={(val) =>
-                  issueOperations.update(workspaceSlug, projectId, issueId, {
-                    start_date: val ? renderFormattedPayloadDate(val) : null,
-                  })
-                }
-                maxDate={maxDate ?? undefined}
-                disabled={!isEditable}
-                clearable
-                weekStartsOn={userProfile?.start_of_the_week}
-                variant="select-ghost-md"
-                showTooltip
-                tooltipHeading={t("common.order_by.start_date")}
-              />
-            </SidebarPropertyListItem>
 
             {projectId && areEstimateEnabledByProjectId(projectId) && (
               <SidebarPropertyListItem icon={EstimateOutline} label={t("common.estimate")}>

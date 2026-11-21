@@ -7,6 +7,7 @@
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { ThumbsUp } from "lucide-react";
+import { MenuItem } from "@makeplane/propel/components/menu";
 import { Tooltip } from "@makeplane/propel/components/tooltip";
 import { setToast } from "@plane/blocks/toast";
 import { cn } from "@plane/utils";
@@ -20,10 +21,11 @@ type Props = {
   projectId: string;
   issueId: string;
   disabled?: boolean;
+  presentation?: "menu";
 };
 
 export const IssueLikeButton = observer(function IssueLikeButton(props: Props) {
-  const { workspaceSlug, projectId, issueId, disabled = false } = props;
+  const { workspaceSlug, projectId, issueId, disabled = false, presentation } = props;
   const { data: currentUser } = useUser();
   const { reaction, createReaction, removeReaction } = useIssueDetail();
   const [isSaving, setIsSaving] = useState(false);
@@ -51,6 +53,9 @@ export const IssueLikeButton = observer(function IssueLikeButton(props: Props) {
   };
 
   if (!currentUser) return null;
+  if (presentation === "menu") {
+    return <MenuItem label={label} disabled={disabled || isSaving} closeOnClick={false} onClick={handleClick} />;
+  }
 
   return (
     <Tooltip label={`${label}${count ? ` (${count})` : ""}`}>

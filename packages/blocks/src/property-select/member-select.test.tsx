@@ -7,6 +7,7 @@
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useSelectContext } from "../select/context";
 import { MemberSelect } from "./member-select";
 import type { MemberOption } from "./member-select";
 
@@ -24,6 +25,21 @@ const popup = () => within(document.body);
 async function openMembers(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(screen.getByRole("button", { name: new RegExp(name) }));
   await popup().findByRole("option", { name: /Ada/ });
+}
+
+function InviteFooter({ onInvite }: { onInvite: () => void }) {
+  const { close } = useSelectContext();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        close();
+        onInvite();
+      }}
+    >
+      Invite by email
+    </button>
+  );
 }
 
 describe("MemberSelect suspended members", () => {
@@ -113,6 +129,32 @@ describe("MemberSelect suspended members", () => {
     await user.type(search, "new@example.com");
     await user.click(await popup().findByRole("button", { name: "Invite: new@example.com" }));
     expect(invite).toHaveBeenCalledWith("new@example.com");
+  });
+
+  it("shows the invite footer below the roster and closes the dropdown on activation", async () => {
+    const user = userEvent.setup();
+    const onInvite = vi.fn();
+    const onChange = vi.fn();
+    render(
+      <MemberSelect
+        getValues={getValues}
+        multiple
+        value={[]}
+        onChange={onChange}
+        variant="select-ghost-md"
+        placeholder="Assignee"
+        footer={<InviteFooter onInvite={onInvite} />}
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Invite by email" })).toBeNull();
+    await openMembers(user, "Assignee");
+    const roster = popup().getByRole("listbox");
+    const invite = popup().getByRole("button", { name: "Invite by email" });
+    expect(roster.compareDocumentPosition(invite)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    await user.click(invite);
+    expect(onInvite).toHaveBeenCalledOnce();
+    expect(onChange).not.toHaveBeenCalled();
+    await waitFor(() => expect(popup().queryByRole("listbox")).toBeNull());
   });
 
   it("still shows an assigned suspended member and lets them be removed", async () => {

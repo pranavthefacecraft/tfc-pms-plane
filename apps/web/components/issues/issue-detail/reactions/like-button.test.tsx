@@ -7,6 +7,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Menu, MenuContent, MenuTrigger } from "@makeplane/propel/components/menu";
 import { IssueLikeButton } from "./like-button";
 
 const mocks = vi.hoisted(() => ({
@@ -38,8 +39,19 @@ vi.mock("@makeplane/propel/components/tooltip", () => ({
 describe("task like button", () => {
   let host: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
+  const animationsDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, "getAnimations");
 
   beforeEach(() => {
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    );
+    Reflect.defineProperty(Element.prototype, "getAnimations", { configurable: true, value: () => [] });
     vi.clearAllMocks();
     mocks.liked = false;
     mocks.count = 0;
@@ -50,6 +62,9 @@ describe("task like button", () => {
   afterEach(async () => {
     await act(() => root.unmount());
     host.remove();
+    vi.unstubAllGlobals();
+    if (animationsDescriptor) Reflect.defineProperty(Element.prototype, "getAnimations", animationsDescriptor);
+    else Reflect.deleteProperty(Element.prototype, "getAnimations");
   });
 
   const render = async (disabled = false) => {
@@ -67,6 +82,25 @@ describe("task like button", () => {
     expect(button.getAttribute("aria-label")).toBe("Like this task");
     await act(() => button.click());
     expect(mocks.create).toHaveBeenCalledWith("workspace", "project", "task", "128077");
+  });
+
+  it("offers a text-only Unlike action inside the menu", async () => {
+    mocks.liked = true;
+    await act(() =>
+      root.render(
+        <Menu defaultOpen>
+          <MenuTrigger>Options</MenuTrigger>
+          <MenuContent>
+            <IssueLikeButton workspaceSlug="workspace" projectId="project" issueId="task" presentation="menu" />
+          </MenuContent>
+        </Menu>
+      )
+    );
+    const item = document.body.querySelector<HTMLElement>('[role="menuitem"]')!;
+    expect(item.textContent).toBe("Unlike this task");
+    expect(item.querySelector("svg")).toBeNull();
+    await act(() => item.click());
+    expect(mocks.remove).toHaveBeenCalledWith("workspace", "project", "task", "128077", "user-1");
   });
 
   it("shows existing likes and removes only the current user's like", async () => {

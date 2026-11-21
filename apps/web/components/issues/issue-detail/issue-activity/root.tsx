@@ -31,6 +31,7 @@ type TIssueActivity = {
   issueId: string;
   disabled?: boolean;
   isIntakeIssue?: boolean;
+  presentation?: "drawer";
 };
 
 export type TActivityOperations = {
@@ -41,7 +42,8 @@ export type TActivityOperations = {
 };
 
 export const IssueActivity = observer(function IssueActivity(props: TIssueActivity) {
-  const { workspaceSlug, projectId, issueId, disabled = false, isIntakeIssue = false } = props;
+  const { workspaceSlug, projectId, issueId, disabled = false, isIntakeIssue = false, presentation } = props;
+  const drawer = presentation === "drawer";
   // i18n
   const { t } = useTranslation();
   // hooks
@@ -52,19 +54,16 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
   const { setValue: setSortOrder, storedValue: sortOrder } = useLocalStorage("activity_sort_order", E_SORT_ORDER.ASC);
 
   const { getProjectById } = useProject();
+  const activityFilters = selectedFilters || defaultActivityFilters;
+  const activitySortOrder = sortOrder || E_SORT_ORDER.ASC;
+  const composerFirst = drawer || activitySortOrder === E_SORT_ORDER.DESC;
 
   // toggle filter
   const toggleFilter = (filter: TActivityFilters) => {
-    if (!selectedFilters) return;
-    let _filters = [];
-    if (selectedFilters.includes(filter)) {
-      if (selectedFilters.length === 1) return selectedFilters; // Ensure at least one filter is applied
-      _filters = selectedFilters.filter((f) => f !== filter);
-    } else {
-      _filters = [...selectedFilters, filter];
-    }
-
-    setFilterValue(uniq(_filters));
+    const next = activityFilters.includes(filter)
+      ? activityFilters.filter((current) => current !== filter)
+      : [...activityFilters, filter];
+    if (next.length) setFilterValue(uniq(next));
   };
 
   const toggleSortOrder = () => {
@@ -81,23 +80,25 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
         workspaceSlug={workspaceSlug}
         entityId={issueId}
         activityOperations={activityOperations}
-        showToolbarInitially
+        showToolbarInitially={!drawer}
         projectId={projectId}
       />
     ),
-    [workspaceSlug, issueId, activityOperations, projectId]
+    [workspaceSlug, issueId, activityOperations, projectId, drawer]
   );
   if (!project) return <></>;
+  const composer = disabled ? null : renderCommentCreationBox;
+  const heading = drawer ? "Comments" : t("common.activity");
 
   return (
-    <div className="space-y-4">
+    <section aria-label={heading} className={drawer ? "space-y-2 py-2" : "space-y-4"}>
       {/* header */}
       <div className="flex items-center justify-between">
-        <div className="text-h5-medium text-primary">{t("common.activity")}</div>
+        <h3 className={drawer ? "text-14 font-semibold text-primary" : "text-h5-medium text-primary"}>{heading}</h3>
         <div className="flex items-center gap-2">
-          <ActivitySortRoot sortOrder={sortOrder || E_SORT_ORDER.ASC} toggleSort={toggleSortOrder} />
+          <ActivitySortRoot sortOrder={activitySortOrder} toggleSort={toggleSortOrder} />
           <ActivityFilterRoot
-            selectedFilters={selectedFilters || defaultActivityFilters}
+            selectedFilters={activityFilters}
             toggleFilter={toggleFilter}
             isIntakeIssue={isIntakeIssue}
             projectId={projectId}
@@ -107,24 +108,24 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
 
       {/* rendering activity */}
       <div className="space-y-3">
-        <div className="min-h-[200px]">
+        <div className={drawer ? undefined : "min-h-[200px]"}>
           <div className="space-y-3">
-            {!disabled && sortOrder === E_SORT_ORDER.DESC && renderCommentCreationBox}
+            {composerFirst && composer}
             <IssueActivityCommentRoot
               projectId={projectId}
               workspaceSlug={workspaceSlug}
               isIntakeIssue={isIntakeIssue}
               issueId={issueId}
-              selectedFilters={selectedFilters || defaultActivityFilters}
+              selectedFilters={activityFilters}
               activityOperations={activityOperations}
               showAccessSpecifier={!!project.anchor}
               disabled={disabled}
-              sortOrder={sortOrder || E_SORT_ORDER.ASC}
+              sortOrder={activitySortOrder}
             />
-            {!disabled && sortOrder === E_SORT_ORDER.ASC && renderCommentCreationBox}
+            {!composerFirst && composer}
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 });

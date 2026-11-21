@@ -30,6 +30,7 @@ type TIssueAttachmentsListItem = {
   attachmentId: string;
   disabled?: boolean;
   issueServiceType?: TIssueServiceType;
+  presentation?: "card";
 };
 
 export const IssueAttachmentsListItem = observer(function IssueAttachmentsListItem(props: TIssueAttachmentsListItem) {
@@ -52,6 +53,51 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
   const { isMobile } = usePlatformOS();
 
   if (!attachment) return <></>;
+
+  if (props.presentation === "card") {
+    const name = attachment.attributes.name;
+    const preview = /^(png|jpe?g|gif|webp|avif)$/i.test(fileExtension);
+    return (
+      <div className="relative w-24 overflow-hidden rounded-md border border-subtle bg-surface-1">
+        <a
+          href={fileURL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-secondary hover:bg-surface-2"
+          title={name}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="grid h-14 place-items-center overflow-hidden bg-surface-2">
+            {preview ? <img src={fileURL} alt="" loading="lazy" className="size-full object-cover" /> : fileIcon}
+          </div>
+          <span className="block truncate px-1.5 py-1 text-11">{name}</span>
+        </a>
+        {!disabled && (
+          <div className="absolute top-0 right-0">
+            <Menu>
+              <MenuTrigger
+                render={
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`${t("aria_labels.common.more_actions")}: ${name}`}
+                    icon={<Icon icon={MoreHorizontalOutline} />}
+                  />
+                }
+                onClick={(event) => event.stopPropagation()}
+              />
+              <MenuContent align="end">
+                <MenuItem
+                  label={t("common.actions.delete")}
+                  onClick={() => toggleDeleteAttachmentModal(attachmentId)}
+                />
+              </MenuContent>
+            </Menu>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <>

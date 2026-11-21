@@ -24,12 +24,13 @@ type Props = {
   projectId: string;
   issueId: string;
   customButton?: React.ReactNode;
+  buttonLabel?: string;
   disabled?: boolean;
   issueServiceType: TIssueServiceType;
 };
 
 export const IssueAttachmentActionButton = observer(function IssueAttachmentActionButton(props: Props) {
-  const { workspaceSlug, projectId, issueId, customButton, disabled = false, issueServiceType } = props;
+  const { workspaceSlug, projectId, issueId, customButton, buttonLabel, disabled = false, issueServiceType } = props;
   // state
   const [isLoading, setIsLoading] = useState(false);
   // store hooks
@@ -95,13 +96,8 @@ export const IssueAttachmentActionButton = observer(function IssueAttachmentActi
   });
 
   return (
-    <div
-      onClick={(e) => {
-        // TODO: Remove extra div and move event propagation to button
-        e.stopPropagation();
-      }}
-    >
-      <button {...getRootProps()} type="button" disabled={disabled}>
+    <div role="presentation" onClick={(event) => event.stopPropagation()}>
+      <button {...getRootProps()} type="button" disabled={disabled} aria-label={buttonLabel}>
         <input {...getInputProps()} />
         {customButton ? customButton : <AddOutline className="h-4 w-4" />}
       </button>

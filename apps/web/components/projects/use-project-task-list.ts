@@ -108,6 +108,10 @@ export function useProjectTaskList(workspaceSlug: string, projectId: string) {
     runUpdate(task, "Task rescheduled", () => issueService.patchIssue(workspaceSlug, projectId, task.id, dates));
   const setPriority = (task: TProjectListTask, priority: TIssuePriorities) =>
     runUpdate(task, "Priority updated", () => updateIssue(workspaceSlug, projectId, task.id, { priority }));
+  const setDueDate = (task: TProjectListTask, date: string | null) =>
+    runUpdate(task, date ? "Due date updated" : "Due date cleared", () =>
+      updateIssue(workspaceSlug, projectId, task.id, { target_date: date })
+    );
   const addCollaborator = (task: TProjectListTask, memberId: string) =>
     runUpdate(task, "Collaborator added", () =>
       updateIssue(workspaceSlug, projectId, task.id, { assignee_ids: [...task.assignee_ids, memberId] })
@@ -147,6 +151,7 @@ export function useProjectTaskList(workspaceSlug: string, projectId: string) {
     move,
     reschedule,
     setPriority,
+    setDueDate,
     addCollaborator,
     setStatus,
     open,

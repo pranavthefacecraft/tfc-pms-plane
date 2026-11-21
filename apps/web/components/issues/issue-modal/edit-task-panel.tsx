@@ -193,7 +193,6 @@ function EditTaskForm({
             const payload: Partial<TIssue> = {
               ...(name !== defaults.name ? { name } : {}),
               ...(draft.priority !== defaults.priority ? { priority: draft.priority } : {}),
-              ...(draft.start_date !== defaults.start_date ? { start_date: draft.start_date } : {}),
               ...(draft.target_date !== defaults.target_date ? { target_date: draft.target_date } : {}),
               ...(draft.stateId && draft.stateId !== defaults.stateId ? { state_id: draft.stateId } : {}),
               ...(!isEqual(draft.assignees, defaults.assignees) ? { assignee_ids: draft.assignees } : {}),

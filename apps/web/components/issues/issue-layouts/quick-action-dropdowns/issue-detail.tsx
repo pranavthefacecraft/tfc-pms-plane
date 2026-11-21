@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { omit } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -46,6 +47,7 @@ type TWorkItemDetailQuickActionProps = IQuickActionProps & {
   toggleDuplicateIssueModal?: (value: boolean) => void;
   toggleArchiveIssueModal?: (value: boolean) => void;
   isPeekMode?: boolean;
+  additionalMenuItems?: ReactNode;
 };
 
 export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickActions(
@@ -65,6 +67,7 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
     toggleDuplicateIssueModal,
     toggleArchiveIssueModal,
     isPeekMode = false,
+    additionalMenuItems,
   } = props;
   // router
   const { workspaceSlug } = useParams();
@@ -242,13 +245,14 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
           render={
             <IconButton
               size="md"
-              variant="secondary"
+              variant={isPeekMode ? "ghost" : "secondary"}
               icon={<Icon icon={MoreHorizontalOutline} />}
               aria-label={t("common.options")}
             />
           }
         />
         <MenuContent {...toSideAndAlign(placements)} onClick={stopQuickActionPropagation}>
+          {additionalMenuItems}
           {getRenderableItems(MENU_ITEMS).map((item) => {
             const nestedItems = getRenderableItems(item.nestedMenuItems);
             if (nestedItems.length > 0) {

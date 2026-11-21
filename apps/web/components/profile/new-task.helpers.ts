@@ -31,6 +31,14 @@ const attachments = new IssueAttachmentService();
 const relations = new IssueRelationService();
 const collaborators = new ProjectCollaboratorsService();
 
+export const inviteTaskAssignees = (slug: string, projectId: string, issueId: string, emails: string[]) =>
+  collaborators.invite(
+    slug,
+    projectId,
+    emails.map((email) => ({ email, role: 15 })),
+    issueId
+  );
+
 export function taskDescriptionHTML(description: string) {
   const content = document.createElement("div");
   content.textContent = description;
@@ -115,14 +123,7 @@ export async function saveProjectTaskDetails(
   const inviteEmails = draft.inviteEmails;
   if (inviteEmails?.length) {
     operations.push(
-      step("assignee-invitations", () =>
-        collaborators.invite(
-          slug,
-          draft.projectId,
-          inviteEmails.map((email) => ({ email, role: 15 })),
-          issueId
-        )
-      )
+      step("assignee-invitations", () => inviteTaskAssignees(slug, draft.projectId, issueId, inviteEmails))
     );
   }
   const previousDependencies = new Set(initial?.dependencies.map(({ id }) => id));

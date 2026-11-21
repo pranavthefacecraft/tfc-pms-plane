@@ -30,6 +30,7 @@ interface TSubIssuesListGroupProps {
   subIssueOperations: TSubIssueOperations;
   storeType?: EIssuesStoreType;
   spacingLeft?: number;
+  presentation?: "drawer";
 }
 
 export const SubIssuesListGroup = observer(function SubIssuesListGroup(props: TSubIssuesListGroupProps) {
@@ -69,6 +70,7 @@ export const SubIssuesListGroup = observer(function SubIssuesListGroup(props: TS
       issueServiceType={serviceType}
       spacingLeft={spacingLeft}
       storeType={storeType}
+      presentation={props.presentation}
     />
   ));
 

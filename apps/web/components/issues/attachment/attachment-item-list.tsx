@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useState } from "react";
+import { Plus } from "lucide-react";
 import { observer } from "mobx-react";
 import type { FileRejection } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
@@ -32,6 +33,7 @@ type TIssueAttachmentItemList = {
   attachmentHelpers: TAttachmentHelpers;
   disabled?: boolean;
   issueServiceType?: TIssueServiceType;
+  presentation?: "cards";
 };
 
 export const IssueAttachmentItemList = observer(function IssueAttachmentItemList(props: TIssueAttachmentItemList) {
@@ -60,6 +62,8 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
   const { maxFileSize } = useFileSize();
   // derived values
   const issueAttachments = getAttachmentsByIssueId(issueId);
+  const cards = props.presentation === "cards";
+  const showAddTile = cards && !disabled;
 
   // handlers
   const handleFetchPropertyActivities = useCallback(() => {
@@ -100,14 +104,16 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
       });
       return;
     },
-    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities]
+    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities, t]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     maxSize: maxFileSize,
     multiple: false,
     disabled: isUploading || disabled,
+    noClick: cards,
+    noKeyboard: cards,
   });
 
   return (
@@ -115,7 +121,7 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
       {uploadStatus?.map((uploadStatus) => (
         <IssueAttachmentsUploadItem key={uploadStatus.id} uploadStatus={uploadStatus} />
       ))}
-      {issueAttachments && (
+      {(issueAttachments || showAddTile) && (
         <>
           {attachmentDeleteModalId && (
             <IssueAttachmentDeleteModal
@@ -128,7 +134,7 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
           )}
           <div
             {...getRootProps()}
-            className={`relative flex flex-col ${isDragActive && issueAttachments.length < 3 ? "min-h-[200px]" : ""} ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+            className={`relative flex ${cards ? "flex-wrap gap-2" : "flex-col"} ${isDragActive && (issueAttachments?.length ?? 0) < 3 ? "min-h-[200px]" : ""} ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
           >
             <input {...getInputProps()} />
             {isDragActive && (
@@ -147,8 +153,20 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
                 attachmentId={attachmentId}
                 disabled={disabled}
                 issueServiceType={issueServiceType}
+                presentation={cards ? "card" : undefined}
               />
             ))}
+            {showAddTile && (
+              <button
+                type="button"
+                aria-label={t("common.attach")}
+                disabled={isUploading}
+                onClick={open}
+                className="grid size-15 shrink-0 place-items-center rounded-lg border border-dashed border-strong text-accent-primary hover:bg-surface-2 disabled:cursor-wait"
+              >
+                <Plus aria-hidden="true" className="size-5" />
+              </button>
+            )}
           </div>
         </>
       )}

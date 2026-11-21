@@ -16,17 +16,26 @@ import {
   MenuRadioItem,
   MenuTrigger,
 } from "@makeplane/propel/components/menu";
+import { DateSelect } from "@plane/blocks/property-select";
 import type { TIssuePriorities } from "@plane/types";
+import { getDate, renderFormattedPayloadDate } from "@plane/utils";
 import { CollaboratorAvatars, collaboratorAddButtonClass } from "@/components/common/collaborator-avatars";
 import { sortTasks, TaskSortMenu } from "@/components/common/task-sort";
 import type { TaskSortOrder } from "@/components/common/task-sort";
 import { MemberSelect } from "@/components/dropdowns/member/member-select";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
+import { useUserProfile } from "@/hooks/store/user";
 import type { TProjectListTask } from "@/services/project/project-task-list.service";
 import { AddStage } from "./add-stage";
 import { useCustomFields } from "./custom-fields/service";
 import type { CustomField } from "./custom-fields/service";
-import { PRIORITY_LABELS, dueDateDetails, isCompleted } from "./project-list.helpers";
+import {
+  PRIORITY_LABELS,
+  dueDateDetails,
+  isCompleted,
+  taskPriorityColors,
+  taskStatusColors,
+} from "./project-list.helpers";
 import type { TProjectListGroup } from "./project-list.helpers";
 import {
   NoMatchingTasks,
@@ -44,6 +53,7 @@ type TRowActions = {
   busy: Set<string>;
   onToggle: (task: TProjectListTask) => Promise<void>;
   onSetPriority: (task: TProjectListTask, priority: TIssuePriorities) => Promise<void>;
+  onSetDueDate: (task: TProjectListTask, date: string | null) => Promise<void>;
   onAddCollaborator: (task: TProjectListTask, memberId: string) => Promise<void>;
   statusField?: CustomField;
   onSetStatus: (task: TProjectListTask, fieldId: string, value: string | null) => Promise<void>;
@@ -52,27 +62,11 @@ type TRowActions = {
 };
 
 const COLUMN_COUNT = 5;
-const priorityClasses: Record<TIssuePriorities, string> = {
-  urgent: "bg-[#701A24] text-white",
-  high: "bg-[#9B1818] text-white",
-  medium: "bg-[#FDE68A] text-[#111827]",
-  low: "bg-[#E2E7EF] text-[#3A4D66]",
-  none: "bg-surface-2 text-secondary",
-};
 const sectionClasses: Record<string, string> = {
   "in progress": "text-blue-700 dark:text-blue-300",
   review: "text-amber-800 dark:text-amber-300",
   done: "text-emerald-700 dark:text-emerald-300",
 };
-const statusClasses: Record<string, string> = {
-  "on track": "bg-[#E8FAF2] text-[#00664F]",
-  completed: "bg-[#E8FAF2] text-[#00664F]",
-  blocked: "bg-[#FDEFEF] text-[#A81919]",
-  "at risk": "bg-amber-100 text-amber-900",
-  "needs attention": "bg-[#FDE68A] text-[#573A03]",
-  "on hold": "bg-[#EFE8FE] text-[#6338A7]",
-};
-const neutralStatus = "bg-[#E2E7EF] text-[#3A4D66]";
 const badge = "inline-flex min-h-6 items-center gap-1 whitespace-nowrap px-2 text-14 leading-5 font-medium";
 const priorityOptions = ["none", "low", "medium", "high", "urgent"] as const satisfies readonly TIssuePriorities[];
 
@@ -83,7 +77,7 @@ function TaskPriority({
   onSetPriority,
 }: Pick<TaskRowProps, "task" | "canEdit" | "busy" | "onSetPriority">) {
   const priority = task.priority ?? "none";
-  const className = `${badge} rounded-md ${priorityClasses[priority]}`;
+  const className = `${badge} rounded-md ${taskPriorityColors[priority]}`;
   if (!canEdit) return <span className={className}>{PRIORITY_LABELS[priority]}</span>;
 
   return (
@@ -113,7 +107,7 @@ function TaskPriority({
             {priorityOptions.map((option) => (
               <div
                 key={option}
-                className={`[&>[role=menuitemradio][data-highlighted]]:ring-accent-primary mb-1 rounded-md [&>[role=menuitemradio]]:bg-transparent! [&>[role=menuitemradio]]:text-inherit! [&>[role=menuitemradio][data-highlighted]]:ring-2 [&>[role=menuitemradio][data-highlighted]]:ring-inset ${option === "none" ? "text-primary" : option === "low" ? "bg-[#C8D9F5] text-[#3A4D66]" : priorityClasses[option]}`}
+                className={`[&>[role=menuitemradio][data-highlighted]]:ring-accent-primary mb-1 rounded-md [&>[role=menuitemradio]]:bg-transparent! [&>[role=menuitemradio]]:text-inherit! [&>[role=menuitemradio][data-highlighted]]:ring-2 [&>[role=menuitemradio][data-highlighted]]:ring-inset ${option === "none" ? "text-primary" : option === "low" ? "bg-[#C8D9F5] text-[#3A4D66]" : taskPriorityColors[option]}`}
               >
                 <MenuRadioItem
                   value={option}
@@ -129,14 +123,9 @@ function TaskPriority({
   );
 }
 
-function statusColors(name: string | null | undefined) {
-  const key = name?.toLowerCase() ?? "";
-  return Object.hasOwn(statusClasses, key) ? statusClasses[key] : neutralStatus;
-}
-
 function TaskStatusBadge({ name }: { name: string | null | undefined }) {
   return (
-    <span className={`${badge} rounded-full ${statusColors(name)}`}>
+    <span className={`${badge} rounded-full ${taskStatusColors(name)}`}>
       {!name && <span aria-hidden="true" className="size-1.5 rounded-full bg-[#6E829E]" />}
       {name || "No Status"}
     </span>
@@ -269,9 +258,49 @@ function TaskNameCell({ task, depth, childCount, expanded, onExpand, canEdit, bu
   );
 }
 
-function ProjectListRow(props: TaskRowProps) {
-  const { task, today, canEdit, projectId, busy, onAddCollaborator } = props;
+function TaskDueDate({
+  task,
+  today,
+  canEdit,
+  busy,
+  onSetDueDate,
+}: Pick<TaskRowProps, "task" | "today" | "canEdit" | "busy" | "onSetDueDate">) {
+  const { data: profile } = useUserProfile();
   const due = dueDateDetails(task, today);
+  return (
+    <td
+      className={`px-2 py-1 text-12 whitespace-nowrap ${due.label === "Today" ? "text-red-700 dark:text-red-300 font-medium" : due.className}`}
+    >
+      {canEdit ? (
+        <div role="group" aria-label={`Due date for ${task.name}`}>
+          <DateSelect
+            variant="table-cell"
+            className="w-full cursor-pointer text-12! text-inherit! disabled:cursor-wait"
+            value={getDate(task.target_date) ?? null}
+            defaultMonth={getDate(today)}
+            minDate={getDate(task.start_date && task.start_date > today ? task.start_date : today)}
+            placeholder="—"
+            formatToken={due.label === "Today" ? "'Today'" : "MMM dd, yyyy"}
+            disabled={busy.has(task.id)}
+            clearable
+            clearLabel="Clear due date"
+            weekStartsOn={profile?.start_of_the_week}
+            align="end"
+            onChange={(date) => {
+              const next = date ? renderFormattedPayloadDate(date) : null;
+              if (next !== undefined && next !== task.target_date) void onSetDueDate(task, next);
+            }}
+          />
+        </div>
+      ) : (
+        due.label
+      )}
+    </td>
+  );
+}
+
+function ProjectListRow(props: TaskRowProps) {
+  const { task, canEdit, projectId, busy, onAddCollaborator } = props;
   return (
     <tr className="border-b border-subtle hover:bg-layer-transparent-hover">
       <TaskNameCell {...props} />
@@ -307,11 +336,7 @@ function ProjectListRow(props: TaskRowProps) {
           onSetStatus={props.onSetStatus}
         />
       </td>
-      <td
-        className={`px-2 py-1 text-12 whitespace-nowrap ${due.label === "Today" ? "text-red-700 dark:text-red-300 font-medium" : due.className}`}
-      >
-        {due.label}
-      </td>
+      <TaskDueDate {...props} />
     </tr>
   );
 }
@@ -468,6 +493,7 @@ export const ProjectList = observer(function ProjectList({
     busy: list.busy,
     onToggle: list.toggle,
     onSetPriority: list.setPriority,
+    onSetDueDate: list.setDueDate,
     onAddCollaborator: list.addCollaborator,
     statusField: fields?.find((field) => field.field_type === "single_select" && field.name.toLowerCase() === "status"),
     onSetStatus: list.setStatus,

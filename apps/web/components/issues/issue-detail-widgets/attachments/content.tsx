@@ -18,6 +18,7 @@ type Props = {
   issueId: string;
   disabled: boolean;
   issueServiceType?: TIssueServiceType;
+  presentation?: "cards";
 };
 
 export const IssueAttachmentsCollapsibleContent = observer(function IssueAttachmentsCollapsibleContent(props: Props) {
@@ -32,6 +33,7 @@ export const IssueAttachmentsCollapsibleContent = observer(function IssueAttachm
       disabled={disabled}
       attachmentHelpers={attachmentHelpers}
       issueServiceType={issueServiceType}
+      presentation={props.presentation}
     />
   );
 });

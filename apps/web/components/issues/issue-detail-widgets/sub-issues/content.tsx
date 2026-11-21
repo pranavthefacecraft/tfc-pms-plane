@@ -23,6 +23,7 @@ type Props = {
   parentIssueId: string;
   disabled: boolean;
   issueServiceType?: TIssueServiceType;
+  presentation?: "drawer";
 };
 
 type TIssueCrudState = { toggle: boolean; parentIssueId: string | undefined; issue: TIssue | undefined };
@@ -138,6 +139,7 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
           handleIssueCrudState={handleIssueCrudState}
           subIssueOperations={subIssueOperations}
           issueServiceType={issueServiceType}
+          presentation={props.presentation}
         />
       )}
 

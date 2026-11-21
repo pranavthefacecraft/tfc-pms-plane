@@ -48,6 +48,7 @@ type MemberSelectWebCommonProps = {
   /** Tab order of the trigger, for forms that sequence focus explicitly (`ETabIndices`). */
   tabIndex?: number;
   emptyMessage?: ReactNode | ((query: string) => ReactNode);
+  footer?: ReactNode;
 };
 
 export type MemberSelectWebProps = MemberSelectWebCommonProps &
@@ -165,6 +166,7 @@ export const MemberSelect = observer(function MemberSelect(props: MemberSelectWe
     return (
       <MemberSelectBlock
         emptyMessage={props.emptyMessage}
+        footer={props.footer}
         multiple
         testId={testId}
         getValues={getValues}
@@ -188,6 +190,7 @@ export const MemberSelect = observer(function MemberSelect(props: MemberSelectWe
   return (
     <MemberSelectBlock
       emptyMessage={props.emptyMessage}
+      footer={props.footer}
       multiple={false}
       testId={testId}
       getValues={getValues}

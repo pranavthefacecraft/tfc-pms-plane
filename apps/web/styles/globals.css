@@ -8,6 +8,11 @@
   background-color: #fafafa;
 }
 
+/* Propel's calendar uses an inline-end utility that Tailwind does not emit. */
+nav.inset-e-0 {
+  inset-inline-end: 0;
+}
+
 body:has(.auth-page) {
   background-color: #fdfdfe;
 }

@@ -5,14 +5,19 @@
  */
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import useSWR from "swr";
 import { Button } from "@makeplane/propel/components/button";
 import { setToast } from "@plane/blocks/toast";
+import { useTranslation } from "@plane/i18n";
 import { renderFormattedPayloadDate } from "@plane/utils";
 import { customFields, fieldError, useCustomFields } from "./service";
 import type { CustomField, FieldValue } from "./service";
 import { parseFieldDraft } from "./value.helpers";
 import { useLiveTaskUpdates } from "@/hooks/use-live-task-updates";
+import { taskDetailLabelClass } from "@/components/common/layout/sidebar/property-list-item";
+import { TaskDetailChoice } from "@/components/common/task-detail-choice";
+import { taskStatusColors } from "../project-list.helpers";
 
 function OptionBadge({ name, color }: { name: string; color: string }) {
   return (
@@ -28,12 +33,15 @@ function FieldValueEditor({
   value,
   disabled,
   onSave,
+  presentation,
 }: {
   field: CustomField;
   value: FieldValue;
   disabled: boolean;
   onSave: (value: FieldValue) => Promise<void>;
+  presentation?: "stage" | "status";
 }) {
+  const { t } = useTranslation();
   const initial = value === null ? "" : String(value);
   const [draftState, setDraftState] = useState({ baseValue: initial, text: initial });
   const draft = draftState.text === draftState.baseValue ? initial : draftState.text;
@@ -54,6 +62,25 @@ function FieldValueEditor({
   };
   const selectedIds = new Set(Array.isArray(value) ? value : typeof value === "string" ? [value] : []);
   const selected = field.options.filter((option) => selectedIds.has(option.id));
+  if (presentation && field.field_type === "single_select") {
+    const option = selected[0];
+    return (
+      <TaskDetailChoice
+        label={field.name}
+        value={option?.id ?? ""}
+        options={[{ id: "", label: t("common.none") }, ...field.options.map(({ id, name }) => ({ id, label: name }))]}
+        onChange={(next) => void save(next || null)}
+        disabled={disabled}
+        busy={busy}
+        showChevron={presentation === "status"}
+        valueClassName={
+          presentation === "status"
+            ? `rounded-full px-2.5 py-0.5 text-13 leading-5 font-medium ${taskStatusColors(option?.name)}`
+            : undefined
+        }
+      />
+    );
+  }
   if (disabled)
     return (
       <div className="flex flex-wrap gap-1 text-13 text-secondary">
@@ -171,24 +198,29 @@ function FieldValueEditor({
   );
 }
 
+const normalizedFieldName = (field: CustomField) => field.name.trim().toLowerCase();
+
 export function TaskCustomFields({
   workspaceSlug,
   projectId,
   issueId,
   disabled,
+  primaryGroup,
 }: {
   workspaceSlug: string;
   projectId: string;
   issueId: string;
   disabled: boolean;
+  primaryGroup?: { names: readonly string[]; after: ReactNode };
 }) {
   const fields = useCustomFields(workspaceSlug, projectId);
   const values = useSWR(["task-custom-field-values", workspaceSlug, projectId, issueId], () =>
     customFields.values(workspaceSlug, projectId, issueId)
   );
   useLiveTaskUpdates(workspaceSlug, () => Promise.all([values.mutate(), fields.mutate()]));
-  if (fields.error || values.error)
-    return (
+  let feedback: ReactNode;
+  if (fields.error || values.error) {
+    feedback = (
       <div role="alert" className="py-2 text-13 text-danger-primary">
         Custom fields could not be loaded.{" "}
         <button
@@ -203,38 +235,62 @@ export function TaskCustomFields({
         </button>
       </div>
     );
-  if (fields.isLoading || values.isLoading)
-    return (
+  } else if (fields.isLoading || values.isLoading) {
+    feedback = (
       <p role="status" className="py-2 text-13 text-secondary">
         Loading custom fields...
       </p>
     );
-  if (!fields.data?.length) return null;
+  }
+  const configuredFields = feedback ? [] : (fields.data ?? []);
+  const renderFields = (group: CustomField[], compact = false) =>
+    group.length > 0 && (
+      <section
+        aria-label="Custom fields"
+        className={compact ? "space-y-2" : "divide-y divide-subtle border-y border-subtle"}
+      >
+        {group.map((field) => {
+          const value = values.data?.[field.id] ?? null;
+          const name = normalizedFieldName(field);
+          return (
+            <div
+              key={field.id}
+              className={`grid grid-cols-[120px_minmax(0,1fr)] gap-2 ${compact ? "min-h-7.5 items-center" : "py-2"}`}
+            >
+              <div className="min-w-0 py-1 text-13 text-secondary">
+                <p className={`${taskDetailLabelClass} break-words`}>{field.name}</p>
+                {field.description && <p className="mt-1 text-11 text-tertiary">{field.description}</p>}
+              </div>
+              <div className={compact ? "w-fit max-w-[min(100%,12rem)] min-w-0" : "min-w-0"}>
+                <FieldValueEditor
+                  key={field.id}
+                  field={field}
+                  value={value}
+                  disabled={disabled}
+                  presentation={compact && (name === "stage" || name === "status") ? name : undefined}
+                  onSave={async (next) => {
+                    await customFields.setValue(workspaceSlug, projectId, issueId, field.id, next);
+                    await values.mutate((previous) => ({ ...previous, [field.id]: next }), { revalidate: false });
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    );
+  if (!primaryGroup) return feedback ?? renderFields(configuredFields);
+
+  const primaryNames = new Set(primaryGroup.names);
   return (
-    <section aria-label="Custom fields" className="divide-y divide-subtle border-y border-subtle">
-      {fields.data.map((field) => {
-        const value = values.data?.[field.id] ?? null;
-        return (
-          <div key={field.id} className="grid grid-cols-[120px_minmax(0,1fr)] gap-2 py-2">
-            <div className="min-w-0 py-1 text-13 text-secondary">
-              <p className="font-medium break-words">{field.name}</p>
-              {field.description && <p className="mt-1 text-11 text-tertiary">{field.description}</p>}
-            </div>
-            <div className="min-w-0">
-              <FieldValueEditor
-                key={field.id}
-                field={field}
-                value={value}
-                disabled={disabled}
-                onSave={async (next) => {
-                  await customFields.setValue(workspaceSlug, projectId, issueId, field.id, next);
-                  await values.mutate((previous) => ({ ...previous, [field.id]: next }), { revalidate: false });
-                }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </section>
+    <>
+      {feedback ??
+        renderFields(
+          primaryGroup.names.flatMap((name) => configuredFields.filter((field) => normalizedFieldName(field) === name)),
+          true
+        )}
+      {primaryGroup.after}
+      {renderFields(configuredFields.filter((field) => !primaryNames.has(normalizedFieldName(field))))}
+    </>
   );
 }

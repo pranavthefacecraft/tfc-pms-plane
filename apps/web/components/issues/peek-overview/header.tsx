@@ -5,23 +5,25 @@
  */
 
 import { useRef } from "react";
+import { X } from "lucide-react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import {
-  ArrowNarrowRightOutline,
-  DragDropOutline,
-  FullScreenPeekOutline,
-  LinkOutline,
-  ModalPeekOutline,
-  SidePeekOutline,
-} from "@makeplane/propel/icons";
+import { ArrowNarrowRightOutline, DragDropOutline, LinkOutline } from "@makeplane/propel/icons";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { setToast } from "@plane/blocks/toast";
 import { Tooltip } from "@makeplane/propel/components/tooltip";
+import {
+  MenuItem,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuSubmenu,
+  MenuSubmenuContent,
+  MenuSubmenuTrigger,
+} from "@makeplane/propel/components/menu";
 import type { TNameDescriptionLoader } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { Select } from "@plane/blocks/select";
 import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -36,28 +38,75 @@ import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdo
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
 import { IconButton } from "@makeplane/propel/components/icon-button";
 import { Icon } from "@makeplane/propel/components/icon";
+import { TaskCompletion } from "./task-completion";
 
 export type TPeekModes = "side-peek" | "modal" | "full-screen";
 
-type TPeekOption = { key: TPeekModes; icon: any; i18n_title: string };
+function PeekTaskMenuItems({
+  workspaceSlug,
+  projectId,
+  issueId,
+  isArchived,
+  canShowSubscription,
+  onCopyLink,
+  workItemLink,
+  removeRoutePeekId,
+  peekMode,
+  setPeekMode,
+}: Pick<
+  PeekOverviewHeaderProps,
+  "workspaceSlug" | "projectId" | "issueId" | "isArchived" | "removeRoutePeekId" | "peekMode" | "setPeekMode"
+> & {
+  canShowSubscription: boolean;
+  onCopyLink: () => Promise<void>;
+  workItemLink: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <IssueLikeButton
+        key={issueId}
+        workspaceSlug={workspaceSlug}
+        projectId={projectId}
+        issueId={issueId}
+        disabled={isArchived}
+        presentation="menu"
+      />
+      {canShowSubscription && !isArchived && (
+        <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} presentation="menu" />
+      )}
+      <MenuItem label={t("common.actions.copy_link")} onClick={onCopyLink} />
+      <MenuItem
+        label={t("issue.open_in_full_screen")}
+        render={<Link href={workItemLink} />}
+        onClick={removeRoutePeekId}
+      />
+      <MenuSubmenu>
+        <MenuSubmenuTrigger label={t("common.toggle_peek_view_layout")} />
+        <MenuSubmenuContent sizing="auto">
+          <MenuRadioGroup
+            value={peekMode}
+            onValueChange={(value) => {
+              const next = PEEK_OPTIONS.find((option) => option.key === value);
+              if (next) setPeekMode(next.key);
+            }}
+          >
+            {PEEK_OPTIONS.map((option) => (
+              <MenuRadioItem key={option.key} value={option.key} label={t(option.i18n_title)} closeOnClick />
+            ))}
+          </MenuRadioGroup>
+        </MenuSubmenuContent>
+      </MenuSubmenu>
+      <MenuSeparator />
+    </>
+  );
+}
 
-const PEEK_OPTIONS: TPeekOption[] = [
-  {
-    key: "side-peek",
-    icon: SidePeekOutline,
-    i18n_title: "common.side_peek",
-  },
-  {
-    key: "modal",
-    icon: ModalPeekOutline,
-    i18n_title: "common.modal",
-  },
-  {
-    key: "full-screen",
-    icon: FullScreenPeekOutline,
-    i18n_title: "common.full_screen",
-  },
-];
+const PEEK_OPTIONS = [
+  { key: "side-peek", i18n_title: "common.side_peek" },
+  { key: "modal", i18n_title: "common.modal" },
+  { key: "full-screen", i18n_title: "common.full_screen" },
+] as const satisfies readonly { key: TPeekModes; i18n_title: string }[];
 
 export type PeekOverviewHeaderProps = {
   peekMode: TPeekModes;
@@ -75,6 +124,7 @@ export type PeekOverviewHeaderProps = {
   toggleEditIssueModal: (value: boolean) => void;
   handleRestoreIssue: () => Promise<void>;
   isSubmitting: TNameDescriptionLoader;
+  onChangeCompletion: (stateId: string) => Promise<void>;
 };
 
 export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader(props: PeekOverviewHeaderProps) {
@@ -94,6 +144,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     toggleEditIssueModal,
     handleRestoreIssue,
     isSubmitting,
+    onChangeCompletion,
   } = props;
   // ref
   const parentRef = useRef<HTMLDivElement>(null);
@@ -111,7 +162,6 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
   const { getProjectIdentifierById } = useProject();
   // derived values
   const issueDetails = getIssueById(issueId);
-  const currentMode = PEEK_OPTIONS.find((m) => m.key === peekMode);
   const projectIdentifier = getProjectIdentifierById(issueDetails?.project_id);
   const {
     issues: { removeIssue: removeArchivedIssue },
@@ -126,16 +176,17 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     isArchived,
   });
 
-  const handleCopyText = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
-    e.preventDefault();
-    copyUrlToClipboard(workItemLink).then(() => {
+  const handleCopyText = async () => {
+    try {
+      await copyUrlToClipboard(workItemLink);
       setToast({
         type: "success",
         title: t("common.link_copied"),
         message: t("common.link_copied_to_clipboard"),
       });
-    });
+    } catch {
+      setToast({ type: "error", title: t("toast.error"), message: t("common.error.message") });
+    }
   };
 
   const handleDeleteIssue = async () => {
@@ -162,84 +213,113 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     }
   };
 
-  return (
-    <div
-      className={`relative flex items-center justify-between p-4 ${
-        currentMode?.key === "full-screen" ? "border-b border-subtle" : ""
-      }`}
-    >
-      <div className="flex items-center gap-4">
-        <Tooltip label={t("common.close_peek_view")} disabled={isMobile}>
-          <button onClick={removeRoutePeekId}>
-            <ArrowNarrowRightOutline className="h-4 w-4 text-tertiary hover:text-secondary" />
-          </button>
-        </Tooltip>
-
-        <Tooltip label={t("issue.open_in_full_screen")} disabled={isMobile}>
-          <Link href={workItemLink} onClick={() => removeRoutePeekId()}>
-            <DragDropOutline className="h-4 w-4 text-tertiary hover:text-secondary" />
-          </Link>
-        </Tooltip>
-        {currentMode && embedIssue === false && (
-          <div className="flex flex-shrink-0 items-center gap-2">
-            <Select<TPeekOption>
-              getValues={() => PEEK_OPTIONS}
-              value={currentMode}
-              onChange={(val) => setPeekMode(val as TPeekModes)}
-              getOptionValue={(mode) => mode.key}
-              getOptionLabel={(mode) => t(mode.i18n_title)}
-              getOptionIcon={(mode) => <mode.icon className="-my-1 h-4 w-4 flex-shrink-0" />}
-              showSearch={false}
-              pinSelected={false}
-            >
-              <Select.Trigger
-                variant="icon-md"
-                prependIcon={<currentMode.icon className="h-4 w-4 text-tertiary hover:text-secondary" />}
-                tooltip={isMobile ? false : { heading: t("common.toggle_peek_view_layout") }}
-              />
-            </Select>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-x-4">
-        <NameDescriptionUpdateStatus isSubmitting={isSubmitting} />
-        <div className="flex items-center gap-2">
-          <IssueLikeButton
-            key={issueId}
+  const moreActions = issueDetails && (
+    <WorkItemDetailQuickActions
+      parentRef={parentRef}
+      issue={issueDetails}
+      handleDelete={handleDeleteIssue}
+      handleArchive={handleArchiveIssue}
+      handleRestore={handleRestoreIssue}
+      readOnly={disabled}
+      toggleDeleteIssueModal={toggleDeleteIssueModal}
+      toggleArchiveIssueModal={toggleArchiveIssueModal}
+      toggleDuplicateIssueModal={toggleDuplicateIssueModal}
+      toggleEditIssueModal={toggleEditIssueModal}
+      isPeekMode
+      additionalMenuItems={
+        !embedIssue && (
+          <PeekTaskMenuItems
             workspaceSlug={workspaceSlug}
             projectId={projectId}
             issueId={issueId}
-            disabled={isArchived}
+            isArchived={isArchived}
+            canShowSubscription={!!currentUser}
+            onCopyLink={handleCopyText}
+            workItemLink={workItemLink}
+            removeRoutePeekId={removeRoutePeekId}
+            peekMode={peekMode}
+            setPeekMode={setPeekMode}
           />
-          {currentUser && !isArchived && (
-            <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
-          )}
-          <Tooltip label={t("common.actions.copy_link")} disabled={isMobile}>
-            <IconButton
-              variant="secondary"
-              size="md"
-              onClick={handleCopyText}
-              icon={<Icon icon={LinkOutline} />}
-              aria-label={t("common.actions.copy_link")}
-            />
+        )
+      }
+    />
+  );
+  if (embedIssue)
+    return (
+      <div
+        className={`relative flex items-center justify-between gap-2 p-4 ${
+          peekMode === "full-screen" ? "border-b border-subtle" : ""
+        }`}
+      >
+        <div className="flex items-center gap-4">
+          <Tooltip label={t("common.close_peek_view")} disabled={isMobile}>
+            <button type="button" onClick={removeRoutePeekId} aria-label={t("common.close_peek_view")}>
+              <ArrowNarrowRightOutline className="h-4 w-4 text-tertiary hover:text-secondary" />
+            </button>
           </Tooltip>
-          {issueDetails && (
-            <WorkItemDetailQuickActions
-              parentRef={parentRef}
-              issue={issueDetails}
-              handleDelete={handleDeleteIssue}
-              handleArchive={handleArchiveIssue}
-              handleRestore={handleRestoreIssue}
-              readOnly={disabled}
-              toggleDeleteIssueModal={toggleDeleteIssueModal}
-              toggleArchiveIssueModal={toggleArchiveIssueModal}
-              toggleDuplicateIssueModal={toggleDuplicateIssueModal}
-              toggleEditIssueModal={toggleEditIssueModal}
-              isPeekMode
+
+          <Tooltip label={t("issue.open_in_full_screen")} disabled={isMobile}>
+            <Link href={workItemLink} onClick={() => removeRoutePeekId()}>
+              <DragDropOutline className="h-4 w-4 text-tertiary hover:text-secondary" />
+            </Link>
+          </Tooltip>
+        </div>
+        <div className="flex items-center gap-x-4">
+          <NameDescriptionUpdateStatus isSubmitting={isSubmitting} />
+          <div className="flex items-center gap-2">
+            <IssueLikeButton
+              key={issueId}
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              issueId={issueId}
+              disabled={isArchived}
             />
-          )}
+            {currentUser && !isArchived && (
+              <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
+            )}
+            <Tooltip label={t("common.actions.copy_link")} disabled={isMobile}>
+              <IconButton
+                variant="secondary"
+                size="md"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  event.preventDefault();
+                  void handleCopyText();
+                }}
+                icon={<Icon icon={LinkOutline} />}
+                aria-label={t("common.actions.copy_link")}
+              />
+            </Tooltip>
+            {moreActions}
+          </div>
         </div>
       </div>
-    </div>
+    );
+  return (
+    <header className="flex items-center justify-between gap-2 border-b border-subtle px-5 py-3">
+      <div>
+        {issueDetails?.state_id && (
+          <TaskCompletion
+            key={issueId}
+            projectId={projectId}
+            stateId={issueDetails.state_id}
+            disabled={disabled || isArchived}
+            onChange={onChangeCompletion}
+          />
+        )}
+      </div>
+      <div className="flex items-center gap-1">
+        <NameDescriptionUpdateStatus isSubmitting={isSubmitting} />
+        {moreActions}
+        <button
+          type="button"
+          className="grid size-8 shrink-0 place-items-center rounded text-[#6B7E99] hover:bg-layer-transparent-hover"
+          aria-label={t("common.close_peek_view")}
+          onClick={removeRoutePeekId}
+        >
+          <X aria-hidden="true" className="size-4" />
+        </button>
+      </div>
+    </header>
   );
 });

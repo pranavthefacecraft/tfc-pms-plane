@@ -1,10 +1,11 @@
-import { act } from "react";
+import { act, useState } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { SWRConfig } from "swr";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NewTaskPanel } from "./new-task-panel";
 import { EditTaskPanel } from "@/components/issues/issue-modal/edit-task-panel";
+import { IssueAssignmentAndDueDate } from "@/components/issues/issue-detail/summary-properties";
 import type { TNewTaskDraft } from "./new-task.helpers";
 
 const state = vi.hoisted(() => ({
@@ -24,16 +25,24 @@ const state = vi.hoisted(() => ({
   update: vi.fn(),
   removeRelation: vi.fn(),
   refresh: vi.fn(),
+  fetchIssue: vi.fn(),
+  fetchMembers: vi.fn(),
+  role: 20,
 }));
 vi.mock("@/hooks/use-issues-actions", () => ({ useIssuesActions: () => ({ updateIssue: state.update }) }));
 vi.mock("@/hooks/store/use-issue-detail", () => ({
   useIssueDetail: () => ({
+    issue: { getIssueById: () => ({ assignee_ids: ["teammate"] }), fetchIssue: state.fetchIssue },
     fetchRelations: state.refresh,
     fetchAttachments: state.refresh,
     fetchSubIssues: state.refresh,
     fetchActivities: state.refresh,
   }),
 }));
+vi.mock("@/hooks/store/use-member", () => ({
+  useMember: () => ({ project: { fetchProjectMembers: state.fetchMembers } }),
+}));
+vi.mock("@/components/issues/issue-detail/relation-select", () => ({ IssueRelationSelect: () => null }));
 vi.mock("@/hooks/store/use-editor-asset", () => ({ useEditorAsset: () => ({}) }));
 vi.mock("@/hooks/store/use-workspace", () => ({
   useWorkspace: () => ({ getWorkspaceBySlug: () => ({ id: "team" }) }),
@@ -57,8 +66,8 @@ vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("@/hooks/store/user", () => ({
   useUserProfile: () => ({ data: { start_of_the_week: 1 } }),
   useUserPermissions: () => ({
-    getProjectRoleByWorkspaceSlugAndProjectId: () => 20,
-    getWorkspaceRoleByWorkspaceSlug: () => 20,
+    getProjectRoleByWorkspaceSlugAndProjectId: () => state.role,
+    getWorkspaceRoleByWorkspaceSlug: () => state.role,
   }),
 }));
 vi.mock("@/hooks/store/use-instance", () => ({ useInstance: () => ({ config: { is_smtp_configured: true } }) }));
@@ -69,7 +78,11 @@ vi.mock("@/hooks/store/use-project", () => ({
   }),
 }));
 vi.mock("@/hooks/store/use-project-state", () => ({
-  useProjectState: () => ({ fetchProjectStates: state.states, getProjectDefaultStateId: () => "todo" }),
+  useProjectState: () => ({
+    fetchProjectStates: state.states,
+    getProjectDefaultStateId: () => "todo",
+    getStateById: () => undefined,
+  }),
 }));
 vi.mock("@/services/personal-task.service", () => ({ personalTaskService: { create: state.create } }));
 vi.mock("@/services/issue/issue.service", () => ({
@@ -96,25 +109,34 @@ vi.mock("@/components/dropdowns/member/member-select", () => ({
     onChange,
     disabled,
     emptyMessage,
+    footer,
   }: {
     value: string[];
     onChange: (ids: string[]) => void;
     disabled: boolean;
     emptyMessage?: (query: string) => ReactNode;
-  }) => (
-    <>
-      <select
-        aria-label="Assigned to"
-        disabled={disabled}
-        value={value[0] ?? ""}
-        onChange={(event) => onChange([event.target.value])}
-      >
-        <option value="">Choose teammate</option>
-        <option value="teammate">Alex</option>
-      </select>
-      {emptyMessage?.("new@example.com")}
-    </>
-  ),
+    footer?: ReactNode;
+  }) => {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <select
+          aria-label="Assigned to"
+          disabled={disabled}
+          value={value[0] ?? ""}
+          onChange={(event) => onChange([event.target.value])}
+        >
+          <option value="">Choose teammate</option>
+          <option value="teammate">Alex</option>
+        </select>
+        {emptyMessage?.("new@example.com")}
+        <button type="button" disabled={disabled} onClick={() => setOpen(true)}>
+          Open assignee dropdown
+        </button>
+        {open && footer}
+      </>
+    );
+  },
 }));
 vi.mock("@/components/core/modals/existing-issues-list-modal", () => ({
   ExistingIssuesListModal: ({
@@ -142,6 +164,7 @@ let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
   vi.resetAllMocks();
+  state.role = 20;
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   state.create.mockResolvedValue({ id: "private", name: "My task" });
   state.issue.mockResolvedValue({ id: "issue", name: "My task" });
@@ -156,6 +179,7 @@ beforeEach(() => {
     name: "Existing task",
     description_html: "<p><strong>Existing description</strong></p>",
     priority: "low",
+    start_date: "2026-11-20",
     target_date: "2026-11-25",
     assignee_ids: ["teammate"],
     state_id: "todo",
@@ -187,7 +211,7 @@ async function render(defaults?: Partial<TNewTaskDraft>) {
   );
 }
 async function change(label: string, value: string) {
-  const input = host.querySelector<HTMLInputElement | HTMLSelectElement>(`[aria-label="${label}"]`)!;
+  const input = document.body.querySelector<HTMLInputElement | HTMLSelectElement>(`[aria-label="${label}"]`)!;
   await act(() => {
     const prototype = input.tagName === "SELECT" ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(input, value);
@@ -211,6 +235,8 @@ async function renderEdit() {
 it("prefills the shared task form and discards edits on cancel", async () => {
   await renderEdit();
   expect(host.textContent).toContain("Edit Task");
+  expect(host.textContent).not.toContain("Start date");
+  expect(host.textContent).toContain("Due date");
   expect(host.querySelector<HTMLInputElement>('[aria-label="Task name"]')?.value).toBe("Existing task");
   expect(host.querySelector<HTMLSelectElement>('[aria-label="Status"]')?.value).toBe("approved");
   expect(host.textContent).toContain("Previous dependency");
@@ -262,6 +288,7 @@ it("matches the field list and keeps project-only actions disabled for private t
     "Subtasks",
   ])
     expect(host.textContent).toContain(field);
+  expect(host.textContent).not.toContain("Start date");
   expect(button("Add dependencies").disabled).toBe(true);
   expect(button("+ Add subtask").disabled).toBe(true);
   expect(host.querySelector<HTMLInputElement>('[type="file"]')?.disabled).toBe(true);
@@ -367,6 +394,84 @@ it("confirms editor access before queuing an email assignment and clears it when
   expect(state.invite).toHaveBeenCalledWith("team", "project", [{ email: "new@example.com", role: 15 }], "issue");
   await change("Link to Project", "other");
   expect(host.querySelector('[aria-label="Remove invitation new@example.com"]')).toBeNull();
+});
+
+async function renderInlineAssignee(disabled = false) {
+  await act(() =>
+    root.render(
+      <IssueAssignmentAndDueDate
+        workspaceSlug="team"
+        projectId="project"
+        issueId="issue"
+        disabled={disabled}
+        compactAssignee
+        allowAssigneeInvites
+        issueOperations={{ fetch: vi.fn(), update: state.update, remove: vi.fn() }}
+      />
+    )
+  );
+}
+
+it.each([true, false])("invites by email on an existing task (already a teammate: %s)", async (existing) => {
+  const email = "new@example.com";
+  state.invite.mockResolvedValue({ added: existing ? [email] : [], invited: existing ? [] : [email] });
+  await renderInlineAssignee();
+  await act(() => button("Invite: new@example.com").click());
+  expect(document.body.querySelector<HTMLInputElement>('[aria-label="Invite email"]')?.value).toBe(email);
+  expect(state.invite).not.toHaveBeenCalled();
+  await change("Invite email", "New@Example.com");
+  const send = Array.from(document.body.querySelectorAll("button")).find(
+    (item) => item.textContent === "Send invitation"
+  )!;
+  await act(() => send.click());
+  expect(state.invite).toHaveBeenCalledExactlyOnceWith("team", "project", [{ email, role: 15 }], "issue");
+  expect(state.fetchIssue).toHaveBeenCalledTimes(existing ? 1 : 0);
+  expect(state.fetchMembers).toHaveBeenCalledTimes(existing ? 1 : 0);
+  expect(state.update).not.toHaveBeenCalled();
+  expect(document.body.querySelector('[aria-label="Invite email"]')).toBeNull();
+});
+
+it("offers the inline invite action only after opening the dropdown", async () => {
+  await renderInlineAssignee();
+  expect(host.textContent).not.toContain("Invite by email");
+  await act(() => button("Open assignee dropdown").click());
+  await act(() => button("Invite by email").click());
+  expect(state.pickerClose).toHaveBeenCalledOnce();
+  const dialog = document.body.querySelector('[role="dialog"][aria-label="Invite and assign by email"]');
+  expect(dialog).not.toBeNull();
+  expect(host.contains(dialog)).toBe(false);
+  const input = dialog!.querySelector<HTMLInputElement>('[aria-label="Invite email"]')!;
+  expect(input.value).toBe("");
+  await act(() => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+  expect(document.body.querySelector('[aria-label="Invite email"]')).toBeNull();
+  expect(state.invite).not.toHaveBeenCalled();
+});
+
+it("does not offer inline invitations to read-only users or non-admins", async () => {
+  await renderInlineAssignee(true);
+  expect(host.textContent).not.toContain("Invite by email");
+  state.role = 15;
+  await renderInlineAssignee();
+  await act(() => button("Open assignee dropdown").click());
+  expect(host.textContent).not.toContain("Invite by email");
+  expect(host.textContent).not.toContain("Invite: new@example.com");
+});
+
+it("queues invitations from the Edit Task form until the existing task is saved", async () => {
+  state.invite.mockResolvedValue({ added: [], invited: ["new@example.com"] });
+  await renderEdit();
+  await act(() => button("Invite by email").click());
+  await change("Invite email", "new@example.com");
+  await act(() => button("Invite on save").click());
+  expect(state.invite).not.toHaveBeenCalled();
+  await save();
+  expect(state.invite).toHaveBeenCalledExactlyOnceWith(
+    "team",
+    "project",
+    [{ email: "new@example.com", role: 15 }],
+    "issue"
+  );
+  expect(state.issue).not.toHaveBeenCalled();
 });
 
 it("uses existing Stage custom options rather than hardcoding workflow labels", async () => {

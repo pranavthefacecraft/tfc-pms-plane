@@ -328,15 +328,6 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
           )}
           <TaskAttachments draft={draft} disabled={disabled} onChange={change} existing={edit?.attachments} />
           {!draft.projectId && <p className="mb-3 text-12 text-secondary">{hints.choose}</p>}
-          <TaskProperty label="Start date">
-            <TaskDateField
-              label="Start date"
-              value={draft.start_date ?? ""}
-              max={draft.target_date ?? undefined}
-              disabled={disabled}
-              onChange={(start_date) => change({ start_date })}
-            />
-          </TaskProperty>
           {edit ? (
             <section aria-label="Description" className="my-3 border-y border-subtle bg-layer-1 p-3 text-13">
               <h3 className="mb-2 font-medium">Description</h3>

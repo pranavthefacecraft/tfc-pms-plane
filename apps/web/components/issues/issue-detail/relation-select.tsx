@@ -35,6 +35,7 @@ type TIssueRelationSelect = {
   relationKey: TIssueRelationTypes;
   disabled?: boolean;
   renderModal?: boolean;
+  presentation?: "dependency";
 };
 
 export const IssueRelationSelect = observer(function IssueRelationSelect(props: TIssueRelationSelect) {
@@ -46,6 +47,7 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
     relationKey,
     disabled = false,
     renderModal = true,
+    presentation,
   } = props;
   // hooks
   const { t } = useTranslation();
@@ -98,6 +100,7 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
   };
 
   if (!relationIssueIds) return null;
+  if (presentation === "dependency" && !relationIssueIds.length) return null;
 
   const isRelationKeyModalActive =
     isRelationModalOpen?.relationType === relationKey && isRelationModalOpen?.issueId === issueId;
@@ -120,10 +123,11 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
 
       <div
         className={cn(
-          "group flex max-w-full min-w-0 items-center gap-2 rounded-sm px-2 py-0.5 outline-none",
+          "group flex max-w-full min-w-0 items-center gap-2 rounded-sm outline-none",
+          presentation !== "dependency" && "px-2 py-0.5",
           {
             "cursor-not-allowed": disabled,
-            "hover:bg-layer-1": !disabled,
+            "hover:bg-layer-1": !disabled && presentation !== "dependency",
             "bg-layer-1": isRelationKeyModalActive,
           },
           className
@@ -131,7 +135,12 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
       >
         <div className="flex w-full min-w-0 items-start justify-between">
           {relationIssueIds.length > 0 ? (
-            <div className="flex min-w-0 flex-wrap items-center gap-2 py-0.5">
+            <div
+              className={cn(
+                "flex min-w-0 gap-2 py-0.5",
+                presentation === "dependency" ? "w-full flex-col" : "flex-wrap items-center"
+              )}
+            >
               {relationIssueIds.map((relationIssueId) => {
                 const currentIssue = issueMap[relationIssueId];
                 if (!currentIssue) return;
@@ -141,8 +150,21 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                 return (
                   <div
                     key={relationIssueId}
-                    className={`group flex max-w-full min-w-0 items-center gap-1 rounded-sm px-1.5 pt-1 pb-1 leading-3 hover:bg-surface-2 ${currRelationOption?.className}`}
+                    className={cn(
+                      "group flex max-w-full min-w-0 items-center rounded-sm",
+                      presentation === "dependency"
+                        ? "gap-2 text-13"
+                        : `gap-1 px-1.5 py-1 leading-3 hover:bg-surface-2 ${currRelationOption?.className}`
+                    )}
                   >
+                    {presentation === "dependency" && (
+                      <>
+                        <span className="shrink-0 rounded-md border border-subtle px-1.5 text-11 text-primary">
+                          {t(`issue.relation.${relationKey}`)}
+                        </span>
+                        <span aria-hidden="true" className="border-tertiary size-3 shrink-0 rounded-full border" />
+                      </>
+                    )}
                     <Tooltip
                       label={`${projectDetails?.identifier}-${currentIssue.sequence_id}: ${currentIssue.name}`}
                       layout="stacked"
@@ -158,7 +180,12 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
                         })}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="min-w-0 truncate text-caption-sm-medium"
+                        className={cn(
+                          "min-w-0 truncate",
+                          presentation === "dependency"
+                            ? "grow text-accent-primary hover:underline"
+                            : "text-caption-sm-medium"
+                        )}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {currentIssue.name}
@@ -189,7 +216,7 @@ export const IssueRelationSelect = observer(function IssueRelationSelect(props: 
           ) : (
             <span className="text-body-xs-regular text-placeholder">{t("common.none")}</span>
           )}
-          {!disabled && (
+          {!disabled && presentation !== "dependency" && (
             <button
               type="button"
               aria-label={`${t("issue.add.relation")}: ${currRelationOption ? t(currRelationOption.i18n_label) : ""}`}

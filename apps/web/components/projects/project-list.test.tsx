@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("next/navigation", () => ({ useParams: () => ({ workspaceSlug: "acme" }) }));
+vi.mock("@plane/i18n", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("@plane/blocks/toast", () => ({ setToast: mocks.toast }));
 vi.mock("@/services/project/project-task-list.service", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -56,6 +57,7 @@ vi.mock("@/hooks/store/use-project-section", () => ({
 vi.mock("@/hooks/store/user", () => ({
   useUser: () => ({ data: { id: "me", user_timezone: "UTC" } }),
   useUserPermissions: () => ({ allowPermissions: () => mocks.canEdit }),
+  useUserProfile: () => ({ data: { start_of_the_week: 1 } }),
 }));
 vi.mock("@/hooks/use-current-time", () => ({
   useCurrentTime: () => ({ currentTime: new Date("2026-10-29T12:00:00Z") }),
@@ -406,6 +408,52 @@ describe("ProjectList", () => {
     });
   });
 
+  it("opens an unset due date in the calendar and saves a date without opening the task", async () => {
+    const item = task({ start_date: "2026-10-28" });
+    const initial = { ...RESPONSE, results: [item] };
+    mocks.list.mockResolvedValue(initial);
+    mocks.updateIssue.mockImplementation(async () => {
+      mocks.list.mockResolvedValue({ ...initial, results: [{ ...item, target_date: "2026-10-30" }] });
+    });
+    await render();
+    const cell = host.querySelector('[aria-label="Due date for Task"]')!;
+    const trigger = cell.querySelector("button")!;
+    expect(trigger.textContent).toBe("—");
+    await act(async () => trigger.click());
+    const calendarButtons = [...document.body.querySelectorAll("button")];
+    const day = (label: string) => calendarButtons.find((item) => item.getAttribute("aria-label")?.includes(label))!;
+    expect(day("October 28th, 2026").disabled).toBe(true);
+    expect(day("October 29th, 2026").disabled).toBe(false);
+    await act(async () => day("October 30th, 2026").click());
+    expect(mocks.updateIssue).toHaveBeenCalledWith("acme", "p1", item.id, { target_date: "2026-10-30" });
+    expect(cell.textContent).toBe("Oct 30, 2026");
+    expect(mocks.setPeekIssue).not.toHaveBeenCalled();
+  });
+
+  it("disables today when a task starts later", async () => {
+    mocks.list.mockResolvedValue({ ...RESPONSE, results: [task({ start_date: "2026-10-30" })] });
+    await render();
+    const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Due date for Task"] button')!;
+    await act(async () => trigger.click());
+    const calendarButtons = [...document.body.querySelectorAll("button")];
+    expect(
+      calendarButtons.find((item) => item.getAttribute("aria-label")?.includes("October 29th, 2026"))?.disabled
+    ).toBe(true);
+    expect(
+      calendarButtons.find((item) => item.getAttribute("aria-label")?.includes("October 30th, 2026"))?.disabled
+    ).toBe(false);
+  });
+
+  it("clears an existing due date from the calendar", async () => {
+    await render();
+    const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Due date for Wireframes"] button')!;
+    expect(trigger.textContent).toBe("Today");
+    await act(async () => trigger.click());
+    const clear = [...document.body.querySelectorAll("button")].find((item) => item.textContent === "Clear due date")!;
+    await act(async () => clear.click());
+    expect(mocks.updateIssue).toHaveBeenCalledWith("acme", "p1", "t1", { target_date: null });
+  });
+
   it("sorts tasks within their section", async () => {
     mocks.list.mockResolvedValue({
       ...RESPONSE,
@@ -478,6 +526,7 @@ describe("ProjectList", () => {
   it("is read-only for guests", async () => {
     mocks.canEdit = false;
     await render();
+    expect(host.querySelector('[aria-label="Due date for Wireframes"] button')).toBeNull();
     expect(button("Add task")).toBeUndefined();
     expect(button("Add task in To Do")).toBeUndefined();
     expect(button("Add Stage")).toBeUndefined();

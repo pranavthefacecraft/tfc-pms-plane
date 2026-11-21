@@ -7,8 +7,12 @@
 import type { ReactNode } from "react";
 import { cn } from "@plane/utils";
 
+export const taskDetailLabelClass =
+  "font-['Inter_Variable',Inter,sans-serif] text-[14px] leading-5 font-medium tracking-normal text-[#6B7E99]";
+
 type TSidebarPropertyListItemProps = {
-  icon: React.FC<{ className?: string }>;
+  icon?: React.FC<{ className?: string }>;
+  appearance?: "task-detail";
   label: string;
   children: ReactNode;
   appendElement?: ReactNode;
@@ -16,12 +20,17 @@ type TSidebarPropertyListItemProps = {
 };
 
 export function SidebarPropertyListItem(props: TSidebarPropertyListItemProps) {
-  const { icon: Icon, label, children, appendElement, childrenClassName } = props;
+  const { icon: Icon, appearance, label, children, appendElement, childrenClassName } = props;
 
   return (
     <div className="flex items-start gap-2">
-      <div className="flex h-7.5 w-30 shrink-0 items-center gap-1.5 text-body-xs-regular text-tertiary">
-        <Icon className="size-4 shrink-0" />
+      <div
+        className={cn(
+          "flex min-h-7.5 w-30 shrink-0 items-center gap-1.5",
+          appearance === "task-detail" ? taskDetailLabelClass : "text-body-xs-regular text-tertiary"
+        )}
+      >
+        {Icon && appearance !== "task-detail" && <Icon aria-hidden="true" className="size-4 shrink-0" />}
         <span>{label}</span>
         {appendElement}
       </div>

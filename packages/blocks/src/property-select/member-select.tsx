@@ -121,6 +121,7 @@ type MemberSelectCommonProps = {
   /** Badge text on a {@link MemberOption.suspended} row. Defaults to "Suspended". */
   suspendedLabel?: string;
   emptyMessage?: ReactNode | ((query: string) => ReactNode);
+  footer?: ReactNode;
 };
 
 export type MemberSelectProps = MemberSelectCommonProps &
@@ -223,6 +224,7 @@ export function MemberSelect(props: MemberSelectProps) {
 
   const sharedProps = {
     emptyMessage: props.emptyMessage,
+    footer: props.footer,
     infinite: true as const,
     getValues,
     disabled,

@@ -6,18 +6,23 @@
  */
 
 import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { observer } from "mobx-react";
+import Link from "next/link";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
-import { EFileAssetType } from "@plane/types";
+import { useTranslation } from "@plane/i18n";
+import { EFileAssetType, EIssueServiceType } from "@plane/types";
 import type { TNameDescriptionLoader } from "@plane/types";
 // components
 import { DescriptionVersionsRoot } from "@/components/core/description-versions";
+import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { DescriptionInput } from "@/components/editor/rich-text/description-input";
 import { TaskCustomFields } from "@/components/projects/custom-fields/task-fields";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
+import { useProject } from "@/hooks/store/use-project";
 import { useUser } from "@/hooks/store/user";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 import { useLiveIssueDetail } from "@/hooks/use-live-issue-detail";
@@ -30,13 +35,16 @@ import { WorkItemVersionService } from "@/services/issue";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueParentDetail } from "../issue-detail/parent";
 import { IssueReaction } from "../issue-detail/reactions";
-import { IssueSummaryProperties } from "../issue-detail/summary-properties";
+import { IssueAssignmentAndDueDate } from "../issue-detail/summary-properties";
+import { IssueAttachmentActionButton } from "../issue-detail-widgets/attachments/quick-action-button";
 import { IssueTitleInput } from "../title-input";
-import { PeekOverviewProperties } from "./properties";
+import { PeekOverviewPriority, PeekOverviewProperties } from "./properties";
+import { PeekOverviewDependencies } from "./dependencies";
 // services init
 const workItemVersionService = new WorkItemVersionService();
 
 type Props = {
+  children?: ReactNode;
   editorRef: React.RefObject<EditorRefApi | null>;
   workspaceSlug: string;
   projectId: string;
@@ -51,6 +59,7 @@ type Props = {
 export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetails(props: Props) {
   const { editorRef, workspaceSlug, issueId, issueOperations, disabled, isArchived, isSubmitting, setIsSubmitting } =
     props;
+  const { t } = useTranslation();
   useLiveIssueDetail(workspaceSlug, props.projectId, issueId);
   // store hooks
   const { data: currentUser } = useUser();
@@ -59,6 +68,7 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
   } = useIssueDetail();
 
   const { getUserDetails } = useMember();
+  const { getProjectById } = useProject();
   // reload confirmation
   const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
 
@@ -78,12 +88,34 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
 
   if (!issue || !issue.project_id) return <></>;
 
-  const issueDescription =
-    issue.description_html !== undefined || issue.description_html !== null
-      ? issue.description_html != ""
-        ? issue.description_html
-        : "<p></p>"
-      : undefined;
+  const projectId = issue.project_id;
+  const project = getProjectById(projectId);
+  const propertyProps = { workspaceSlug, projectId, issueId, disabled: disabled || isArchived };
+  const issueDescription = issue.description_html || "<p></p>";
+  const description = (
+    <section aria-label={t("common.description")} className="min-h-28 rounded-md border border-subtle px-3 py-2">
+      <h3 className="text-14 font-semibold text-primary">{t("common.description")}</h3>
+      <DescriptionInput
+        issueSequenceId={issue.sequence_id}
+        containerClassName="-mx-3 border-none text-secondary"
+        disabled={propertyProps.disabled}
+        editorRef={editorRef}
+        entityId={issue.id}
+        fileAssetType={EFileAssetType.ISSUE_DESCRIPTION}
+        initialValue={issueDescription}
+        key={issue.id}
+        onSubmit={async (value, isMigrationUpdate) => {
+          await issueOperations.update(workspaceSlug, projectId, issue.id, {
+            description_html: value.description_html,
+            ...(isMigrationUpdate ? { skip_activity: "true" } : {}),
+          });
+        }}
+        setIsSubmitting={setIsSubmitting}
+        projectId={projectId}
+        workspaceSlug={workspaceSlug}
+      />
+    </section>
+  );
 
   return (
     <div className="space-y-2">
@@ -110,49 +142,53 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
         value={issue.name}
       />
 
-      <IssueSummaryProperties
-        workspaceSlug={workspaceSlug}
-        projectId={issue.project_id}
-        issueId={issueId}
-        issueOperations={issueOperations}
-        disabled={disabled || isArchived}
-      />
-
-      <PeekOverviewProperties
-        workspaceSlug={workspaceSlug}
-        projectId={issue.project_id}
-        issueId={issueId}
-        issueOperations={issueOperations}
-        disabled={disabled || isArchived}
-      />
-
-      <TaskCustomFields
-        workspaceSlug={workspaceSlug}
-        projectId={issue.project_id}
-        issueId={issueId}
-        disabled={disabled || isArchived}
-      />
-
-      <DescriptionInput
-        issueSequenceId={issue.sequence_id}
-        containerClassName="-ml-3 border-none"
-        disabled={disabled || isArchived}
-        editorRef={editorRef}
-        entityId={issue.id}
-        fileAssetType={EFileAssetType.ISSUE_DESCRIPTION}
-        initialValue={issueDescription}
-        key={issue.id}
-        onSubmit={async (value, isMigrationUpdate) => {
-          if (!issue.id || !issue.project_id) return;
-          await issueOperations.update(workspaceSlug, issue.project_id, issue.id, {
-            description_html: value.description_html,
-            ...(isMigrationUpdate ? { skip_activity: "true" } : {}),
-          });
-        }}
-        setIsSubmitting={(value) => setIsSubmitting(value)}
-        projectId={issue.project_id}
-        workspaceSlug={workspaceSlug}
-      />
+      <div role="group" aria-label={t("common.properties")} className="space-y-2 py-2">
+        <IssueAssignmentAndDueDate
+          {...propertyProps}
+          issueOperations={issueOperations}
+          assigneeLabel="Assigned To"
+          compactAssignee
+          allowAssigneeInvites
+        />
+        <PeekOverviewPriority {...propertyProps} issueOperations={issueOperations} compact />
+        <TaskCustomFields
+          {...propertyProps}
+          primaryGroup={{
+            names: ["stage", "status"],
+            after: (
+              <>
+                <SidebarPropertyListItem appearance="task-detail" label="Attach File">
+                  <IssueAttachmentActionButton
+                    {...propertyProps}
+                    issueServiceType={EIssueServiceType.ISSUES}
+                    customButton={
+                      <span className="inline-flex min-h-7.5 items-center rounded px-2 text-body-sm-regular text-secondary hover:bg-layer-transparent-hover">
+                        Add file
+                      </span>
+                    }
+                  />
+                </SidebarPropertyListItem>
+                <SidebarPropertyListItem appearance="task-detail" label="Link To Project" childrenClassName="min-w-0">
+                  {project ? (
+                    <Link
+                      href={`/${workspaceSlug}/projects/${projectId}/issues`}
+                      className="max-w-full truncate rounded px-2 py-1.5 text-body-sm-regular text-primary hover:bg-layer-transparent-hover"
+                    >
+                      {project.name}
+                    </Link>
+                  ) : (
+                    <span className="px-2 py-1.5 text-body-sm-regular text-tertiary">{t("common.none")}</span>
+                  )}
+                </SidebarPropertyListItem>
+                <PeekOverviewDependencies {...propertyProps} />
+                {description}
+                {props.children}
+                <PeekOverviewProperties {...propertyProps} issueOperations={issueOperations} hidePriority />
+              </>
+            ),
+          }}
+        />
+      </div>
 
       <div className="flex items-center justify-between gap-2">
         {currentUser && (

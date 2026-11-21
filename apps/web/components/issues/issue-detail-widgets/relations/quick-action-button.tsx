@@ -26,15 +26,17 @@ type Props = {
   customButton?: React.ReactElement;
   disabled?: boolean;
   issueServiceType: TIssueServiceType;
+  relationTypes?: readonly TIssueRelationTypes[];
 };
 
 export const RelationActionButton = observer(function RelationActionButton(props: Props) {
-  const { customButton, issueId, disabled = false, issueServiceType } = props;
+  const { customButton, issueId, disabled = false, issueServiceType, relationTypes } = props;
   const { t } = useTranslation();
   // store hooks
   const { toggleRelationModal, setRelationKey } = useIssueDetail(issueServiceType);
 
   const ISSUE_RELATION_OPTIONS = useTimeLineRelationOptions();
+  const allowedTypes = relationTypes ? new Set(relationTypes) : undefined;
 
   // handlers
   const handleOnClick = (relationKey: TIssueRelationTypes) => {
@@ -63,7 +65,7 @@ export const RelationActionButton = observer(function RelationActionButton(props
       )}
       <MenuContent side="bottom" align="start">
         {Object.values(ISSUE_RELATION_OPTIONS).map((item) => {
-          if (!item) return null;
+          if (!item || (allowedTypes && !allowedTypes.has(item.key))) return null;
 
           return (
             <MenuItem

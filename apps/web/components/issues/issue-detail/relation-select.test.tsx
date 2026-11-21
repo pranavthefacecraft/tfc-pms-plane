@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   toggle: vi.fn(),
   setKey: vi.fn(),
   disabledMobile: false,
+  relatedIds: ["related"],
 }));
 vi.mock("mobx-react", () => ({ observer: (component: unknown) => component }));
 vi.mock("next/link", () => ({
@@ -24,7 +25,7 @@ vi.mock("@/hooks/store/use-issue-detail", () => ({
   useIssueDetail: () => ({
     createRelation: vi.fn(),
     removeRelation: state.remove,
-    relation: { getRelationByIssueIdRelationType: () => ["related"] },
+    relation: { getRelationByIssueIdRelationType: () => state.relatedIds },
     isRelationModalOpen: null,
     toggleRelationModal: state.toggle,
     setRelationKey: state.setKey,
@@ -47,6 +48,7 @@ let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
   vi.clearAllMocks();
+  state.relatedIds = ["related"];
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   host = document.createElement("div");
   document.body.append(host);
@@ -89,4 +91,29 @@ it("keeps dependency names visible for read-only users without removal controls"
   );
   expect(host.querySelector("a")!.textContent).toBe("Create logo");
   expect(host.querySelector("button")).toBeNull();
+});
+
+it("shows a linked dependency and its remove action, without an empty dependency row", async () => {
+  const render = () =>
+    act(() =>
+      root.render(
+        <IssueRelationSelect
+          workspaceSlug="workspace"
+          projectId="project"
+          issueId="banner"
+          relationKey="blocked_by"
+          presentation="dependency"
+          renderModal={false}
+        />
+      )
+    );
+  await render();
+  expect(host.textContent).toContain("issue.relation.blocked_by");
+  expect(host.querySelector("a")?.textContent).toBe("Create logo");
+  expect(host.querySelectorAll("button")).toHaveLength(1);
+  await act(() => host.querySelector<HTMLButtonElement>('button[aria-label="common.remove Create logo"]')!.click());
+  expect(state.remove).toHaveBeenCalledWith("workspace", "project", "banner", "blocked_by", "related");
+  state.relatedIds = [];
+  await render();
+  expect(host.childElementCount).toBe(0);
 });
