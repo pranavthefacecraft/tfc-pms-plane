@@ -7,7 +7,7 @@
 import React from "react";
 import { AttachOutline, TopArrowOutline } from "@makeplane/propel/icons";
 // constants
-import type { ToolbarMenuItem } from "@plane/editor";
+import type { EditorRefApi, ToolbarMenuItem } from "@plane/editor";
 import { IMAGE_ITEM } from "@plane/editor";
 
 type LiteToolbarProps = {
@@ -40,3 +40,50 @@ export function LiteToolbar({ onSubmit, isSubmitting, isEmpty, executeCommand }:
 }
 
 export type { LiteToolbarProps };
+
+export function DrawerCommentToolbar({
+  editorRef,
+  isEmpty,
+  isSubmitting,
+  submitLabel,
+  onSubmit,
+}: {
+  editorRef: Pick<
+    EditorRefApi,
+    "focus" | "setEditorValueAtCursorPosition" | "executeMenuItemCommand" | "isEditorReadyToDiscard"
+  > | null;
+  isEmpty: boolean;
+  isSubmitting: boolean;
+  submitLabel: string;
+  onSubmit: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-14 text-accent-primary">
+      <button
+        type="button"
+        disabled={!editorRef || isSubmitting}
+        onClick={() => {
+          editorRef?.focus("end");
+          editorRef?.setEditorValueAtCursorPosition("@");
+        }}
+      >
+        @ Mention
+      </button>
+      <button
+        type="button"
+        disabled={!editorRef || isSubmitting}
+        onClick={() => editorRef?.executeMenuItemCommand({ itemKey: "attachment", savedSelection: null })}
+      >
+        Attach file
+      </button>
+      <button
+        type="button"
+        className="ml-auto disabled:text-placeholder"
+        disabled={isEmpty || isSubmitting || !editorRef?.isEditorReadyToDiscard()}
+        onClick={onSubmit}
+      >
+        {submitLabel}
+      </button>
+    </div>
+  );
+}

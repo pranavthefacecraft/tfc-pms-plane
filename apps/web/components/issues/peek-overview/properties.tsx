@@ -82,10 +82,35 @@ export const PeekOverviewPriority = observer(function PeekOverviewPriority({
   );
 });
 
+export const PeekOverviewSection = observer(function PeekOverviewSection({
+  workspaceSlug,
+  projectId,
+  issueId,
+  issueOperations,
+  disabled,
+}: IPeekOverviewProperties) {
+  const {
+    issue: { getIssueById },
+  } = useIssueDetail();
+  const issue = getIssueById(issueId);
+  if (!issue) return null;
+  return (
+    <SidebarPropertyListItem appearance="task-detail" label="Section">
+      <SectionSelect
+        workspaceSlug={workspaceSlug}
+        projectId={projectId}
+        value={issue.section_id}
+        disabled={disabled}
+        onChange={(sectionId) => issueOperations.update(workspaceSlug, projectId, issueId, { section_id: sectionId })}
+      />
+    </SidebarPropertyListItem>
+  );
+});
+
 export const PeekOverviewProperties = observer(function PeekOverviewProperties(
-  props: IPeekOverviewProperties & { hidePriority?: boolean }
+  props: IPeekOverviewProperties & { hidePriority?: boolean; hideSection?: boolean }
 ) {
-  const { workspaceSlug, projectId, issueId, issueOperations, disabled, hidePriority } = props;
+  const { workspaceSlug, projectId, issueId, issueOperations, disabled, hidePriority, hideSection } = props;
   const { t } = useTranslation();
   // store hooks
   const { getProjectById } = useProject();
@@ -104,17 +129,7 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(
     <div>
       <h6 className="text-body-xs-medium">{t("common.properties")}</h6>
       <div className={`mt-3 w-full space-y-3 ${disabled ? "opacity-60" : ""}`}>
-        <SidebarPropertyListItem appearance="task-detail" label="Section">
-          <SectionSelect
-            workspaceSlug={workspaceSlug}
-            projectId={projectId}
-            value={issue.section_id}
-            disabled={disabled}
-            onChange={(sectionId) =>
-              issueOperations.update(workspaceSlug, projectId, issueId, { section_id: sectionId })
-            }
-          />
-        </SidebarPropertyListItem>
+        {!hideSection && <PeekOverviewSection {...props} />}
         {!hidePriority && <PeekOverviewPriority {...props} />}
 
         {createdByDetails && (

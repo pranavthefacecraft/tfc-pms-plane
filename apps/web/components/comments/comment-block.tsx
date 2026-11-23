@@ -17,13 +17,20 @@ type TCommentBlock = {
   comment: TIssueComment;
   ends: "top" | "bottom" | undefined;
   children: ReactNode;
+  presentation?: "drawer";
 };
 
 export const CommentBlock = observer(function CommentBlock(props: TCommentBlock) {
-  const { comment, ends, children } = props;
+  const { comment, ends, children, presentation } = props;
   const commentBlockRef = useRef<HTMLDivElement>(null);
 
   if (!comment) return null;
+  if (presentation === "drawer")
+    return (
+      <div id={comment.id} ref={commentBlockRef} className="border-b border-subtle py-4 last:border-b-0">
+        {children}
+      </div>
+    );
   return (
     <div
       id={comment.id}

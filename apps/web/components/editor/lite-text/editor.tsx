@@ -24,8 +24,12 @@ import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 import { useEditorFlagging } from "@/hooks/use-editor-flagging";
 // plane web service
 import { WorkspaceService } from "@/services/workspace.service";
-import { LiteToolbar } from "./lite-toolbar";
+import { DrawerCommentToolbar, LiteToolbar } from "./lite-toolbar";
 const workspaceService = new WorkspaceService();
+
+function isMutableRefObject<T>(ref: React.ForwardedRef<T>): ref is React.MutableRefObject<T | null> {
+  return !!ref && typeof ref === "object" && "current" in ref;
+}
 
 type LiteTextEditorWrapperProps = MakeOptional<
   Omit<ILiteTextEditorProps, "fileHandler" | "mentionHandler" | "extendedEditorProps">,
@@ -40,7 +44,7 @@ type LiteTextEditorWrapperProps = MakeOptional<
   showSubmitButton?: boolean;
   isSubmitting?: boolean;
   showToolbarInitially?: boolean;
-  variant?: "full" | "lite" | "none";
+  variant?: "full" | "lite" | "none" | "drawer";
   issue_id?: string;
   parentClassName?: string;
   editorClassName?: string;
@@ -111,9 +115,6 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   });
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();
-  function isMutableRefObject<T>(ref: React.ForwardedRef<T>): ref is React.MutableRefObject<T | null> {
-    return !!ref && typeof ref === "object" && "current" in ref;
-  }
   // derived values
   const isEmpty = isCommentEmpty(props.initialValue);
 
@@ -192,6 +193,15 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
       </div>
 
       {/* Full Toolbar - conditionally rendered */}
+      {variant === "drawer" && editable && (
+        <DrawerCommentToolbar
+          editorRef={editorRef}
+          isEmpty={isEmpty}
+          isSubmitting={isSubmitting}
+          submitLabel={isSubmitting ? t("common.saving") : t(submitButtonText)}
+          onSubmit={(event) => rest.onEnterKeyPress?.(event)}
+        />
+      )}
       {isFullVariant && editable && (
         <div
           className={cn(

@@ -32,6 +32,7 @@ type TIssueActivity = {
   disabled?: boolean;
   isIntakeIssue?: boolean;
   presentation?: "drawer";
+  activityOnly?: boolean;
 };
 
 export type TActivityOperations = {
@@ -42,7 +43,15 @@ export type TActivityOperations = {
 };
 
 export const IssueActivity = observer(function IssueActivity(props: TIssueActivity) {
-  const { workspaceSlug, projectId, issueId, disabled = false, isIntakeIssue = false, presentation } = props;
+  const {
+    workspaceSlug,
+    projectId,
+    issueId,
+    disabled = false,
+    isIntakeIssue = false,
+    presentation,
+    activityOnly = false,
+  } = props;
   const drawer = presentation === "drawer";
   // i18n
   const { t } = useTranslation();
@@ -80,21 +89,22 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
         workspaceSlug={workspaceSlug}
         entityId={issueId}
         activityOperations={activityOperations}
-        showToolbarInitially={!drawer}
+        showToolbarInitially
+        presentation={presentation}
         projectId={projectId}
       />
     ),
-    [workspaceSlug, issueId, activityOperations, projectId, drawer]
+    [workspaceSlug, issueId, activityOperations, projectId, presentation]
   );
   if (!project) return <></>;
-  const composer = disabled ? null : renderCommentCreationBox;
-  const heading = drawer ? "Comments" : t("common.activity");
+  const composer = disabled || activityOnly ? null : renderCommentCreationBox;
+  const heading = drawer && !activityOnly ? "Comments And Activity" : t("common.activity");
 
   return (
-    <section aria-label={heading} className={drawer ? "space-y-2 py-2" : "space-y-4"}>
+    <section aria-label={heading} className={drawer ? "space-y-4 py-2" : "space-y-4"}>
       {/* header */}
       <div className="flex items-center justify-between">
-        <h3 className={drawer ? "text-14 font-semibold text-primary" : "text-h5-medium text-primary"}>{heading}</h3>
+        <h3 className={drawer ? "text-16 font-semibold text-primary" : "text-h5-medium text-primary"}>{heading}</h3>
         <div className="flex items-center gap-2">
           <ActivitySortRoot sortOrder={activitySortOrder} toggleSort={toggleSortOrder} />
           <ActivityFilterRoot
@@ -121,6 +131,8 @@ export const IssueActivity = observer(function IssueActivity(props: TIssueActivi
               showAccessSpecifier={!!project.anchor}
               disabled={disabled}
               sortOrder={activitySortOrder}
+              presentation={presentation}
+              mode={activityOnly ? "activity" : drawer ? "comments" : "all"}
             />
             {!composerFirst && composer}
           </div>

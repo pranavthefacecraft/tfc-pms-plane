@@ -25,6 +25,7 @@ export type TCommentReaction = {
 export type TIssueComment = {
   id: string;
   workspace: string;
+  parent?: string | null;
   workspace_detail: TIssueActivityWorkspaceDetail;
   project: string;
   project_detail: TIssueActivityProjectDetail;

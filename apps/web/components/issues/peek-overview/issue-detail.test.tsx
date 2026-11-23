@@ -49,8 +49,12 @@ vi.mock("@/components/projects/custom-fields/service", () => ({
 vi.mock("@/components/issues/issue-type-switcher", () => ({ IssueTypeSwitcher: () => null }));
 vi.mock("../issue-detail/parent", () => ({ IssueParentDetail: () => null }));
 vi.mock("../issue-detail/reactions", () => ({ IssueReaction: () => null }));
-vi.mock("../issue-detail/issue-activity", () => ({ IssueActivity: () => <div>Comments</div> }));
-vi.mock("../issue-detail-widgets", () => ({ IssueDetailWidgets: () => null }));
+vi.mock("../issue-detail/issue-activity", () => ({
+  IssueActivity: ({ activityOnly }: { activityOnly?: boolean }) => (
+    <div data-section={activityOnly ? "activity" : "comments"}>{activityOnly ? "Activity" : "Comments"}</div>
+  ),
+}));
+vi.mock("../issue-detail-widgets", () => ({ IssueDetailWidgets: () => <div data-section="widgets">Widgets</div> }));
 vi.mock("../issue-detail-widgets/issue-detail-widget-modals", () => ({ IssueDetailWidgetModals: () => null }));
 vi.mock("./drawer-widgets", () => ({
   PeekDrawerWidgets: () => (
@@ -92,6 +96,7 @@ vi.mock("../issue-detail/summary-properties", () => ({
 }));
 vi.mock("./properties", () => ({
   PeekOverviewPriority: () => <div>Priority</div>,
+  PeekOverviewSection: () => <div>Section</div>,
   PeekOverviewProperties: (props: unknown) => {
     mocks.properties(props);
     return <div>Other properties</div>;
@@ -154,6 +159,7 @@ describe("task preview properties placement", () => {
       "Assigned To",
       "Due date",
       "Priority",
+      "Section",
       "Stage",
       "Status",
       "Attach File",
@@ -176,6 +182,7 @@ describe("task preview properties placement", () => {
         issueOperations: operations,
         disabled: false,
         hidePriority: true,
+        hideSection: true,
       })
     );
     expect(mocks.attachment).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: false, issueId: "task" }));
@@ -229,5 +236,31 @@ describe("task preview properties placement", () => {
       projectPortal.remove();
       fullScreenPortal.remove();
     }
+  });
+
+  it("places activity at the end after comments, properties, and widgets", async () => {
+    await act(() =>
+      root.render(
+        <MemoryRouter>
+          <IssueView
+            workspaceSlug="workspace"
+            projectId="project"
+            issueId="task"
+            issueOperations={operations}
+            is_archived={false}
+            embedIssue
+          />
+        </MemoryRouter>
+      )
+    );
+    expect([...host.querySelectorAll("[data-section]")].map((node) => node.getAttribute("data-section"))).toEqual([
+      "description",
+      "comments",
+      "widgets",
+      "activity",
+    ]);
+    const activity = host.querySelector('[data-section="activity"]')!;
+    expect(activity.parentElement?.lastElementChild).toBe(activity);
+    expect(host.textContent!.indexOf("Other properties")).toBeLessThan(host.textContent!.indexOf("Activity"));
   });
 });

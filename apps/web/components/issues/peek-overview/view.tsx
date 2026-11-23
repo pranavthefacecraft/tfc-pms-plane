@@ -225,6 +225,12 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                     {...{ workspaceSlug, projectId, issueId }}
                     issueServiceType={EIssueServiceType.ISSUES}
                   />
+                  <IssueActivity
+                    {...{ workspaceSlug, projectId, issueId }}
+                    disabled={disabled || is_archived}
+                    presentation="drawer"
+                    activityOnly
+                  />
                 </div>
               </div>
             </>

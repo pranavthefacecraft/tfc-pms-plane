@@ -16,7 +16,14 @@ import { useHashScroll } from "@plane/hooks";
 import { GlobeOutline, LockOutline } from "@makeplane/propel/icons";
 import { EIssueCommentAccessSpecifier } from "@plane/types";
 import type { TCommentsOperations, TIssueComment } from "@plane/types";
-import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
+import {
+  calculateTimeAgo,
+  cn,
+  getAvatarName,
+  getFileURL,
+  renderFormattedDate,
+  renderFormattedTime,
+} from "@plane/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
 // local imports
@@ -39,6 +46,7 @@ export type TCommentCardDisplayProps = {
   setIsEditing?: (isEditing: boolean) => void;
   renderFooter?: (ReactionsComponent: ReactNode | null) => ReactNode;
   renderQuickActions?: () => ReactNode;
+  presentation?: "drawer";
 };
 
 export const CommentCardDisplay = observer(function CommentCardDisplay(props: TCommentCardDisplayProps) {
@@ -55,6 +63,7 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
     setIsEditing,
     renderFooter,
     renderQuickActions,
+    presentation,
   } = props;
   // states
   const [highlightClassName, setHighlightClassName] = useState("");
@@ -105,9 +114,10 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
   );
 
   const shouldRenderReactions = hasReactions && !disabled;
+  const drawer = presentation === "drawer";
 
   return (
-    <div id={commentBlockId} className="relative flex flex-col gap-2">
+    <div id={commentBlockId} className={cn("relative flex flex-col gap-2", drawer && "pl-12")}>
       {showAccessSpecifier && (
         <div className="absolute top-2.5 right-2.5 z-[1] text-tertiary">
           {comment.access === EIssueCommentAccessSpecifier.INTERNAL ? (
@@ -117,12 +127,19 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
           )}
         </div>
       )}
-      <div className="relative mb-3 flex w-full items-center gap-2">
-        <Avatar alt={displayName} fallback={displayName?.[0]?.toUpperCase()} size="2xs" src={getFileURL(avatarUrl)} />
-        <div className="flex flex-1 flex-wrap items-center gap-1">
-          <div className="text-caption-sm-medium">{displayName}</div>
-          <div className="text-caption-sm-regular text-tertiary">
-            commented{" "}
+      <div className={cn("flex w-full items-center gap-2", !drawer && "relative mb-3")}>
+        <div className={drawer ? "absolute top-0 left-0" : undefined}>
+          <Avatar
+            alt={displayName}
+            fallback={drawer ? getAvatarName(displayName ?? "") : displayName?.[0]?.toUpperCase()}
+            size={drawer ? "md" : "2xs"}
+            src={getFileURL(avatarUrl)}
+          />
+        </div>
+        <div className={cn("flex flex-1 flex-wrap items-center", drawer ? "gap-x-6 gap-y-1" : "gap-1")}>
+          <div className={drawer ? "text-14 font-semibold text-primary" : "text-caption-sm-medium"}>{displayName}</div>
+          <div className={drawer ? "text-14 text-[#6B7E99]" : "text-caption-sm-regular text-tertiary"}>
+            {!drawer && "commented "}
             <Tooltip
               label={`${renderFormattedDate(comment.created_at)} at ${renderFormattedTime(comment.created_at)}`}
               side="bottom"
@@ -171,10 +188,14 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
             value={comment.comment_html ?? ""}
             workspaceId={workspaceId}
             workspaceSlug={workspaceSlug}
-            containerClassName={cn("!py-1 transition-[border-color] duration-500", highlightClassName)}
+            containerClassName={cn(
+              drawer ? "!p-0" : "!py-1",
+              "transition-[border-color] duration-500",
+              highlightClassName
+            )}
             projectId={projectId?.toString()}
             displayConfig={{
-              fontSize: "small-font",
+              fontSize: drawer ? "large-font" : "small-font",
             }}
             parentClassName="border-none"
           />

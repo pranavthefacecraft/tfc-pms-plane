@@ -13,6 +13,14 @@ nav.inset-e-0 {
   inset-inline-end: 0;
 }
 
+[data-task-detail-field-value] :is(button, a) {
+  padding: 0;
+}
+
+[data-task-detail-field-value] :is(button, a):is(:hover, [data-popup-open], [data-state="open"]) {
+  background-color: transparent;
+}
+
 body:has(.auth-page) {
   background-color: #fdfdfe;
 }

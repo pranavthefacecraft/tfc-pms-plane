@@ -247,7 +247,7 @@ export function TaskCustomFields({
     group.length > 0 && (
       <section
         aria-label="Custom fields"
-        className={compact ? "space-y-2" : "divide-y divide-subtle border-y border-subtle"}
+        className={compact ? "space-y-4" : "divide-y divide-subtle border-y border-subtle"}
       >
         {group.map((field) => {
           const value = values.data?.[field.id] ?? null;

@@ -5,6 +5,7 @@
  */
 
 import { useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
@@ -13,6 +14,7 @@ import type { TIssueComment, TCommentsOperations } from "@plane/types";
 import { CommentQuickActions } from "../quick-actions";
 import { CommentBlock } from "../comment-block";
 import { CommentCardDisplay } from "./display";
+import { CommentCreate } from "../comment-create";
 
 type TCommentCard = {
   workspaceSlug: string;
@@ -25,6 +27,8 @@ type TCommentCard = {
   enableReplies: boolean;
   disabled?: boolean;
   projectId?: string;
+  presentation?: "drawer";
+  children?: ReactNode;
 };
 
 export const CommentCard = observer(function CommentCard(props: TCommentCard) {
@@ -38,9 +42,13 @@ export const CommentCard = observer(function CommentCard(props: TCommentCard) {
     showCopyLinkOption,
     disabled = false,
     projectId,
+    presentation,
+    enableReplies,
+    children,
   } = props;
   // states
   const [isEditing, setIsEditing] = useState(false);
+  const [replying, setReplying] = useState(false);
   // refs
   const readOnlyEditorRef = useRef<EditorRefApi>(null);
   // derived values
@@ -49,7 +57,7 @@ export const CommentCard = observer(function CommentCard(props: TCommentCard) {
   if (!comment || !workspaceId) return null;
 
   return (
-    <CommentBlock comment={comment} ends={ends}>
+    <CommentBlock comment={comment} ends={ends} presentation={presentation}>
       <CommentCardDisplay
         activityOperations={activityOperations}
         entityId={entityId}
@@ -62,6 +70,7 @@ export const CommentCard = observer(function CommentCard(props: TCommentCard) {
         workspaceSlug={workspaceSlug}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
+        presentation={presentation}
         renderQuickActions={() => (
           <CommentQuickActions
             activityOperations={activityOperations}
@@ -72,6 +81,28 @@ export const CommentCard = observer(function CommentCard(props: TCommentCard) {
           />
         )}
       />
+      {presentation === "drawer" && enableReplies && !disabled && (
+        <div className="mt-3 pl-12">
+          <button type="button" className="text-14 text-accent-primary" onClick={() => setReplying(!replying)}>
+            {replying ? "Cancel reply" : "Reply"}
+          </button>
+          {replying && (
+            <div className="mt-3">
+              <CommentCreate
+                entityId={entityId}
+                workspaceSlug={workspaceSlug}
+                projectId={projectId}
+                activityOperations={activityOperations}
+                presentation="drawer"
+                parentId={comment.id}
+                access={comment.access}
+                onSubmitCallback={() => setReplying(false)}
+              />
+            </div>
+          )}
+        </div>
+      )}
+      {children}
     </CommentBlock>
   );
 });

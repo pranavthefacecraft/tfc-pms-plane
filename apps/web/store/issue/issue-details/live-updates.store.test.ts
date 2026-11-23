@@ -31,6 +31,8 @@ vi.mock("@/services/issue", () => ({
   }),
   IssueCommentService: class {
     getIssueComments = vi.fn();
+    deleteIssueComment = vi.fn();
+    createIssueComment = vi.fn();
   },
   IssueActivityService: class {
     getIssueActivities = vi.fn();
@@ -235,6 +237,47 @@ describe("authoritative live task snapshots", () => {
     expect(store.getCommentById("edited")?.comment_html).toBe("After");
     expect(root.commentReaction.applyCommentReactions).toHaveBeenLastCalledWith("edited", [{ id: "like" }]);
     expect(store.issueCommentService.getIssueComments).toHaveBeenLastCalledWith("workspace", "project", "task", {});
+  });
+
+  it.each([false, true])("removes a complete thread only after server confirmation (failure=%s)", async (fails) => {
+    const root = { commentReaction: { applyCommentReactions: vi.fn() } } as unknown as IIssueDetail;
+    const store = new IssueCommentStore(root, EIssueServiceType.ISSUES);
+    const comments = [
+      { ...comment, id: "parent" },
+      { ...comment, id: "reply", parent: "parent" },
+      { ...comment, id: "nested", parent: "reply" },
+      { ...comment, id: "unrelated" },
+    ];
+    vi.mocked(store.issueCommentService.getIssueComments).mockResolvedValue(comments);
+    await store.fetchComments("workspace", "project", "task");
+    if (fails) {
+      vi.mocked(store.issueCommentService.deleteIssueComment).mockRejectedValue(new Error("Offline"));
+      await expect(store.removeComment("workspace", "project", "task", "parent")).rejects.toThrow("Offline");
+      expect(store.getCommentsByIssueId("task")).toEqual(comments.map(({ id }) => id));
+      expect(store.getCommentById("nested")).toBeDefined();
+    } else {
+      vi.mocked(store.issueCommentService.deleteIssueComment).mockResolvedValue(undefined);
+      await store.removeComment("workspace", "project", "task", "parent");
+      expect(store.getCommentsByIssueId("task")).toEqual(["unrelated"]);
+      for (const id of ["parent", "reply", "nested"]) expect(store.getCommentById(id)).toBeUndefined();
+    }
+    expect(store.getCommentById("unrelated")).toBeDefined();
+  });
+
+  it("preserves the parent returned by the server when creating and reloading a reply", async () => {
+    const root = { commentReaction: { applyCommentReactions: vi.fn() } } as unknown as IIssueDetail;
+    const store = new IssueCommentStore(root, EIssueServiceType.ISSUES);
+    const reply = { ...comment, id: "reply", parent: "parent" };
+    vi.mocked(store.issueCommentService.createIssueComment).mockResolvedValue(reply);
+    await store.createComment("workspace", "project", "task", { parent: "parent", comment_html: "Reply" });
+    expect(store.issueCommentService.createIssueComment).toHaveBeenCalledWith("workspace", "project", "task", {
+      parent: "parent",
+      comment_html: "Reply",
+    });
+    expect(store.getCommentById("reply")?.parent).toBe("parent");
+    vi.mocked(store.issueCommentService.getIssueComments).mockResolvedValue([reply]);
+    await store.fetchComments("workspace", "project", "task", "mutate", true);
+    expect(store.getCommentById("reply")?.parent).toBe("parent");
   });
 
   it("reloads coalesced description activities instead of missing timestamp-only edits", async () => {

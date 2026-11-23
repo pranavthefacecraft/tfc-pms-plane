@@ -38,7 +38,7 @@ import { IssueReaction } from "../issue-detail/reactions";
 import { IssueAssignmentAndDueDate } from "../issue-detail/summary-properties";
 import { IssueAttachmentActionButton } from "../issue-detail-widgets/attachments/quick-action-button";
 import { IssueTitleInput } from "../title-input";
-import { PeekOverviewPriority, PeekOverviewProperties } from "./properties";
+import { PeekOverviewPriority, PeekOverviewProperties, PeekOverviewSection } from "./properties";
 import { PeekOverviewDependencies } from "./dependencies";
 // services init
 const workItemVersionService = new WorkItemVersionService();
@@ -142,7 +142,7 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
         value={issue.name}
       />
 
-      <div role="group" aria-label={t("common.properties")} className="space-y-2 py-2">
+      <div role="group" aria-label={t("common.properties")} className="space-y-4 py-2">
         <IssueAssignmentAndDueDate
           {...propertyProps}
           issueOperations={issueOperations}
@@ -151,6 +151,7 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
           allowAssigneeInvites
         />
         <PeekOverviewPriority {...propertyProps} issueOperations={issueOperations} compact />
+        <PeekOverviewSection {...propertyProps} issueOperations={issueOperations} />
         <TaskCustomFields
           {...propertyProps}
           primaryGroup={{
@@ -162,7 +163,7 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
                     {...propertyProps}
                     issueServiceType={EIssueServiceType.ISSUES}
                     customButton={
-                      <span className="inline-flex min-h-7.5 items-center rounded px-2 text-body-sm-regular text-secondary hover:bg-layer-transparent-hover">
+                      <span className="inline-flex min-h-7.5 items-center text-body-sm-regular text-secondary">
                         Add file
                       </span>
                     }
@@ -172,18 +173,18 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
                   {project ? (
                     <Link
                       href={`/${workspaceSlug}/projects/${projectId}/issues`}
-                      className="max-w-full truncate rounded px-2 py-1.5 text-body-sm-regular text-primary hover:bg-layer-transparent-hover"
+                      className="max-w-full truncate text-body-sm-regular text-primary"
                     >
                       {project.name}
                     </Link>
                   ) : (
-                    <span className="px-2 py-1.5 text-body-sm-regular text-tertiary">{t("common.none")}</span>
+                    <span className="text-body-sm-regular text-tertiary">{t("common.none")}</span>
                   )}
                 </SidebarPropertyListItem>
                 <PeekOverviewDependencies {...propertyProps} />
                 {description}
                 {props.children}
-                <PeekOverviewProperties {...propertyProps} issueOperations={issueOperations} hidePriority />
+                <PeekOverviewProperties {...propertyProps} issueOperations={issueOperations} hidePriority hideSection />
               </>
             ),
           }}

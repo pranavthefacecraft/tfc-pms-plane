@@ -176,8 +176,17 @@ export class IssueCommentStore implements IIssueCommentStore {
     const response = await this.issueCommentService.deleteIssueComment(workspaceSlug, projectId, issueId, commentId);
 
     runInAction(() => {
-      pull(this.comments[issueId], commentId);
-      delete this.commentMap[commentId];
+      const deletedIds = new Set([commentId]);
+      let size = 0;
+      while (size !== deletedIds.size) {
+        size = deletedIds.size;
+        for (const id of this.comments[issueId] ?? []) {
+          const parent = this.commentMap[id]?.parent;
+          if (parent && deletedIds.has(parent)) deletedIds.add(id);
+        }
+      }
+      pull(this.comments[issueId], ...deletedIds);
+      for (const id of deletedIds) delete this.commentMap[id];
     });
 
     return response;

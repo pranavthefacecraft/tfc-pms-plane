@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { E_SORT_ORDER, TActivityFilters, EActivityFilterType } from "@plane/constants";
@@ -27,6 +28,8 @@ type TIssueActivityCommentRoot = {
   showAccessSpecifier?: boolean;
   disabled?: boolean;
   sortOrder: E_SORT_ORDER;
+  presentation?: "drawer";
+  mode?: "all" | "comments" | "activity";
 };
 
 export const IssueActivityCommentRoot = observer(function IssueActivityCommentRoot(props: TIssueActivityCommentRoot) {
@@ -40,6 +43,8 @@ export const IssueActivityCommentRoot = observer(function IssueActivityCommentRo
     projectId,
     disabled,
     sortOrder,
+    presentation,
+    mode = "all",
   } = props;
   // store hooks
   const {
@@ -53,12 +58,60 @@ export const IssueActivityCommentRoot = observer(function IssueActivityCommentRo
 
   if (activityAndComments.length <= 0) return null;
 
-  const filteredActivityAndComments = filterActivityOnSelectedFilters(activityAndComments, selectedFilters);
+  const filteredActivityAndComments = filterActivityOnSelectedFilters(activityAndComments, selectedFilters).filter(
+    (item) =>
+      mode === "all" || (mode === "comments" ? item.activity_type === "COMMENT" : item.activity_type !== "COMMENT")
+  );
+  const commentItems = filteredActivityAndComments.filter((item) => item.activity_type === "COMMENT");
+  const commentIds = new Set(commentItems.map((item) => item.id));
+  const childrenByParent = new Map<string, typeof commentItems>();
+  const parentByChild = new Map<string, string>();
+  if (presentation === "drawer") {
+    for (const item of commentItems) {
+      const parent = getCommentById(item.id)?.parent;
+      if (parent && commentIds.has(parent) && parent !== item.id) {
+        let ancestor: string | undefined = parent;
+        while (ancestor && ancestor !== item.id) ancestor = parentByChild.get(ancestor);
+        if (ancestor === item.id) continue;
+        parentByChild.set(item.id, parent);
+        const children = childrenByParent.get(parent) ?? [];
+        children.push(item);
+        childrenByParent.set(parent, children);
+      }
+    }
+  }
+  const renderComment = (id: string): ReactNode => {
+    const children = childrenByParent.get(id) ?? [];
+    return (
+      <CommentCard
+        key={id}
+        workspaceSlug={workspaceSlug}
+        entityId={issueId}
+        comment={getCommentById(id)}
+        activityOperations={activityOperations}
+        ends={undefined}
+        showAccessSpecifier={!!showAccessSpecifier}
+        showCopyLinkOption={!isIntakeIssue}
+        disabled={disabled}
+        projectId={projectId}
+        enableReplies
+        presentation={presentation}
+      >
+        {children.length > 0 && (
+          <div className="mt-4 border-l border-subtle pl-4">{children.map((child) => renderComment(child.id))}</div>
+        )}
+      </CommentCard>
+    );
+  };
 
   return (
     <div>
       {filteredActivityAndComments.map((activityComment, index) => {
         const comment = getCommentById(activityComment.id);
+        if (presentation === "drawer" && activityComment.activity_type === "COMMENT") {
+          if (parentByChild.has(activityComment.id)) return null;
+          return renderComment(activityComment.id);
+        }
         return activityComment.activity_type === "COMMENT" ? (
           <CommentCard
             key={activityComment.id}
@@ -72,6 +125,7 @@ export const IssueActivityCommentRoot = observer(function IssueActivityCommentRo
             disabled={disabled}
             projectId={projectId}
             enableReplies
+            presentation={presentation}
           />
         ) : BASE_ACTIVITY_FILTER_TYPES.includes(activityComment.activity_type as EActivityFilterType) ? (
           <IssueActivityItem

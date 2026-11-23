@@ -26,6 +26,9 @@ type TCommentCreate = {
   showToolbarInitially?: boolean;
   projectId?: string;
   onSubmitCallback?: (elementId: string) => void;
+  presentation?: "drawer";
+  parentId?: string;
+  access?: EIssueCommentAccessSpecifier;
 };
 
 // services
@@ -39,6 +42,9 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
     showToolbarInitially = false,
     projectId,
     onSubmitCallback,
+    presentation,
+    parentId,
+    access,
   } = props;
   // states
   const [uploadedAssetIds, setUploadedAssetIds] = useState<string[]>([]);
@@ -58,14 +64,21 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
   } = useForm<Partial<TIssueComment>>({
     defaultValues: {
       comment_html: "<p></p>",
+      access,
     },
   });
 
   const onSubmit = async (formData: Partial<TIssueComment>) => {
+    let saved = false;
+    let savedCommentId: string | undefined;
     try {
-      const comment = await activityOperations.createComment(formData);
-      if (comment?.id) onSubmitCallback?.(comment.id);
-      if (uploadedAssetIds.length > 0) {
+      const comment = await activityOperations.createComment({
+        ...formData,
+        ...(parentId ? { parent: parentId } : {}),
+      });
+      saved = !!comment?.id;
+      savedCommentId = comment?.id;
+      if (saved && uploadedAssetIds.length > 0) {
         if (projectId) {
           await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId.toString(), entityId, {
             asset_ids: uploadedAssetIds,
@@ -80,10 +93,11 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
     } catch (error) {
       console.error(error);
     } finally {
-      reset({
-        comment_html: "<p></p>",
-      });
-      editorRef.current?.clearEditor();
+      if (saved) {
+        reset({ comment_html: "<p></p>", access });
+        editorRef.current?.clearEditor();
+        if (savedCommentId) onSubmitCallback?.(savedCommentId);
+      }
     }
   };
 
@@ -92,6 +106,8 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
 
   return (
     <div
+      role="group"
+      aria-label="Comment composer"
       className={cn("sticky bottom-0 z-[4] bg-surface-1 sm:static")}
       onKeyDown={(e) => {
         if (
@@ -117,7 +133,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
               <LiteTextEditor
                 editable
                 workspaceId={workspaceId}
-                id={"add_comment_" + entityId}
+                id={"add_comment_" + entityId + (parentId ? "_" + parentId : "")}
                 value={"<p></p>"}
                 workspaceSlug={workspaceSlug}
                 projectId={projectId}
@@ -128,7 +144,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
                 }}
                 ref={editorRef}
                 initialValue={value ?? "<p></p>"}
-                containerClassName="min-h-min"
+                containerClassName={presentation === "drawer" ? "min-h-12" : "min-h-min"}
                 onChange={(comment_json, comment_html) => onChange(comment_html)}
                 accessSpecifier={accessValue ?? EIssueCommentAccessSpecifier.INTERNAL}
                 handleAccessChange={onAccessChange}
@@ -144,7 +160,9 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
                   return asset_id;
                 }}
                 showToolbarInitially={showToolbarInitially}
-                parentClassName="p-2"
+                variant={presentation === "drawer" ? "drawer" : "full"}
+                placeholder={presentation === "drawer" ? "Write a comment..." : undefined}
+                parentClassName={presentation === "drawer" ? "rounded-lg p-3" : "p-2"}
                 displayConfig={{
                   fontSize: "small-font",
                 }}

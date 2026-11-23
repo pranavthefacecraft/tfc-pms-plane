@@ -34,7 +34,12 @@ export function SidebarPropertyListItem(props: TSidebarPropertyListItemProps) {
         <span>{label}</span>
         {appendElement}
       </div>
-      <div className={cn("flex grow flex-wrap items-center gap-1", childrenClassName)}>{children}</div>
+      <div
+        data-task-detail-field-value={appearance === "task-detail" ? "" : undefined}
+        className={cn("flex grow flex-wrap items-center gap-1", childrenClassName)}
+      >
+        {children}
+      </div>
     </div>
   );
 }
