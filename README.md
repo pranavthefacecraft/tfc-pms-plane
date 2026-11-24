@@ -530,10 +530,17 @@ the updated app.
 
 ### PMS Settings
 
-The sidebar **PMS Settings** entry and the user-menu **Profile & Preferences** action open
+The sidebar **PMS Settings** entry and the user-menu **Settings** action open
 `/<workspace>/pms-settings/account` as a full page inside the normal app shell,
 not the profile popup. All six settings tabs have separate URLs
 and support direct links and browser history.
+
+The profile menu shows accounts on the left and profile actions on the right.
+**Set out of office** saves an inclusive date range and optional message to the
+user's profile. The profile menu displays the status during that range, using
+the user's profile timezone. **Clear dates** removes it. This does not reassign
+tasks or send automatic replies. Apply migration `0141_profile_out_of_office`
+before deploying this feature.
 
 - Account uses compact Name and Email rows with Cancel/Save actions and a separate
   security section. Email changes use the existing verification flow; the email

@@ -35,7 +35,6 @@ const HEALTH_OPTIONS = [
 ] as const;
 const cardClass = "rounded-xl border border-subtle bg-surface-1 p-6";
 const figmaCardClass = "rounded-lg border border-subtle bg-surface-1 p-5";
-const AVATAR_TINTS = ["bg-[#EAF1FD] text-[#135DDD]", "bg-[#E8F0FE] text-[#1D4ED8]", "bg-[#FDECF3] text-[#C0266D]"];
 const selectClass = "w-full rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13";
 
 type SectionProps = {
@@ -227,55 +226,57 @@ const OverviewTeammates = observer(function OverviewTeammates({
     ...teammates.filter((member) => member.id !== ownerId),
   ];
   return (
-    <section className={figmaCardClass} aria-labelledby="overview-teammates">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <section className={`${figmaCardClass} lg:min-h-[340px]`} aria-labelledby="overview-teammates">
+      <div className="mb-6">
         <h2 id="overview-teammates" className="text-15 font-semibold text-primary">
-          Project Teammates
+          Project Collaborators
         </h2>
-        {canEdit && (
-          <button
-            type="button"
-            onClick={() => setInviting(true)}
-            className="inline-flex items-center gap-1 text-12 font-medium text-[#135DDD] hover:underline"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            Add Teammate
-          </button>
-        )}
       </div>
       {error ? (
         <p role="alert" className="text-13">
-          Could not load project teammates.{" "}
+          Could not load project collaborators.{" "}
           <button type="button" className="text-[#135DDD] underline" onClick={() => void mutate()}>
             Retry
           </button>
         </p>
       ) : members.length ? (
-        <ul className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-          {members.map((member, index) => {
+        <ul className="space-y-6">
+          {members.map((member) => {
             const avatar = getFileURL(member.avatar_url);
             return (
               <li key={member.id} className="flex min-w-0 items-center gap-3">
                 {avatar ? (
-                  <img src={avatar} alt="" className="size-8 shrink-0 rounded-full object-cover" />
+                  <img src={avatar} alt="" className="size-6 shrink-0 rounded-full object-cover" />
                 ) : (
                   <span
                     aria-hidden="true"
-                    className={`grid size-8 shrink-0 place-items-center rounded-full text-11 font-semibold ${AVATAR_TINTS[index % AVATAR_TINTS.length]}`}
+                    className="grid size-6 shrink-0 place-items-center rounded-full bg-[#135DDD] text-10 font-medium text-white"
                   >
                     {initials(member.display_name ?? "")}
                   </span>
                 )}
                 <div className="min-w-0">
                   <p className="truncate text-13 font-medium text-primary">{member.display_name}</p>
-                  <p className="text-12 text-tertiary">{member.id === ownerId ? "Project owner" : "Teammate"}</p>
+                  <p className="mt-0.5 text-12 text-tertiary">
+                    {member.id === ownerId ? "Project owner" : "Collaborator"}
+                  </p>
                 </div>
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="text-13 text-tertiary">No teammates yet.</p>
+        <p className="text-13 text-tertiary">No collaborators yet.</p>
+      )}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={() => setInviting(true)}
+          className="mt-5 inline-flex items-center gap-1 text-12 font-medium text-[#135DDD] hover:underline"
+        >
+          <Plus className="size-3.5" aria-hidden="true" />
+          Add Collaborator
+        </button>
       )}
       {inviting && canEdit && (
         <InviteCollaboratorsDialog
@@ -500,6 +501,8 @@ export const ProjectOverview = observer(function ProjectOverview({
   const sectionProps = { project, canEdit, saving, save };
   const resources = (
     <ProjectOverviewResources
+      workspaceSlug={workspaceSlug}
+      projectId={projectId}
       resources={project.overview_resources ?? []}
       canEdit={canEdit}
       saving={saving}
@@ -518,15 +521,19 @@ export const ProjectOverview = observer(function ProjectOverview({
   if (!classic)
     return (
       <div className="bg-pms-content min-h-full dark:bg-surface-1">
-        <PageHead title={`${project.name} - Overview`} />
+        <PageHead title={`${project.name} - Details`} />
         <ProjectPageHeader workspaceSlug={workspaceSlug} projectId={projectId} name={project.name} active="overview" />
         <main className="px-6 py-6 md:px-8">
-          <div className="max-w-[720px] space-y-4">
+          <div className="max-w-6xl space-y-4">
             {refreshError}
             {archivedNote}
-            <OverviewDescription {...sectionProps} />
-            <OverviewTeammates project={project} workspaceSlug={workspaceSlug} canEdit={canEdit} />
-            {resources}
+            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.85fr)_minmax(250px,1fr)]">
+              <div className="min-w-0 space-y-4">
+                <OverviewDescription {...sectionProps} />
+                {resources}
+              </div>
+              <OverviewTeammates project={project} workspaceSlug={workspaceSlug} canEdit={canEdit} />
+            </div>
           </div>
         </main>
       </div>

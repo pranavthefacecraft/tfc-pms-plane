@@ -252,6 +252,7 @@ class Profile(TimeAuditModel):
     start_of_the_week = models.PositiveSmallIntegerField(choices=START_OF_THE_WEEK_CHOICES, default=SUNDAY)
     goals = models.JSONField(default=dict)
     background_color = models.CharField(max_length=255, default=get_random_color)
+    out_of_office = models.JSONField(null=True, blank=True, default=None)
 
     # navigation tour
     is_navigation_tour_completed = models.BooleanField(default=False)

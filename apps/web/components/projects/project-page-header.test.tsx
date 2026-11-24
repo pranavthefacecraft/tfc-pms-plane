@@ -51,15 +51,15 @@ describe("ProjectPageHeader", () => {
     expect(host.querySelector("h1")?.textContent).toBe("website Redesign");
     expect(host.querySelector("header span")?.textContent).toBe("W");
     expect([...host.querySelectorAll("nav a, nav button")].map((node) => node.textContent)).toEqual([
-      "Overview",
+      "Details",
       "List",
       "Board",
       "Project Calendar",
       "Timeline",
-      "Files",
     ]);
-    expect(tab("Overview").getAttribute("aria-current")).toBe("page");
-    expect(tab("Files").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/files/);
+    expect(tab("Details").getAttribute("aria-current")).toBe("page");
+    expect(tab("Details").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/overview/);
+    expect(host.querySelector('nav a[href$="/files"]')).toBeNull();
     expect(tab("List").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/list/);
     expect(tab("Board").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/board/);
     expect(tab("Project Calendar").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/calendar/);
@@ -94,12 +94,13 @@ describe("ProjectPageHeader", () => {
   it("marks List as the current tab on the List page", async () => {
     await render("list");
     expect(tab("List").getAttribute("aria-current")).toBe("page");
-    expect(tab("Overview").getAttribute("aria-current")).toBeNull();
+    expect(tab("Details").getAttribute("aria-current")).toBeNull();
   });
 
-  it("marks Files as the current tab on the Files page", async () => {
+  it("keeps navigation to Details available from the legacy Files page", async () => {
     await render("files");
-    expect(tab("Files").getAttribute("aria-current")).toBe("page");
-    expect(tab("Overview").getAttribute("aria-current")).toBeNull();
+    expect(tab("Details").getAttribute("href")).toMatch(/^\/acme\/projects\/p1\/overview/);
+    expect(tab("Details").getAttribute("aria-current")).toBeNull();
+    expect(tab("Files")).toBeUndefined();
   });
 });

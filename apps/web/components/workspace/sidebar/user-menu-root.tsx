@@ -9,15 +9,16 @@ import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Menu as BaseMenu } from "@base-ui/react/menu";
+import { CalendarDays, Check, Plus, UserRound } from "lucide-react";
 import { LogOutOutline, SettingsOutline } from "@makeplane/propel/icons";
 // plane imports
 import { Avatar } from "@makeplane/propel/components/avatar";
 import { Icon } from "@makeplane/propel/components/icon";
-import { Menu, MenuContent, MenuItem, MenuTrigger } from "@makeplane/propel/components/menu";
+import { Menu, MenuItem, MenuTrigger } from "@makeplane/propel/components/menu";
 import { GOD_MODE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { setToast } from "@plane/blocks/toast";
-import { getFileURL, orderWorkspacesList } from "@plane/utils";
+import { getFileURL, getFirstCharacters, orderWorkspacesList } from "@plane/utils";
 import type { IWorkspace } from "@plane/types";
 // components
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
@@ -26,12 +27,14 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useUser, useUserProfile } from "@/hooks/store/user";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useInstance } from "@/hooks/store/use-instance";
+import { OutOfOfficeDialog, OutOfOfficeStatus } from "./out-of-office";
 
 export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false }: { showInitial?: boolean }) {
   // states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [switchError, setSwitchError] = useState("");
+  const [outOfOfficeOpen, setOutOfOfficeOpen] = useState(false);
   // router
   const router = useRouter();
   // store hooks
@@ -50,6 +53,16 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
   const userInitial = Array.from(
     currentUser?.first_name?.trim() || currentUser?.display_name?.trim() || currentUser?.email?.trim() || ""
   )[0]?.toUpperCase();
+  const profileInitials =
+    [currentUser?.first_name, currentUser?.last_name]
+      .map((name) => Array.from(name?.trim() || "")[0] || "")
+      .join("")
+      .toUpperCase() || userInitial;
+  const displayName =
+    [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(" ") ||
+    currentUser?.display_name ||
+    currentUser?.email ||
+    "";
   // translation
   const { t } = useTranslation();
 
@@ -125,77 +138,127 @@ export const UserMenuRoot = observer(function UserMenuRoot({ showInitial = false
             </button>
           }
         />
-        <MenuContent side="bottom" align="end">
-          <div className="flex w-72 max-w-full flex-col gap-y-3 p-2">
-            <div className="rounded-md bg-[#EAF2FF] px-3 py-3 dark:bg-layer-1">
-              <p className="text-13 font-semibold">
-                {[currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(" ") ||
-                  currentUser?.display_name}
-              </p>
-              <p className="mt-1 truncate text-12 text-secondary">{currentUser?.email}</p>
-            </div>
-            <p className="px-2 text-11 font-medium text-secondary">ACCOUNTS</p>
-            <div aria-label="Workspaces" className="max-h-64 overflow-y-auto">
-              {workspacesList.map((workspace) => {
-                const active = workspace.id === currentWorkspace?.id;
-                return (
+        <BaseMenu.Portal>
+          <BaseMenu.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={16} className="z-30">
+            <BaseMenu.Popup className="shadow-lg max-h-[var(--available-height)] overflow-y-auto rounded-lg border border-subtle bg-surface-1 outline-none">
+              <div className="grid w-[640px] max-w-[calc(100vw-2rem)] grid-cols-1 min-[480px]:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                <div className="min-w-0 border-b border-subtle bg-[#F8FAFC] p-3 min-[480px]:border-r min-[480px]:border-b-0 dark:bg-surface-2">
+                  <h2 className="mb-2 px-1 text-13 font-semibold text-primary">Accounts</h2>
+                  <div aria-label="Workspaces" className="max-h-64 space-y-1 overflow-y-auto">
+                    {workspacesList.map((workspace) => {
+                      const active = workspace.id === currentWorkspace?.id;
+                      return (
+                        <BaseMenu.Item
+                          key={workspace.id}
+                          closeOnClick={false}
+                          disabled={switching}
+                          aria-current={active ? "page" : undefined}
+                          onClick={() => void switchWorkspace(workspace)}
+                          className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left outline-none data-highlighted:bg-layer-1-hover ${active ? "dark:text-custom-primary-100 bg-[#EAF2FF] text-[#135DDD] dark:bg-layer-1" : "text-primary"}`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="grid size-5 shrink-0 place-items-center rounded-full bg-[#135DDD] text-9 font-medium text-white"
+                          >
+                            {getFirstCharacters(workspace.name).toUpperCase()}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-12 font-medium">{workspace.name}</span>
+                          {active && <Check className="size-3.5 shrink-0 text-[#135DDD]" aria-hidden="true" />}
+                        </BaseMenu.Item>
+                      );
+                    })}
+                    {workspacesList.length === 0 && (
+                      <p className="px-3 py-2 text-12 text-secondary">No workspaces available.</p>
+                    )}
+                  </div>
+                  {switching && (
+                    <p role="status" className="px-2 text-12 text-secondary">
+                      Switching workspace...
+                    </p>
+                  )}
+                  {switchError && (
+                    <p role="alert" className="px-2 text-12 text-danger-primary">
+                      {switchError}
+                    </p>
+                  )}
+                </div>
+                <div className="min-w-0 p-3">
+                  <div className="flex items-center gap-3 px-1 py-1">
+                    <span
+                      aria-hidden="true"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#135DDD] text-12 font-medium text-white"
+                    >
+                      {profileInitials}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-13 font-semibold text-primary">{displayName}</p>
+                      <p className="mt-0.5 truncate text-12 text-tertiary">{currentUser?.email}</p>
+                    </div>
+                  </div>
+                  <div className="px-1">
+                    <OutOfOfficeStatus />
+                  </div>
                   <BaseMenu.Item
-                    key={workspace.id}
-                    closeOnClick={false}
-                    disabled={switching}
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => void switchWorkspace(workspace)}
-                    className={`w-full rounded-md px-3 py-2 text-left outline-none data-highlighted:bg-layer-1-hover ${active ? "dark:text-custom-primary-100 bg-[#EAF2FF] text-[#135DDD] dark:bg-layer-1" : "text-primary"}`}
+                    className="my-2 flex w-full items-center justify-center gap-1 rounded-full border border-subtle px-3 py-1.5 text-12 text-secondary outline-none data-highlighted:bg-layer-1-hover"
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      setOutOfOfficeOpen(true);
+                    }}
                   >
-                    <p className="truncate text-13 font-medium">{workspace.name}</p>
-                    <p className="mt-1 text-12 text-secondary">{active ? "Current account" : "Switch account"}</p>
+                    <CalendarDays className="size-3.5" aria-hidden="true" />
+                    Set out of office
                   </BaseMenu.Item>
-                );
-              })}
-              {workspacesList.length === 0 && (
-                <p className="px-3 py-2 text-12 text-secondary">No workspaces available.</p>
-              )}
-            </div>
-            {switching && (
-              <p role="status" className="px-2 text-12 text-secondary">
-                Switching workspace...
-              </p>
-            )}
-            {switchError && (
-              <p role="alert" className="px-2 text-12 text-danger-primary">
-                {switchError}
-              </p>
-            )}
-            {!config?.is_workspace_creation_disabled && (
-              <MenuItem label="+ Add account" render={<Link href="/create-workspace" />} />
-            )}
-            {workspacesList[0] && (
-              <MenuItem
-                label="All accounts activity →"
-                render={<Link href={`/${workspacesList[0].slug}/all-accounts-activity`} />}
-              />
-            )}
-            <MenuItem label={t("workspace_invites")} render={<Link href="/invitations" />} />
-            <div>
-              <MenuItem
-                icon={<Icon icon={SettingsOutline} />}
-                label="Profile & Preferences"
-                onClick={() =>
-                  router.push(
-                    currentWorkspace ? `/${currentWorkspace.slug}/pms-settings/account` : "/settings/profile/general"
-                  )
-                }
-              />
-            </div>
-            <div>
-              <MenuItem icon={<Icon icon={LogOutOutline} />} label={t("sign_out")} onClick={handleSignOut} />
-              {isUserInstanceAdmin && (
-                <MenuItem variant="accent" label={t("enter_god_mode")} onClick={() => router.push(GOD_MODE_URL)} />
-              )}
-            </div>
-          </div>
-        </MenuContent>
+                  <div className="space-y-1 border-t border-subtle pt-2">
+                    {!config?.is_workspace_creation_disabled && (
+                      <MenuItem
+                        icon={<Plus className="size-4 text-[#135DDD]" />}
+                        label="Add another account"
+                        render={<Link href="/create-workspace" />}
+                      />
+                    )}
+                    {currentWorkspace && currentUser?.id && (
+                      <MenuItem
+                        icon={<UserRound className="size-4" />}
+                        label="Profile"
+                        render={<Link href={`/${currentWorkspace.slug}/profile/${currentUser.id}`} />}
+                      />
+                    )}
+                    <MenuItem
+                      icon={<Icon icon={SettingsOutline} />}
+                      label="Settings"
+                      onClick={() =>
+                        router.push(
+                          currentWorkspace
+                            ? `/${currentWorkspace.slug}/pms-settings/account`
+                            : "/settings/profile/general"
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="mt-2 space-y-1 border-t border-subtle pt-2">
+                    {workspacesList[0] && (
+                      <MenuItem
+                        label="All accounts activity →"
+                        render={<Link href={`/${workspacesList[0].slug}/all-accounts-activity`} />}
+                      />
+                    )}
+                    <MenuItem label={t("workspace_invites")} render={<Link href="/invitations" />} />
+                    <MenuItem icon={<Icon icon={LogOutOutline} />} label={t("sign_out")} onClick={handleSignOut} />
+                    {isUserInstanceAdmin && (
+                      <MenuItem
+                        variant="accent"
+                        label={t("enter_god_mode")}
+                        onClick={() => router.push(GOD_MODE_URL)}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </BaseMenu.Popup>
+          </BaseMenu.Positioner>
+        </BaseMenu.Portal>
       </Menu>
+      {outOfOfficeOpen && <OutOfOfficeDialog onClose={() => setOutOfOfficeOpen(false)} />}
     </div>
   );
 });

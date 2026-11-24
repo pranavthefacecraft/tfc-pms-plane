@@ -11,12 +11,11 @@ import { Settings } from "lucide-react";
 export type TProjectPageTab = "overview" | "list" | "board" | "calendar" | "timeline" | "files";
 
 const TABS: { id: TProjectPageTab; label: string }[] = [
-  { id: "overview", label: "Overview" },
+  { id: "overview", label: "Details" },
   { id: "list", label: "List" },
   { id: "board", label: "Board" },
   { id: "calendar", label: "Project Calendar" },
   { id: "timeline", label: "Timeline" },
-  { id: "files", label: "Files" },
 ];
 
 const tabClass = (active: boolean) =>
@@ -25,7 +24,7 @@ const tabClass = (active: boolean) =>
   }`;
 
 /**
- * Figma project header: letter tile, project name, the Overview / List / Board / Calendar / Timeline / Files tabs
+ * Figma project header: letter tile, project name, the Details / List / Board / Calendar / Timeline tabs
  * and a gear linking to project settings.
  */
 export const ProjectPageHeader = observer(function ProjectPageHeader({

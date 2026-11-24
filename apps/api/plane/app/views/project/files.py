@@ -47,6 +47,7 @@ class ProjectFilesEndpoint(BaseAPIView):
                 "attributes",
                 "size",
                 "created_at",
+                "updated_at",
                 "project_id",
                 project_identifier=F("project__identifier"),
                 created_by_name=F("created_by__display_name"),

@@ -59,7 +59,14 @@ export interface IUserAccount {
   updated_at: Date;
 }
 
+export type TOutOfOffice = {
+  start_date: string;
+  end_date: string;
+  message: string;
+};
+
 export type TUserProfile = {
+  out_of_office?: TOutOfOffice | null;
   id: string | undefined;
   user: string | undefined;
   role: string | undefined;

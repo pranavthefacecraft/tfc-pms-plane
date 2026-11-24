@@ -198,7 +198,26 @@ class ResetPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True, min_length=8)
 
 
+class OutOfOfficeSerializer(serializers.Serializer):
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    message = serializers.CharField(max_length=500, allow_blank=True, required=False, default="")
+
+    def validate(self, data):
+        if "start_date" not in data or "end_date" not in data:
+            raise serializers.ValidationError("Both start and end dates are required.")
+        if data["end_date"] < data["start_date"]:
+            raise serializers.ValidationError({"end_date": "End date cannot be before start date."})
+        return {
+            "start_date": data["start_date"].isoformat(),
+            "end_date": data["end_date"].isoformat(),
+            "message": data.get("message", ""),
+        }
+
+
 class ProfileSerializer(BaseSerializer):
+    out_of_office = OutOfOfficeSerializer(required=False, allow_null=True)
+
     class Meta:
         model = Profile
         fields = "__all__"

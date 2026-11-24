@@ -6,7 +6,13 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { UserMenuRoot } from "./user-menu-root";
 
-const user = vi.hoisted(() => ({ first_name: "Pranav", display_name: "Creative", email: "user@example.com" }));
+const user = vi.hoisted(() => ({
+  id: "user",
+  first_name: "Pranav",
+  last_name: "Prashar",
+  display_name: "Creative",
+  email: "user@example.com",
+}));
 const actions = vi.hoisted(() => ({
   push: vi.fn(),
   settings: undefined as (() => void) | undefined,
@@ -41,6 +47,10 @@ vi.mock("@/hooks/store/use-command-palette", () => ({
   useCommandPalette: () => ({ toggleProfileSettingsModal: vi.fn() }),
 }));
 vi.mock("@/components/common/cover-image", () => ({ CoverImage: () => null }));
+vi.mock("./out-of-office", () => ({
+  OutOfOfficeStatus: () => null,
+  OutOfOfficeDialog: () => <div role="dialog">Set out of office</div>,
+}));
 vi.mock("@makeplane/propel/components/menu", () => ({
   Menu: ({
     children,
@@ -59,7 +69,7 @@ vi.mock("@makeplane/propel/components/menu", () => ({
   MenuTrigger: ({ render }: { render: ReactNode }) => <>{render}</>,
   MenuContent: ({ children }: { children: ReactNode }) => <>{children}</>,
   MenuItem: ({ label, onClick, render }: { label: string; onClick: () => void; render?: ReactNode }) => {
-    if (label === "Profile & Preferences") actions.settings = onClick;
+    if (label === "Settings") actions.settings = onClick;
     return (
       <div>
         {render}
@@ -70,6 +80,9 @@ vi.mock("@makeplane/propel/components/menu", () => ({
 }));
 vi.mock("@base-ui/react/menu", () => ({
   Menu: {
+    Portal: ({ children }: { children: ReactNode }) => <>{children}</>,
+    Positioner: ({ children }: { children: ReactNode }) => <>{children}</>,
+    Popup: ({ children }: { children: ReactNode }) => <>{children}</>,
     Item: ({
       children,
       onClick,
@@ -90,6 +103,9 @@ vi.mock("@base-ui/react/menu", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  user.first_name = "Pranav";
+  user.last_name = "Prashar";
+  user.display_name = "Creative";
   actions.creationDisabled = false;
   actions.noWorkspace = false;
   actions.updateProfile.mockResolvedValue({});
@@ -132,6 +148,27 @@ it.each([
   expect(trigger?.getAttribute("aria-label")).toBe("aria_labels.projects_sidebar.open_user_menu");
 });
 
+it.each([
+  ["Pranav", "Prashar", "PP"],
+  ["  jane  ", " doe ", "JD"],
+  ["Pranav", "", "P"],
+  ["", "", "C"],
+])("shows blue profile initials for %s / %s instead of a photo", (firstName, lastName, initials) => {
+  user.first_name = firstName;
+  user.last_name = lastName;
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
+    <MemoryRouter>
+      <UserMenuRoot showInitial />
+    </MemoryRouter>
+  );
+  const avatar = host.querySelector("p.truncate")?.parentElement?.previousElementSibling;
+  expect(avatar?.textContent).toBe(initials);
+  expect(avatar?.classList.contains("bg-[#135DDD]")).toBe(true);
+  expect(avatar?.classList.contains("text-white")).toBe(true);
+  expect(host.querySelector("img")).toBeNull();
+});
+
 it("lists actual workspaces with the current workspace first, creation and invitations", () => {
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(
@@ -140,13 +177,35 @@ it("lists actual workspaces with the current workspace first, creation and invit
     </MemoryRouter>
   );
   const items = host.querySelectorAll('[role="menuitem"]');
-  expect(items).toHaveLength(2);
-  expect(items[0]?.textContent).toBe("TeamCurrent account");
+  expect(items).toHaveLength(3);
+  expect(items[0]?.textContent).toBe("TTeam");
   expect(items[0]?.getAttribute("aria-current")).toBe("page");
-  expect(items[1]?.textContent).toBe("Personal StudioSwitch account");
+  expect(items[1]?.textContent).toBe("PSPersonal Studio");
+  expect(host.querySelector('a[href="/team/profile/user/"]')).not.toBeNull();
   expect(host.querySelector('a[href="/create-workspace/"]')).not.toBeNull();
   expect(host.querySelector('a[href="/invitations/"]')).not.toBeNull();
   expect(host.querySelector('a[href="/team/all-accounts-activity/"]')).not.toBeNull();
+});
+it("opens out of office as a separate dialog after closing the profile menu", async () => {
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  try {
+    await act(() =>
+      root.render(
+        <MemoryRouter>
+          <UserMenuRoot showInitial />
+        </MemoryRouter>
+      )
+    );
+    await act(() =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent === "Set out of office")!.click()
+    );
+    expect(host.querySelector('[role="dialog"]')?.textContent).toBe("Set out of office");
+    expect(host.querySelector("[data-open]")?.getAttribute("data-open")).toBe("false");
+  } finally {
+    await act(() => root.unmount());
+    host.remove();
+  }
 });
 it("respects disabled workspace creation and falls back outside a workspace", () => {
   actions.creationDisabled = true;
@@ -186,9 +245,11 @@ it("persists workspace selection before navigating and prevents concurrent switc
     expect(actions.updateProfile).toHaveBeenCalledWith({ last_workspace_id: "studio-id" });
     expect(actions.push).not.toHaveBeenCalled();
     expect(host.querySelector('[role="status"]')?.textContent).toBe("Switching workspace...");
-    expect([...host.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].every((item) => item.disabled)).toBe(
-      true
-    );
+    expect(
+      [...host.querySelectorAll<HTMLButtonElement>('[aria-label="Workspaces"] [role="menuitem"]')].every(
+        (item) => item.disabled
+      )
+    ).toBe(true);
     await act(() => complete({}));
     expect(actions.push).toHaveBeenCalledWith("/studio");
     expect(host.querySelector('[role="status"]')).toBeNull();

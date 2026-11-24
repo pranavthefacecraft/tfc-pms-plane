@@ -44,12 +44,16 @@ def collect_task_files(slug, issues):
             is_deleted=False,
         )
         .order_by("-created_at")
-        .values("id", "attributes", "size", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
+        .values(
+            "id", "attributes", "size", "created_at", "updated_at", "issue_id", "project_id", **issue_fields
+        )[:FILES_LIMIT]
     )
     links = (
         IssueLink.objects.filter(issue_id__in=issues.values("id"))
         .order_by("-created_at")
-        .values("id", "title", "url", "created_at", "issue_id", "project_id", **issue_fields)[:FILES_LIMIT]
+        .values(
+            "id", "title", "url", "created_at", "updated_at", "issue_id", "project_id", **issue_fields
+        )[:FILES_LIMIT]
     )
     files = [
         {

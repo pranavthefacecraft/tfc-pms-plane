@@ -6,6 +6,7 @@
 
 from datetime import date
 from unittest import mock
+from django.utils.dateparse import parse_datetime
 
 import pytest
 from rest_framework import status
@@ -161,6 +162,9 @@ class TestProjectFiles:
         assert files[str(brief.id)]["url"] == (
             f"/api/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/download/{brief.id}/"
         )
+        for resource in [task_file, link, brief]:
+            assert parse_datetime(files[str(resource.id)]["created_at"]) == resource.created_at
+            assert parse_datetime(files[str(resource.id)]["updated_at"]) == resource.updated_at
 
     @pytest.mark.django_db
     def test_restricted_guest_only_sees_own_work_items(self, session_client, workspace, project, create_user):

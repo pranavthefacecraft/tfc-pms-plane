@@ -10,6 +10,7 @@ import type { TMyTaskFile } from "@/services/workspace-my-tasks.service";
 
 /** A project file: task attachments/links carry their work item, files attached to the project itself do not. */
 export type TProjectFile = Omit<TMyTaskFile, "issue_id" | "issue_name" | "sequence_id" | "state_group"> & {
+  updated_at?: string;
   issue_id: string | null;
   issue_name: string | null;
   sequence_id: number | null;
