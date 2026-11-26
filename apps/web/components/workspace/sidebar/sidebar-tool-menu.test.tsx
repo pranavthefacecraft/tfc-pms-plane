@@ -65,6 +65,13 @@ vi.mock("@/components/sidebar/sidebar-navigation", () => ({
     <span data-active={isActive}>{children}</span>
   ),
 }));
+vi.mock("@base-ui/react/popover", () => ({
+  Popover: {
+    Portal: ({ children }: { children: ReactNode }) => <>{children}</>,
+    Positioner: ({ children, side }: { children: ReactNode; side: string }) => <div data-side={side}>{children}</div>,
+    Popup: ({ children }: { children: ReactNode }) => (mocks.popover?.open ? <div>{children}</div> : null),
+  },
+}));
 vi.mock("@/hooks/store/use-app-theme", () => ({
   useAppTheme: () => ({
     toggleSidebar: mocks.toggleSidebar,

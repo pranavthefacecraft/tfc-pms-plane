@@ -83,7 +83,7 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
                   className="h-auto max-w-full"
                 />
               </div>
-              <div className="shrink-0">
+              <div className="shrink-0 md:hidden">
                 <AppSidebarToggleButton />
               </div>
             </div>
@@ -112,7 +112,11 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
                   onClick={() => setIsCustomizeNavDialogOpen(true)}
                 />
               )}
-              {!header && <AppSidebarToggleButton />}
+              {!header && (
+                <div className="md:hidden">
+                  <AppSidebarToggleButton />
+                </div>
+              )}
             </div>
           </div>
           {/* Quick actions */}

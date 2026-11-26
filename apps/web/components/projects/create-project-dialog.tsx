@@ -106,7 +106,7 @@ const CollaboratorPicker = observer(function CollaboratorPicker({
             {teammates.length} {teammates.length === 1 ? "teammate" : "teammates"} selected
           </span>
         ) : (
-          <span className="text-placeholder">Add collaborators</span>
+          <span className="text-placeholder">Add Collaborator</span>
         )}
         <ChevronDown className={`size-4 shrink-0 text-secondary transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -233,27 +233,23 @@ function DateField({
   id,
   label,
   value,
-  min,
   onChange,
 }: {
   id: string;
   label: string;
   value: string;
-  min?: string;
   onChange: (value: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className="text-13 font-medium">
-        {label} *
+        {label} (optional)
       </label>
-      <div className="relative">
+      <div className="group relative">
         <input
           id={id}
           type="date"
-          required
           value={value}
-          min={min}
           onChange={(event) => onChange(event.target.value)}
           onClick={(event) => {
             // The browser's own picker icon is hidden, so clicking the field opens the picker instead.
@@ -265,6 +261,14 @@ function DateField({
           }}
           className={`${fieldClass} cursor-pointer pr-9 ${value ? "" : "text-placeholder"} [&::-webkit-calendar-picker-indicator]:hidden`}
         />
+        {!value && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-1 right-9 left-3 flex items-center bg-surface-1 text-13 text-placeholder group-focus-within:hidden"
+          >
+            Select date
+          </span>
+        )}
         <CalendarDays
           className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-secondary"
           aria-hidden="true"
@@ -295,6 +299,7 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
   const [draft, setDraft] = useState<TCreateProjectDraft>(EMPTY_PROJECT_DRAFT);
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState(false);
+  const isBlank = template !== "general";
   const error = projectDraftError(draft);
   const update = (patch: Partial<TCreateProjectDraft>) => setDraft((previous) => ({ ...previous, ...patch }));
   const changeTeammates = useCallback(
@@ -315,8 +320,8 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
     const payload: Partial<TProject> = {
       name,
       description: draft.description.trim(),
-      start_date: draft.startDate,
-      target_date: draft.dueDate,
+      start_date: null,
+      target_date: draft.dueDate || null,
       network: 2,
       logo_props: {
         in_use: "emoji",
@@ -455,7 +460,7 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
           }}
         >
           <div className="mb-5 flex items-center justify-between">
-            <DialogTitle>Create Project</DialogTitle>
+            <DialogTitle>{isBlank ? "Create Blank Project" : "Create General Project"}</DialogTitle>
             <button
               type="button"
               onClick={close}
@@ -497,21 +502,12 @@ export const CreateProjectDialog = observer(function CreateProjectDialog({
               <span className="text-13 font-medium">Collaborators</span>
               <CollaboratorPicker teammates={draft.teammates} onChange={changeTeammates} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <DateField
-                id={`${id}-start`}
-                label="Start Date"
-                value={draft.startDate}
-                onChange={(startDate) => update({ startDate })}
-              />
-              <DateField
-                id={`${id}-due`}
-                label="Due Date"
-                value={draft.dueDate}
-                min={draft.startDate || undefined}
-                onChange={(dueDate) => update({ dueDate })}
-              />
-            </div>
+            <DateField
+              id={`${id}-due`}
+              label="Due date"
+              value={draft.dueDate}
+              onChange={(dueDate) => update({ dueDate })}
+            />
             <div className="flex flex-col gap-1.5">
               <label htmlFor={`${id}-file`} className="text-13 font-medium">
                 Attach File (optional)

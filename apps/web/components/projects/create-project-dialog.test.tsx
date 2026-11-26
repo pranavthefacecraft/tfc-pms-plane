@@ -10,6 +10,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TProject } from "@plane/types";
 import { CreateProjectDialog } from "./create-project-dialog";
+import { CreateProjectModal } from "@/components/project/create-project-modal";
 import {
   EMPTY_PROJECT_DRAFT,
   collaboratorRole,
@@ -72,7 +73,12 @@ vi.mock("@/services/project-collaborators.service", () => ({
     invite = mocks.invite;
   },
 }));
-vi.mock("./project-templates", () => ({ applyProjectTemplate: mocks.applyTemplate }));
+vi.mock("./project-templates", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./project-templates")>()),
+  applyProjectTemplate: mocks.applyTemplate,
+}));
+vi.mock("@/components/projects/create/root", () => ({ CreateProjectForm: () => null }));
+vi.mock("@/components/project/project-feature-update", () => ({ ProjectFeatureUpdate: () => null }));
 vi.mock("@/services/file.service", () => ({
   FileService: class {
     uploadProjectAsset = mocks.upload;
@@ -80,14 +86,12 @@ vi.mock("@/services/file.service", () => ({
 }));
 
 describe("create project helpers", () => {
-  it("validates required fields and date order", () => {
+  it("requires a valid name but permits an omitted due date", () => {
     expect(projectDraftError(EMPTY_PROJECT_DRAFT)).toBe("Enter a project name.");
     const named = { ...EMPTY_PROJECT_DRAFT, name: "Launch" };
     expect(projectDraftError({ ...named, name: "Q4 (plan)" })).toMatch(/special characters/);
-    expect(projectDraftError(named)).toBe("Select a start date.");
-    expect(projectDraftError({ ...named, startDate: "2026-11-02" })).toBe("Select a due date.");
-    expect(projectDraftError({ ...named, startDate: "2026-11-02", dueDate: "2026-11-01" })).toMatch(/before/);
-    expect(projectDraftError({ ...named, startDate: "2026-11-02", dueDate: "2026-11-02" })).toBeNull();
+    expect(projectDraftError(named)).toBeNull();
+    expect(projectDraftError({ ...named, dueDate: "2026-11-30" })).toBeNull();
   });
 
   it("suggests short unique identifiers", () => {
@@ -185,17 +189,98 @@ describe("CreateProjectDialog", () => {
   const openPicker = () => act(() => host.querySelector<HTMLButtonElement>("button[aria-controls]")!.click());
   const fillRequired = () => {
     type(input('input[placeholder="e.g. Website Redesign"]'), "Website Redesign");
-    const [start, due] = host.querySelectorAll<HTMLInputElement>('input[type="date"]');
-    type(start, "2026-11-03");
-    type(due, "2026-11-30");
+    type(input('input[type="date"]'), "2026-11-30");
   };
 
-  it("sets up the chosen template's stages after creating the project", async () => {
+  it("creates a blank project with only a name and no required dates", async () => {
+    expect(host.querySelector("h2")?.textContent).toBe("Create Blank Project");
+    expect(host.textContent).not.toContain("Start Date");
+    expect(host.textContent).toContain("Due date (optional)");
+    expect(host.textContent).toContain("Select date");
+    const dates = host.querySelectorAll<HTMLInputElement>('input[type="date"]');
+    expect(dates).toHaveLength(1);
+    expect(dates[0].required).toBe(false);
+    type(input('input[placeholder="e.g. Website Redesign"]'), "Website Redesign");
+    expect(button("Create Project").disabled).toBe(false);
+    await act(async () => button("Create Project").click());
+    expect(mocks.createProject).toHaveBeenCalledWith(
+      "acme",
+      expect.objectContaining({
+        start_date: null,
+        target_date: null,
+      })
+    );
+  });
+
+  it("replaces the empty due-date placeholder when a date is entered and restores it when cleared", () => {
+    const due = input('input[type="date"]');
+    expect(due.parentElement?.textContent).toContain("Select date");
+    type(due, "2026-11-30");
+    expect(due.value).toBe("2026-11-30");
+    expect(due.parentElement?.textContent).not.toContain("Select date");
+    type(due, "");
+    expect(due.parentElement?.textContent).toContain("Select date");
+  });
+
+  it("opens the blank form through the real project chooser and creates without dates", async () => {
+    act(() => root.render(<CreateProjectModal isOpen onClose={onClose} workspaceSlug="acme" />));
+    expect(host.querySelector("h2")?.textContent).toBe("Choose a Project");
+    act(() =>
+      [...host.querySelectorAll("button")].find((node) => node.textContent?.startsWith("Blank Project"))!.click()
+    );
+    expect(host.querySelector("h2")?.textContent).toBe("Create Blank Project");
+    expect(host.textContent).not.toContain("Start Date");
+    expect(host.textContent).toContain("Due date (optional)");
+    expect(host.querySelectorAll('input[type="date"]')).toHaveLength(1);
+    expect(host.querySelector<HTMLInputElement>('input[type="date"]')?.required).toBe(false);
+    type(input('input[placeholder="e.g. Website Redesign"]'), "Website Redesign");
+    await act(async () => button("Create Project").click());
+    expect(mocks.createProject).toHaveBeenCalledWith(
+      "acme",
+      expect.objectContaining({
+        start_date: null,
+        target_date: null,
+      })
+    );
+    expect(mocks.applyTemplate).toHaveBeenCalledWith(expect.anything(), "acme", "new", "blank");
+  });
+
+  it("opens General Project through the chooser and creates its stages with no dates", async () => {
+    act(() => root.render(<CreateProjectModal isOpen onClose={onClose} workspaceSlug="acme" />));
+    act(() =>
+      [...host.querySelectorAll("button")].find((node) => node.textContent?.startsWith("General Template"))!.click()
+    );
+    expect(host.querySelector("h2")?.textContent).toBe("Create General Project");
+    expect(host.textContent).not.toContain("Start Date");
+    expect(host.textContent).toContain("Due date (optional)");
+    expect(host.textContent).toContain("Add Collaborator");
+    expect(host.querySelectorAll('input[type="date"]')).toHaveLength(1);
+    expect(host.querySelectorAll('input[type="date"][required]')).toHaveLength(0);
+    type(input('input[placeholder="e.g. Website Redesign"]'), "Website Redesign");
+    expect(button("Create Project").disabled).toBe(false);
+    await act(async () => button("Create Project").click());
+    expect(mocks.createProject).toHaveBeenCalledWith(
+      "acme",
+      expect.objectContaining({
+        start_date: null,
+        target_date: null,
+      })
+    );
+    expect(mocks.applyTemplate).toHaveBeenCalledWith(expect.anything(), "acme", "new", "general");
+    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/board");
+  });
+
+  it("saves the optional due date for a general project", async () => {
     act(() => root.render(<CreateProjectDialog isOpen onClose={onClose} workspaceSlug="acme" template="general" />));
     fillRequired();
     await act(async () => button("Create Project").click());
-    expect(mocks.applyTemplate).toHaveBeenCalledWith(expect.anything(), "acme", "new", "general");
-    expect(mocks.push).toHaveBeenCalledWith("/acme/projects/new/board");
+    expect(mocks.createProject).toHaveBeenCalledWith(
+      "acme",
+      expect.objectContaining({
+        start_date: null,
+        target_date: "2026-11-30",
+      })
+    );
   });
 
   it("skips templates when none was chosen", async () => {
@@ -255,7 +340,7 @@ describe("CreateProjectDialog", () => {
         name: "Website Redesign",
         identifier: "WR2",
         description: "Refresh the marketing site",
-        start_date: "2026-11-03",
+        start_date: null,
         target_date: "2026-11-30",
       })
     );
@@ -335,6 +420,6 @@ describe("CreateProjectDialog", () => {
     expect(host.textContent).toContain("1 teammate selected");
     act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Remove Eve Stone"]')!.click());
     expect(host.textContent).toContain("Only me");
-    expect(host.textContent).toContain("Add collaborators");
+    expect(host.textContent).toContain("Add Collaborator");
   });
 });

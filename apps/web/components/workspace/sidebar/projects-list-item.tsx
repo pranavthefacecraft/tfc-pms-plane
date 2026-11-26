@@ -26,7 +26,6 @@ import {
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
-import { Logo } from "@plane/blocks/emoji-icon-picker";
 import { IconButton } from "@makeplane/propel/components/icon-button";
 import { Icon } from "@makeplane/propel/components/icon";
 import { Tooltip } from "@makeplane/propel/components/tooltip";
@@ -58,6 +57,20 @@ import { ProjectNavigation } from "./project-navigation";
  * hidden; the project tabs and the settings gear on the project pages replace it. Set to true to show it again.
  */
 const SHOW_PROJECT_SUB_MENU = false;
+
+function SidebarProjectIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M7.5 2.5H4.16667C3.72464 2.5 3.30072 2.67559 2.98816 2.98816C2.67559 3.30072 2.5 3.72464 2.5 4.16667V7.5M7.5 2.5H15.8333C16.2754 2.5 16.6993 2.67559 17.0118 2.98816C17.3244 3.30072 17.5 3.72464 17.5 4.16667V7.5M7.5 2.5V17.5M2.5 7.5V15.8333C2.5 16.2754 2.67559 16.6993 2.98816 17.0118C3.30072 17.3244 3.72464 17.5 4.16667 17.5H7.5M2.5 7.5H17.5M17.5 7.5V15.8333C17.5 16.2754 17.3244 16.6993 17.0118 17.0118C16.6993 17.3244 16.2754 17.5 15.8333 17.5H7.5"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 type Props = {
   projectId: string;
@@ -161,8 +174,8 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               const root = createRoot(container);
               root.render(
                 <div className="flex items-center rounded-sm bg-surface-1 p-1 pr-2 text-13">
-                  <div className="grid size-4 flex-shrink-0 place-items-center">
-                    {project && <Logo logo={project?.logo_props} />}
+                  <div className="grid size-5 flex-shrink-0 place-items-center text-[#3A4D66] dark:text-secondary">
+                    <SidebarProjectIcon />
                   </div>
                   <p className="truncate text-secondary">{project?.name}</p>
                 </div>
@@ -324,8 +337,13 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
             <>
               <ControlLink href={defaultTabUrl} className="flex flex-grow truncate" onClick={handleItemClick}>
                 <div className="flex w-full flex-grow items-center gap-1.5 text-left select-none">
-                  <div className="grid size-4 flex-shrink-0 place-items-center">
-                    <Logo logo={project.logo_props} size={16} />
+                  <div
+                    className={cn("grid size-5 flex-shrink-0 place-items-center", {
+                      "text-[#135DDD]": shouldHighlightProject,
+                      "text-[#3A4D66] dark:text-secondary": !shouldHighlightProject,
+                    })}
+                  >
+                    <SidebarProjectIcon />
                   </div>
                   <p
                     className={cn("truncate text-13 font-medium", {

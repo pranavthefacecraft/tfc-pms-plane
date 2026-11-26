@@ -8,7 +8,8 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { Popover, PopoverContent, PopoverTrigger } from "@makeplane/propel/components/popover";
+import { Popover, PopoverTrigger } from "@makeplane/propel/components/popover";
+import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Grid2X2, NotebookTabs, SquarePen, Video } from "lucide-react";
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
@@ -66,26 +67,30 @@ export const SidebarToolMenu = observer(function SidebarToolMenu({ compact = fal
           </div>
         </SidebarNavItem>
       </PopoverTrigger>
-      <PopoverContent variant="rich" side="right" align="start" sideOffset={12}>
-        <nav aria-label="Tools" className="flex w-56 flex-col gap-1">
-          {tools.map(({ key, href, label, icon: Icon, tile, isActive }) => (
-            <Link
-              key={key}
-              href={href}
-              onClick={handleLinkClick}
-              aria-current={isActive ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-md px-2 py-2 text-14 font-semibold hover:bg-layer-1-hover ${isActive ? "bg-[#EAF2FF] text-[#135DDD]" : "text-primary"}`}
-            >
-              <span
-                className={`grid size-8 shrink-0 place-items-center rounded-md ${isActive ? "text-[#135DDD]" : tile}`}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-              </span>
-              {label}
-            </Link>
-          ))}
-        </nav>
-      </PopoverContent>
+      <BasePopover.Portal>
+        <BasePopover.Positioner side="right" align="start" sideOffset={12} collisionPadding={16} className="z-30">
+          <BasePopover.Popup className="w-60 max-w-[calc(100vw-2rem)] rounded-xl border border-subtle bg-surface-1 p-4 shadow-overlay-200 outline-none">
+            <nav aria-label="Tools" className="flex flex-col gap-1">
+              {tools.map(({ key, href, label, icon: Icon, tile, isActive }) => (
+                <Link
+                  key={key}
+                  href={href}
+                  onClick={handleLinkClick}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`flex items-center gap-3 rounded-md px-2 py-2 text-14 font-semibold hover:bg-layer-1-hover ${isActive ? "bg-[#EAF2FF] text-[#135DDD]" : "text-primary"}`}
+                >
+                  <span
+                    className={`grid size-8 shrink-0 place-items-center rounded-md ${isActive ? "text-[#135DDD]" : tile}`}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                  </span>
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </BasePopover.Popup>
+        </BasePopover.Positioner>
+      </BasePopover.Portal>
     </Popover>
   );
 });

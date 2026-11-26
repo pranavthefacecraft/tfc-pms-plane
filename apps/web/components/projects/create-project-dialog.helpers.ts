@@ -15,7 +15,6 @@ export type TCreateProjectDraft = {
   name: string;
   description: string;
   teammates: TTeammate[];
-  startDate: string;
   dueDate: string;
   file: File | null;
 };
@@ -24,7 +23,6 @@ export const EMPTY_PROJECT_DRAFT: TCreateProjectDraft = {
   name: "",
   description: "",
   teammates: [],
-  startDate: "",
   dueDate: "",
   file: null,
 };
@@ -37,9 +35,6 @@ export function projectDraftError(draft: TCreateProjectDraft): string | null {
   const name = draft.name.trim();
   if (!name) return "Enter a project name.";
   if (FORBIDDEN_NAME_CHARS.test(name)) return "Project name can't contain special characters like & + , : ; - . ( ) !";
-  if (!draft.startDate) return "Select a start date.";
-  if (!draft.dueDate) return "Select a due date.";
-  if (draft.dueDate < draft.startDate) return "Due date can't be before the start date.";
   return null;
 }
 

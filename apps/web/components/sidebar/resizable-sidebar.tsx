@@ -6,6 +6,8 @@
 
 import type { Dispatch, ReactElement, SetStateAction } from "react";
 import React, { useCallback, useEffect, useState, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "@plane/i18n";
 // helpers
 import { cn } from "@plane/utils";
 import useSize from "@/hooks/use-window-size";
@@ -60,6 +62,7 @@ export function ResizableSidebar({
   const initialMouseXRef = useRef<number>(0);
   // hooks
   const [viewportWidth] = useSize();
+  const { t } = useTranslation();
   const isMobile = viewportWidth < 768;
   const showCompact = isCollapsed && !isMobile && !!collapsedContent;
   const visibleWidth = isCollapsed ? (showCompact ? 60 : 0) : width;
@@ -189,7 +192,7 @@ export function ResizableSidebar({
       <div
         id="main-sidebar"
         className={cn(
-          "z-20 h-full border-r border-subtle bg-surface-1",
+          "relative z-20 h-full border-r border-subtle bg-surface-1",
           !isResizing && "transition-all duration-300 ease-in-out",
           isCollapsed && !showCompact ? "w-0 translate-x-[-100%] opacity-0" : "translate-x-0 opacity-100",
           "max-md:absolute",
@@ -230,6 +233,26 @@ export function ResizableSidebar({
             />
           )}
         </aside>
+        {!isMobile && (!isCollapsed || showCompact) && (
+          <button
+            type="button"
+            aria-label={t(
+              isCollapsed
+                ? "aria_labels.projects_sidebar.expand_sidebar"
+                : "aria_labels.projects_sidebar.collapse_sidebar"
+            )}
+            aria-expanded={!isCollapsed}
+            aria-controls="main-sidebar"
+            onClick={toggleCollapsed}
+            className="absolute top-1/2 -right-6 z-30 flex h-9 w-6 -translate-y-1/2 items-center justify-center rounded-r-md border border-l-0 border-[#C7DAFF] bg-[#EAF2FF] text-[#3A4D66] hover:bg-[#DCEAFF] focus-visible:outline-2 focus-visible:outline-[#135DDD] dark:border-subtle dark:bg-surface-2 dark:text-primary"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="size-3" aria-hidden="true" />
+            ) : (
+              <ChevronLeft className="size-3" aria-hidden="true" />
+            )}
+          </button>
+        )}
       </div>
       {/* Peek View */}
       <div

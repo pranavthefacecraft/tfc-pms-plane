@@ -3,6 +3,7 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ResizableSidebar } from "./resizable-sidebar";
+vi.mock("@plane/i18n", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -115,4 +116,20 @@ it("does not reserve desktop rail space or mount icon navigation on mobile", asy
   await act(() => root.render(<Harness compact />));
   expect(host.querySelector<HTMLElement>("#main-sidebar")?.style.width).toBe("0px");
   expect(host.querySelector('[data-testid="compact-expand"]')).toBeNull();
+  expect(host.querySelector('button[aria-controls="main-sidebar"]')).toBeNull();
+});
+
+it("collapses and expands from the desktop edge control without losing the saved width", async () => {
+  vi.spyOn(window, "innerWidth", "get").mockReturnValue(1200);
+  await act(() => root.render(<Harness compact />));
+  const edge = () => host.querySelector<HTMLButtonElement>('button[aria-controls="main-sidebar"]')!;
+  expect(edge().getAttribute("aria-label")).toBe("aria_labels.projects_sidebar.collapse_sidebar");
+  expect(edge().querySelector(".lucide-chevron-left")).not.toBeNull();
+  await act(() => edge().click());
+  expect(host.querySelector<HTMLElement>("#main-sidebar")?.style.width).toBe("60px");
+  expect(edge().getAttribute("aria-label")).toBe("aria_labels.projects_sidebar.expand_sidebar");
+  expect(edge().querySelector(".lucide-chevron-right")).not.toBeNull();
+  await act(() => edge().click());
+  expect(host.querySelector<HTMLElement>("#main-sidebar")?.style.width).toBe("250px");
+  expect(edge().getAttribute("aria-expanded")).toBe("true");
 });

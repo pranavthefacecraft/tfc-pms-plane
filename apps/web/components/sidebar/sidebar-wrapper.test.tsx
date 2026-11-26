@@ -42,7 +42,9 @@ it("retains the Community button inside a hidden footer without hiding navigatio
   expect(host.querySelector("a")?.closest("[hidden]")).toBeNull();
   expect(host.querySelector('img[alt="PMS by Clevdex"]')).toBeNull();
   expect(host.querySelectorAll('[data-testid="sidebar-toggle"]')).toHaveLength(1);
-  expect(host.querySelector("span")?.parentElement?.querySelector('[data-testid="sidebar-toggle"]')).not.toBeNull();
+  expect(host.querySelector('[data-testid="sidebar-toggle"]')?.parentElement?.classList.contains("md:hidden")).toBe(
+    true
+  );
 });
 
 it("shows the Clevdex icon instead of a duplicate expand control in compact mode", () => {
@@ -97,6 +99,7 @@ it("retains the hidden workspace switcher without hiding the logo, toggle or nav
   expect(toggle?.parentElement?.previousElementSibling).toBe(logo.parentElement);
   expect(toggle?.parentElement?.parentElement?.classList.contains("flex")).toBe(true);
   expect(toggle?.parentElement?.classList.contains("shrink-0")).toBe(true);
+  expect(toggle?.parentElement?.classList.contains("md:hidden")).toBe(true);
   expect(header.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(create.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(header.parentElement?.hidden).toBe(true);

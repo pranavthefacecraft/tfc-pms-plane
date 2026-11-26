@@ -200,7 +200,9 @@ content spacing is unchanged.
 
 The supplied PMS by Clevdex SVG logo sits above the workspace switcher in the
 project sidebar, with a white backing to preserve its colors in either theme.
-The sidebar expand/collapse control sits to the right of the logo.
+On desktop, the sidebar expand/collapse control sits midway down its right edge
+and remains accessible beside the collapsed icon rail. On mobile, the control
+stays beside the logo.
 Help Center and Logout Account are pinned below the scrollable sidebar navigation.
 Help Center opens https://docs.plane.so/ in a new tab; Logout Account uses the
 existing sign-out flow and displays an error notification if sign-out fails.
@@ -439,10 +441,11 @@ first asks you to **Choose a Project**:
   **Review** and **Done** (project sections). The automatic section is renamed
   to To Do, so new tasks land there by default.
 
-Picking one opens a simple form with these fields: **Project Name**, **Description
-(optional)**, **Collaborators**, **Start Date**, **Due Date**, and **Attach File
-(optional)**. The button stays disabled until the name and both dates are
-filled in and the due date is on or after the start date. The project
+Picking **Blank Project** opens **Create Blank Project** with **Project Name**,
+**Description (optional)**, **Collaborators**, **Due date (optional)**, and
+**Attach File (optional)**. Only the project name is required; no start date is set.
+Picking **General Template** opens **Create General Project** with the same fields
+and optional due date, while still creating the default template stages. The project
 identifier is generated from the name, with a numeric suffix if that one is
 already taken. The attached file (images, PDFs, or Office documents, within the upload
 size limit) becomes a key resource on the project Overview. Start and due dates
