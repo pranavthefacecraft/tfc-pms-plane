@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { observer } from "mobx-react";
 import { X } from "lucide-react";
@@ -36,6 +36,7 @@ type Props = {
   /** Limits the projects offered; personal tasks are not offered when set. */
   allowedProjectIds?: string[];
   createIssue?: TCreateTaskIssue;
+  schedule?: boolean;
   edit?: {
     issueId: string;
     save: (draft: TNewTaskDraft, progress: TTaskSaveProgress) => Promise<void>;
@@ -169,9 +170,8 @@ function useNewTaskForm({
 }
 
 export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
-  const projectSelect = useRef<HTMLSelectElement>(null);
-  const { workspaceSlug, onClose, edit } = props;
-  const title = edit ? "Edit Task" : "New Task";
+  const { workspaceSlug, onClose, edit, schedule = false } = props;
+  const title = schedule ? "Add Task" : edit ? "Edit Task" : "New Task";
   const {
     draft,
     busy,
@@ -189,66 +189,10 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
     setProjectReady,
     validationError,
   } = useNewTaskForm(props);
-  const hints = newTaskHints(Boolean(draft.projectId), personalAllowed);
-  const scheduleFields = (
-    <>
-      <TaskProperty label="Due date">
-        <TaskDateField
-          label="Due date"
-          value={draft.target_date ?? ""}
-          min={draft.start_date ?? undefined}
-          disabled={disabled}
-          onChange={(target_date) => change({ target_date })}
-        />
-      </TaskProperty>
-      <TaskProjectPicker
-        selectRef={projectSelect}
-        draft={draft}
-        projects={projects}
-        disabled={disabled}
-        locked={projectLocked}
-        personalAllowed={personalAllowed}
-        onChange={(projectId) => {
-          setProjectReady(false);
-          change({
-            projectId,
-            sectionId: undefined,
-            assignees: [],
-            inviteEmails: [],
-            stateId: "",
-            fieldValues: {},
-            dependencies: [],
-            files: [],
-            subtasks: [],
-          });
-        }}
-      />
-    </>
-  );
-  const priorityField = (
-    <TaskProperty label="Priority">
-      <select
-        aria-label="Priority"
-        className={taskValueClass}
-        value={draft.priority}
-        disabled={disabled}
-        onChange={(event) => {
-          const priority = priorities.find((item) => item.value === event.target.value)?.value;
-          if (priority) change({ priority });
-        }}
-      >
-        {priorities.map((priority) => (
-          <option key={priority.value} value={priority.value}>
-            {priority.label}
-          </option>
-        ))}
-      </select>
-    </TaskProperty>
-  );
   return (
     <Dialog
       open
-      modal={false}
+      modal={schedule}
       disablePointerDismissal={Boolean(edit)}
       actionsRef={actions}
       discard={{
@@ -261,9 +205,13 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
         if (!open && !pending.current) onClose();
       }}
     >
-      <TaskFormContent presentation="side-panel" size="md">
-        <div className="flex items-center justify-between px-5 pt-6 pb-3">
-          <DialogTitle render={<h2 className="text-24! font-semibold!">{title}</h2>}>{title}</DialogTitle>
+      <TaskFormContent presentation={schedule ? "dialog" : "side-panel"} size={schedule ? "xs" : "md"}>
+        <div className="flex shrink-0 items-center justify-between px-5 pt-6 pb-3">
+          <DialogTitle
+            render={<h2 className={schedule ? "text-20! font-semibold!" : "text-24! font-semibold!"}>{title}</h2>}
+          >
+            {title}
+          </DialogTitle>
           <button
             type="button"
             aria-label="Close task panel"
@@ -275,87 +223,26 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
           </button>
         </div>
         <form
-          className="flex flex-col px-5 pb-6"
+          className={schedule ? "flex min-h-0 flex-col overflow-y-auto px-5 pb-6" : "flex flex-col px-5 pb-6"}
           onSubmit={(event) => {
             event.preventDefault();
             void save();
           }}
         >
-          <input
-            aria-label="Task name"
-            placeholder="Task name"
-            required
-            maxLength={255}
-            className="mb-3 rounded border border-subtle bg-transparent px-3 py-2 text-16 font-medium"
-            value={draft.name}
+          <TaskFormFields
+            workspaceSlug={workspaceSlug}
+            draft={draft}
             disabled={disabled}
-            onChange={(event) => change({ name: event.target.value })}
+            onChange={change}
+            projects={projects}
+            personalAllowed={personalAllowed}
+            projectLocked={projectLocked}
+            onReady={setProjectReady}
+            schedule={schedule}
+            edit={edit}
+            error={error}
           />
-          {draft.projectId ? (
-            <NewTaskProjectFields
-              key={draft.projectId}
-              slug={workspaceSlug}
-              draft={draft}
-              disabled={disabled}
-              onChange={change}
-              onReady={setProjectReady}
-              scheduleFields={scheduleFields}
-              priorityField={priorityField}
-              issueId={edit?.issueId}
-            />
-          ) : (
-            <>
-              <PrivateProjectFields disabled={disabled} onChooseProject={() => projectSelect.current?.focus()} />
-              {scheduleFields}
-              <TaskProperty label="Dependencies">
-                <button type="button" disabled className="py-1 text-13 text-placeholder">
-                  Add dependencies
-                </button>
-              </TaskProperty>
-              {priorityField}
-              <TaskProperty label="Stage">
-                <PersonalTaskStageSelect
-                  className={taskValueClass}
-                  value={draft.stage ?? "todo"}
-                  disabled={disabled}
-                  onChange={(stage) => change({ stage })}
-                />
-              </TaskProperty>
-              <TaskProperty label="Status">
-                <span className="rounded-full bg-layer-1 px-2 py-1 text-12 text-secondary">No status</span>
-              </TaskProperty>
-            </>
-          )}
-          <TaskAttachments draft={draft} disabled={disabled} onChange={change} existing={edit?.attachments} />
-          {!draft.projectId && <p className="mb-3 text-12 text-secondary">{hints.choose}</p>}
-          {edit ? (
-            <section aria-label="Description" className="my-3 border-y border-subtle bg-layer-1 p-3 text-13">
-              <h3 className="mb-2 font-medium">Description</h3>
-              {edit.descriptionEditor(disabled)}
-            </section>
-          ) : (
-            <label className="my-3 flex flex-col gap-2 border-y border-subtle bg-layer-1 p-3 text-13 font-medium">
-              Description
-              <textarea
-                aria-label="Description"
-                placeholder="Add a description..."
-                rows={4}
-                maxLength={20000}
-                className="font-normal resize-y bg-transparent outline-none"
-                value={draft.description}
-                disabled={disabled}
-                onChange={(event) => change({ description: event.target.value })}
-              />
-            </label>
-          )}
-          <TaskSubtasks draft={draft} disabled={disabled} onChange={change} existing={edit?.subtasks} />
-          {error && (
-            <p role="alert" className="my-3 text-13 text-danger-primary">
-              {error}
-            </p>
-          )}
-          <p className="my-3 text-12 text-secondary">{edit ? "Changes are applied when you save." : hints.saved}</p>
-          <div className="flex justify-end gap-2">
+          <div className={schedule ? "mt-4 flex justify-between gap-2" : "flex justify-end gap-2"}>
             <Button
               type="button"
               variant="secondary"
@@ -370,7 +257,7 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
               size="md"
               stretch="auto"
               type="submit"
-              label={partial ? "Retry save" : "Save"}
+              label={partial ? "Retry save" : schedule ? "Add Task" : "Save"}
               loading={busy}
               disabled={Boolean(validationError)}
             />
@@ -380,6 +267,364 @@ export const NewTaskPanel = observer(function NewTaskPanel(props: Props) {
     </Dialog>
   );
 });
+
+function TaskFormFields({
+  workspaceSlug,
+  draft,
+  disabled,
+  onChange,
+  projects,
+  personalAllowed,
+  projectLocked,
+  onReady,
+  schedule,
+  edit,
+  error,
+}: {
+  workspaceSlug: string;
+  draft: TNewTaskDraft;
+  disabled: boolean;
+  onChange: (patch: Partial<TNewTaskDraft>) => void;
+  projects: ReturnType<typeof useNewTaskForm>["projects"];
+  personalAllowed: boolean;
+  projectLocked: boolean;
+  onReady: (ready: boolean) => void;
+  schedule: boolean;
+  edit?: Props["edit"];
+  error: string;
+}) {
+  const projectSelect = useRef<HTMLSelectElement>(null);
+  const taskNameId = useId();
+  const [advanced, setAdvanced] = useState(false);
+  const hints = newTaskHints(Boolean(draft.projectId), personalAllowed);
+  const dueDateField = (
+    <TaskProperty label="Due date">
+      <TaskDateField
+        label="Due date"
+        value={draft.target_date ?? ""}
+        min={draft.start_date ?? undefined}
+        disabled={disabled}
+        onChange={(target_date) => onChange({ target_date })}
+      />
+    </TaskProperty>
+  );
+  const projectPicker = (
+    <TaskProjectPicker
+      selectRef={projectSelect}
+      draft={draft}
+      projects={projects}
+      disabled={disabled}
+      locked={projectLocked}
+      personalAllowed={personalAllowed}
+      onChange={(projectId) => {
+        onReady(false);
+        onChange({
+          projectId,
+          sectionId: undefined,
+          assignees: [],
+          inviteEmails: [],
+          stateId: "",
+          fieldValues: {},
+          dependencies: [],
+          files: [],
+          subtasks: [],
+        });
+      }}
+    />
+  );
+  const priorityField = <TaskPriority draft={draft} disabled={disabled} onChange={onChange} />;
+  const attachmentsField = (
+    <TaskAttachments draft={draft} disabled={disabled} onChange={onChange} existing={edit?.attachments} />
+  );
+  const advancedToggle = (
+    <label className="mb-4 flex w-fit items-center gap-2 text-13">
+      <input
+        type="checkbox"
+        checked={advanced}
+        disabled={disabled}
+        onChange={(event) => setAdvanced(event.target.checked)}
+      />
+      Advanced Details
+    </label>
+  );
+  return (
+    <>
+      {schedule && <ScheduleActivityType tabId={`${taskNameId}-tab`} panelId={`${taskNameId}-panel`} />}
+      <div
+        role={schedule ? "tabpanel" : undefined}
+        id={schedule ? `${taskNameId}-panel` : undefined}
+        aria-labelledby={schedule ? `${taskNameId}-tab` : undefined}
+        className="flex flex-col"
+      >
+        <TaskNameInput id={taskNameId} schedule={schedule} draft={draft} disabled={disabled} onChange={onChange} />
+        {draft.projectId ? (
+          <NewTaskProjectFields
+            key={draft.projectId}
+            slug={workspaceSlug}
+            draft={draft}
+            disabled={disabled}
+            onChange={onChange}
+            onReady={onReady}
+            scheduleFields={dueDateField}
+            priorityField={priorityField}
+            schedule={schedule ? { projectPicker, advancedToggle, advanced, attachments: attachmentsField } : undefined}
+            trailingFields={
+              <>
+                {attachmentsField}
+                {projectPicker}
+              </>
+            }
+            issueId={edit?.issueId}
+          />
+        ) : (
+          <PrivateTaskFields
+            draft={draft}
+            disabled={disabled}
+            onChange={onChange}
+            onChooseProject={() => projectSelect.current?.focus()}
+            dueDateField={dueDateField}
+            projectPicker={projectPicker}
+            priorityField={priorityField}
+            attachmentsField={attachmentsField}
+            schedule={schedule}
+            advanced={advanced}
+            advancedToggle={advancedToggle}
+          />
+        )}
+        {!draft.projectId && <p className="mb-3 text-12 text-secondary">{hints.choose}</p>}
+        <TaskDetails
+          schedule={schedule}
+          advanced={advanced}
+          edit={edit}
+          draft={draft}
+          disabled={disabled}
+          onChange={onChange}
+        />
+        {error && (
+          <p role="alert" className="my-3 text-13 text-danger-primary">
+            {error}
+          </p>
+        )}
+        {!schedule && (
+          <p className="my-3 text-12 text-secondary">{edit ? "Changes are applied when you save." : hints.saved}</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+function TaskNameInput({
+  id,
+  schedule,
+  draft,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  schedule: boolean;
+  draft: TNewTaskDraft;
+  disabled: boolean;
+  onChange: (patch: Partial<TNewTaskDraft>) => void;
+}) {
+  return (
+    <>
+      {schedule && (
+        <label htmlFor={id} className="mb-1 text-12 text-secondary">
+          Task Title *
+        </label>
+      )}
+      <input
+        id={id}
+        aria-label={schedule ? "Task Title" : "Task name"}
+        placeholder={schedule ? "Enter Task Title" : "Task name"}
+        required
+        maxLength={255}
+        className="mb-3 rounded border border-subtle bg-transparent px-3 py-2 text-16 font-medium"
+        value={draft.name}
+        disabled={disabled}
+        onChange={(event) => onChange({ name: event.target.value })}
+      />
+    </>
+  );
+}
+
+function TaskPriority({
+  draft,
+  disabled,
+  onChange,
+}: {
+  draft: TNewTaskDraft;
+  disabled: boolean;
+  onChange: (patch: Partial<TNewTaskDraft>) => void;
+}) {
+  return (
+    <TaskProperty label="Priority">
+      <select
+        aria-label="Priority"
+        className={taskValueClass}
+        value={draft.priority}
+        disabled={disabled}
+        onChange={(event) => {
+          const priority = priorities.find((item) => item.value === event.target.value)?.value;
+          if (priority) onChange({ priority });
+        }}
+      >
+        {priorities.map((priority) => (
+          <option key={priority.value} value={priority.value}>
+            {priority.label}
+          </option>
+        ))}
+      </select>
+    </TaskProperty>
+  );
+}
+
+function TaskDetails({
+  schedule,
+  advanced,
+  edit,
+  draft,
+  disabled,
+  onChange,
+}: {
+  schedule: boolean;
+  advanced: boolean;
+  edit?: Props["edit"];
+  draft: TNewTaskDraft;
+  disabled: boolean;
+  onChange: (patch: Partial<TNewTaskDraft>) => void;
+}) {
+  if (schedule && !advanced) {
+    return draft.subtasks.some((task) => !task.name.trim()) ? (
+      <p role="alert" className="mb-3 text-12 text-danger-primary">
+        Open Advanced Details and enter a name for every subtask.
+      </p>
+    ) : null;
+  }
+  return (
+    <>
+      {edit ? (
+        <section aria-label="Description" className="my-3 border-y border-subtle bg-layer-1 p-3 text-13">
+          <h3 className="mb-2 font-medium">Description</h3>
+          {edit.descriptionEditor(disabled)}
+        </section>
+      ) : (
+        <label className="my-3 flex flex-col gap-2 border-y border-subtle bg-layer-1 p-3 text-13 font-medium">
+          Description
+          <textarea
+            aria-label="Description"
+            placeholder="Add a description..."
+            rows={4}
+            maxLength={20000}
+            className="font-normal resize-y bg-transparent outline-none"
+            value={draft.description}
+            disabled={disabled}
+            onChange={(event) => onChange({ description: event.target.value })}
+          />
+        </label>
+      )}
+      <TaskSubtasks draft={draft} disabled={disabled} onChange={onChange} existing={edit?.subtasks} />
+    </>
+  );
+}
+
+function ScheduleActivityType({ tabId, panelId }: { tabId: string; panelId: string }) {
+  return (
+    <div className="mb-4">
+      <p className="mb-2 text-12 text-secondary">Activity Type</p>
+      <div role="tablist" aria-label="Activity Type" className="flex rounded-lg bg-layer-1 p-1 text-13">
+        <button
+          type="button"
+          role="tab"
+          id={tabId}
+          aria-controls={panelId}
+          aria-selected="true"
+          className="flex-1 rounded bg-surface-1 py-1 text-[#135DDD]"
+        >
+          PMS
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected="false"
+          disabled
+          title="Coming soon"
+          className="flex-1 py-1 text-placeholder"
+        >
+          Appointment
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected="false"
+          disabled
+          title="Coming soon"
+          className="flex-1 py-1 text-placeholder"
+        >
+          Other
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PrivateTaskFields({
+  draft,
+  disabled,
+  onChange,
+  onChooseProject,
+  dueDateField,
+  projectPicker,
+  priorityField,
+  attachmentsField,
+  schedule,
+  advanced,
+  advancedToggle,
+}: {
+  draft: TNewTaskDraft;
+  disabled: boolean;
+  onChange: (patch: Partial<TNewTaskDraft>) => void;
+  onChooseProject: () => void;
+  dueDateField: ReactNode;
+  projectPicker: ReactNode;
+  priorityField: ReactNode;
+  attachmentsField: ReactNode;
+  schedule: boolean;
+  advanced: boolean;
+  advancedToggle: ReactNode;
+}) {
+  return (
+    <>
+      <PrivateProjectFields disabled={disabled} onChooseProject={onChooseProject} />
+      {dueDateField}
+      {schedule && projectPicker}
+      {schedule && advancedToggle}
+      {(!schedule || advanced) && (
+        <>
+          {priorityField}
+          <TaskProperty label="Stage">
+            <PersonalTaskStageSelect
+              className={taskValueClass}
+              value={draft.stage ?? "todo"}
+              disabled={disabled}
+              onChange={(stage) => onChange({ stage })}
+            />
+          </TaskProperty>
+          <TaskProperty label="Status">
+            <span className="rounded-full bg-layer-1 px-2 py-1 text-12 text-secondary">No status</span>
+          </TaskProperty>
+          {attachmentsField}
+          {!schedule && projectPicker}
+          <TaskProperty label="Dependencies">
+            <button type="button" disabled className="py-1 text-13 text-placeholder">
+              Add dependencies
+            </button>
+          </TaskProperty>
+        </>
+      )}
+    </>
+  );
+}
 
 function TaskAttachments({
   draft,

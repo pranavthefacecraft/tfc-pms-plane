@@ -48,7 +48,9 @@ vi.mock("@/services/personal-task.service", () => ({
   personalTasksKey: (slug: string, user: string) => ["personal-tasks", slug, user],
 }));
 vi.mock("@/components/profile/create-task-button", () => ({
-  ProfileCreateTaskButton: ({ label }: { label: string }) => <button>{label}</button>,
+  ProfileCreateTaskButton: ({ label, scheduleDate }: { label: string; scheduleDate?: string }) => (
+    <button data-schedule-date={scheduleDate}>{label}</button>
+  ),
 }));
 vi.mock("@/components/profile/personal-task-dialog", () => ({
   PersonalTaskDialog: ({ task }: { task: TPersonalTask }) => <div role="dialog">{task.name}</div>,
@@ -128,6 +130,8 @@ it("renders the Figma sections and genuine empty states", async () => {
   await render();
   expect(host.textContent).toContain("Overview");
   expect(button("Add task")).toBeDefined();
+  expect(button("Add task")?.getAttribute("data-schedule-date")).toBeNull();
+  expect(button("New schedule")?.getAttribute("data-schedule-date")).toBe("2026-10-30");
   expect(host.textContent).toContain("Today's Activity");
   expect(host.textContent).toContain("No Activity Yet");
   expect(host.textContent).toContain("No schedule yet");
@@ -370,7 +374,7 @@ it("does not fetch private tasks or offer creation to guests", async () => {
   await render();
   expect(state.personal).not.toHaveBeenCalled();
   expect(button("Add task")).toBeUndefined();
-  expect(button("New task")).toBeUndefined();
+  expect(button("New schedule")).toBeUndefined();
   expect(host.textContent).toContain("No Activity Yet");
 });
 
@@ -399,7 +403,7 @@ it("navigates day view one date at a time and returns to today", async () => {
   expect(state.schedule).toHaveBeenCalledWith("team", "2026-10-31", "2026-10-31");
   await act(() => button("Today")?.click());
   expect(host.querySelector('[aria-live="polite"]')?.textContent).toBe("30 October 2026");
-  expect(button("New task")).toBeDefined();
+  expect(button("New schedule")).toBeDefined();
 });
 
 it("collapses crowded calendar days with a working more/fewer control", async () => {

@@ -47,6 +47,7 @@ async function loadTask(slug: string, projectId: string, issueId: string) {
       priority: issue.priority ?? "none",
       start_date: issue.start_date ?? null,
       target_date: issue.target_date ?? null,
+      sectionId: issue.section_id ?? null,
       assignees: issue.assignee_ids,
       stateId: issue.state_id ?? "",
       fieldValues: Object.fromEntries(
@@ -194,6 +195,7 @@ function EditTaskForm({
               ...(name !== defaults.name ? { name } : {}),
               ...(draft.priority !== defaults.priority ? { priority: draft.priority } : {}),
               ...(draft.target_date !== defaults.target_date ? { target_date: draft.target_date } : {}),
+              ...(draft.sectionId !== defaults.sectionId ? { section_id: draft.sectionId ?? null } : {}),
               ...(draft.stateId && draft.stateId !== defaults.stateId ? { state_id: draft.stateId } : {}),
               ...(!isEqual(draft.assignees, defaults.assignees) ? { assignee_ids: draft.assignees } : {}),
               ...(description.current !== undefined && description.current !== originalHTML

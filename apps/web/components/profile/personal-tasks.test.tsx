@@ -49,6 +49,7 @@ vi.mock("@/hooks/store/use-project-state", () => ({
 }));
 vi.mock("@/components/dropdowns/member/member-select", () => ({ MemberSelect: () => null }));
 vi.mock("@/components/core/modals/existing-issues-list-modal", () => ({ ExistingIssuesListModal: () => null }));
+vi.mock("@/components/project-sections/section-select", () => ({ SectionSelect: () => null }));
 vi.mock("@/services/personal-task.service", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/personal-task.service")>()),
   personalTaskService: {
@@ -197,6 +198,21 @@ it("opens Add task as a side panel and retains personal-task saving", async () =
   await submit();
   expect(state.create).toHaveBeenCalledWith("workspace", expect.objectContaining({ name: "Panel task" }));
   expect(host.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it("opens the calendar action as a schedule dialog", async () => {
+  await render(
+    <ProfileCreateTaskButton workspaceSlug="workspace" userId="me" label="New schedule" scheduleDate="2026-10-30" />
+  );
+  await click("New schedule");
+  expect(host.querySelector('[data-presentation="dialog"]')).not.toBeNull();
+  expect(host.querySelector('[role="tablist"]')?.textContent).toContain("PMS");
+  await change(host.querySelector<HTMLInputElement>('[aria-label="Task Title"]')!, "Calendar task");
+  await submit();
+  expect(state.create).toHaveBeenCalledWith(
+    "workspace",
+    expect.objectContaining({ name: "Calendar task", target_date: "2026-10-30", priority: "none" })
+  );
 });
 
 it("keeps the panel open while saving, including when its close control is clicked", async () => {

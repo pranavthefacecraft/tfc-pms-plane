@@ -15,6 +15,7 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
   className,
   appearance = "button",
   ariaLabel,
+  scheduleDate,
 }: {
   workspaceSlug: string;
   userId: string;
@@ -22,6 +23,7 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
   className?: string;
   appearance?: "button" | "inline";
   ariaLabel?: string;
+  scheduleDate?: string;
 }) {
   const [personalTaskOpen, setPersonalTaskOpen] = useState(false);
   const { mutate } = useSWRConfig();
@@ -63,6 +65,8 @@ export const ProfileCreateTaskButton = observer(function ProfileCreateTaskButton
       {personalTaskOpen && (
         <NewTaskPanel
           workspaceSlug={workspaceSlug}
+          schedule={scheduleDate !== undefined}
+          defaults={scheduleDate !== undefined ? { target_date: scheduleDate, priority: "none" } : undefined}
           onClose={() => setPersonalTaskOpen(false)}
           onSaved={(task) => {
             if (task)

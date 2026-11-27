@@ -43,6 +43,14 @@ vi.mock("@/hooks/store/use-member", () => ({
   useMember: () => ({ project: { fetchProjectMembers: state.fetchMembers } }),
 }));
 vi.mock("@/components/issues/issue-detail/relation-select", () => ({ IssueRelationSelect: () => null }));
+vi.mock("@/components/project-sections/section-select", () => ({
+  SectionSelect: ({ value, onChange }: { value?: string | null; onChange: (sectionId: string | null) => void }) => (
+    <select aria-label="Section" value={value ?? ""} onChange={(event) => onChange(event.target.value || null)}>
+      <option value="">No section</option>
+      <option value="section">Planning</option>
+    </select>
+  ),
+}));
 vi.mock("@/hooks/store/use-editor-asset", () => ({ useEditorAsset: () => ({}) }));
 vi.mock("@/hooks/store/use-workspace", () => ({
   useWorkspace: () => ({ getWorkspaceBySlug: () => ({ id: "team" }) }),
@@ -201,11 +209,17 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 const button = (text: string) => Array.from(host.querySelectorAll("button")).find((item) => item.textContent === text)!;
-async function render(defaults?: Partial<TNewTaskDraft>) {
+async function render(defaults?: Partial<TNewTaskDraft>, schedule = false) {
   await act(() =>
     root.render(
       <SWRConfig value={{ provider: () => new Map(), shouldRetryOnError: false }}>
-        <NewTaskPanel workspaceSlug="team" onClose={state.close} onSaved={state.saved} defaults={defaults} />
+        <NewTaskPanel
+          workspaceSlug="team"
+          onClose={state.close}
+          onSaved={state.saved}
+          defaults={defaults}
+          schedule={schedule}
+        />
       </SWRConfig>
     )
   );
@@ -272,6 +286,24 @@ it("updates the existing task and only saves changed fields and dependencies", a
   expect(state.close).toHaveBeenCalledOnce();
 });
 
+it("saves Section changes when editing an existing task", async () => {
+  state.retrieve.mockResolvedValueOnce({
+    id: "issue",
+    name: "Existing task",
+    description_html: "<p></p>",
+    priority: "low",
+    start_date: null,
+    target_date: null,
+    section_id: "section",
+    assignee_ids: [],
+    state_id: "todo",
+  });
+  await renderEdit();
+  await change("Section", "");
+  await save();
+  expect(state.update).toHaveBeenCalledExactlyOnceWith("project", "issue", { section_id: null });
+});
+
 it("matches the field list and keeps project-only actions disabled for private tasks", async () => {
   await render();
   for (const field of [
@@ -312,6 +344,63 @@ it("matches the field list and keeps project-only actions disabled for private t
   );
 });
 
+it("shows the calendar schedule form with unavailable activity types and saves a personal task", async () => {
+  await render({ target_date: "2026-10-30", priority: "none" }, true);
+  const tabs = host.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+  expect(Array.from(tabs, (tab) => tab.textContent?.trim())).toEqual(["PMS", "Appointment", "Other"]);
+  expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+  expect(tabs[1].disabled).toBe(true);
+  expect(tabs[2].disabled).toBe(true);
+  expect(host.querySelector('[aria-label="Priority"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Description"]')).toBeNull();
+  await change("Task Title", "Calendar task");
+  await save();
+  expect(state.create).toHaveBeenCalledWith(
+    "team",
+    expect.objectContaining({ name: "Calendar task", target_date: "2026-10-30", priority: "none" })
+  );
+  expect(state.close).toHaveBeenCalledOnce();
+});
+
+it("retains advanced schedule details when collapsed and saves project selections", async () => {
+  await render({ target_date: "2026-10-30", priority: "none" }, true);
+  await change("Task Title", "Project schedule");
+  await change("Link to Project", "project");
+  const checkbox = host.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  await act(() => checkbox.click());
+  await change("Assigned to", "teammate");
+  await change("Priority", "high");
+  await change("Stage", "doing");
+  await change("Status", "approved");
+  await act(() => checkbox.click());
+  expect(host.querySelector('[aria-label="Priority"]')).toBeNull();
+  await save();
+  expect(state.issue).toHaveBeenCalledWith(
+    "team",
+    "project",
+    expect.objectContaining({
+      name: "Project schedule",
+      target_date: "2026-10-30",
+      priority: "high",
+      state_id: "doing",
+      assignee_ids: ["teammate"],
+    })
+  );
+  expect(state.setField).toHaveBeenCalledWith("team", "project", "issue", "status", "approved");
+});
+
+it("explains why an incomplete hidden subtask prevents saving", async () => {
+  await render({ target_date: "2026-10-30", priority: "none" }, true);
+  await change("Task Title", "Project schedule");
+  await change("Link to Project", "project");
+  const checkbox = host.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  await act(() => checkbox.click());
+  await act(() => button("+ Add subtask").click());
+  await act(() => checkbox.click());
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Open Advanced Details");
+  expect(button("Add Task").disabled).toBe(true);
+});
+
 it("enables real project fields without losing task content when choosing a project", async () => {
   await render();
   await change("Task name", "Keep title");
@@ -340,6 +429,33 @@ it("resets project-specific selections when returning to a private task", async 
   await save();
   expect(state.create).toHaveBeenCalledWith("team", expect.objectContaining({ name: "Private again" }));
   expect(state.issue).not.toHaveBeenCalled();
+});
+
+it("uses the task-detail property order and saves the selected project section", async () => {
+  await render();
+  await change("Link to Project", "project");
+  await change("Section", "section");
+  const labels = Array.from(host.querySelectorAll("[data-task-detail-field-value]"), (value) =>
+    value.parentElement?.firstElementChild?.textContent?.trim()
+  );
+  expect(labels).toEqual([
+    "Assigned to",
+    "Due date",
+    "Priority",
+    "Section",
+    "Stage",
+    "Status",
+    "Attach File",
+    "Link to Project",
+    "Dependencies",
+  ]);
+  await change("Task name", "Sectioned task");
+  await save();
+  expect(state.issue).toHaveBeenCalledWith(
+    "team",
+    "project",
+    expect.objectContaining({ name: "Sectioned task", section_id: "section" })
+  );
 });
 
 it("saves selected project assignees, dates, priority, workflow and status", async () => {

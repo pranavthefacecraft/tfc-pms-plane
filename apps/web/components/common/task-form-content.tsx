@@ -10,7 +10,7 @@ export function TaskFormContent({
   children,
 }: {
   presentation?: TTaskFormPresentation;
-  size: "md" | "lg";
+  size: "xs" | "md" | "lg";
   children: ReactNode;
 }) {
   if (presentation === "dialog") return <DialogContent size={size}>{children}</DialogContent>;

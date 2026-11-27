@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import type { ISearchIssueResponse } from "@plane/types";
 import type { IState } from "@plane/types";
-import { TaskAssigneeSelect } from "./task-assignee-select";
+import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
+import { SectionSelect } from "@/components/project-sections/section-select";
+import { TaskAssigneeSelect } from "./task-assignee-select";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { customFields } from "@/components/projects/custom-fields/service";
 import type { CustomField } from "@/components/projects/custom-fields/service";
@@ -13,9 +15,10 @@ import { taskValueClass } from "./new-task.helpers";
 
 export function TaskProperty({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[110px_minmax(0,1fr)] items-start gap-2 py-2 sm:grid-cols-[132px_minmax(0,1fr)]">
-      <span className="py-1 text-12 text-secondary">{label}</span>
-      <div className="min-w-0">{children}</div>
+    <div className="mb-4">
+      <SidebarPropertyListItem appearance="task-detail" label={label} childrenClassName="min-w-0">
+        {children}
+      </SidebarPropertyListItem>
     </div>
   );
 }
@@ -83,7 +86,9 @@ export function NewTaskProjectFields({
   onReady,
   scheduleFields,
   priorityField,
+  trailingFields,
   issueId,
+  schedule,
 }: {
   slug: string;
   draft: TNewTaskDraft;
@@ -92,10 +97,11 @@ export function NewTaskProjectFields({
   onReady: (ready: boolean) => void;
   scheduleFields: ReactNode;
   priorityField: ReactNode;
+  trailingFields: ReactNode;
   issueId?: string;
+  schedule?: { projectPicker: ReactNode; advancedToggle: ReactNode; advanced: boolean; attachments: ReactNode };
 }) {
   const { fetchProjectStates } = useProjectState();
-  const [choosingDependencies, setChoosingDependencies] = useState(false);
   const states = useSWR(["new-task-states", slug, draft.projectId], () => fetchProjectStates(slug, draft.projectId));
   const fields = useSWR(["project-custom-fields", slug, draft.projectId], () =>
     customFields.list(slug, draft.projectId)
@@ -117,6 +123,65 @@ export function NewTaskProjectFields({
         <TaskAssigneeSelect slug={slug} draft={draft} onChange={onChange} disabled={disabled || !ready} />
       </TaskProperty>
       {scheduleFields}
+      {schedule?.projectPicker}
+      {schedule?.advancedToggle}
+      {(!schedule || schedule.advanced) && (
+        <>
+          {priorityField}
+          {!schedule && (
+            <TaskProperty label="Section">
+              <SectionSelect
+                workspaceSlug={slug}
+                projectId={draft.projectId}
+                value={draft.sectionId}
+                onChange={(sectionId) => onChange({ sectionId })}
+                disabled={disabled || !ready}
+                useProjectDefault
+              />
+            </TaskProperty>
+          )}
+          <TaskStageStatus
+            draft={draft}
+            fields={fields.data ?? []}
+            states={states.data ?? []}
+            defaultState={states.data?.find((state) => state.default)?.id ?? ""}
+            disabled={disabled || !ready}
+            ready={ready}
+            onChange={onChange}
+          />
+          {schedule ? schedule.attachments : trailingFields}
+          <TaskDependencies
+            slug={slug}
+            draft={draft}
+            disabled={disabled}
+            ready={ready}
+            onChange={onChange}
+            issueId={issueId}
+          />
+        </>
+      )}
+    </ProjectFieldsContent>
+  );
+}
+
+function TaskDependencies({
+  slug,
+  draft,
+  disabled,
+  ready,
+  onChange,
+  issueId,
+}: {
+  slug: string;
+  draft: TNewTaskDraft;
+  disabled: boolean;
+  ready: boolean;
+  onChange: (patch: Partial<TNewTaskDraft>) => void;
+  issueId?: string;
+}) {
+  const [choosingDependencies, setChoosingDependencies] = useState(false);
+  return (
+    <>
       <TaskProperty label="Dependencies">
         <button
           type="button"
@@ -140,16 +205,6 @@ export function NewTaskProjectFields({
           </div>
         ))}
       </TaskProperty>
-      {priorityField}
-      <TaskStageStatus
-        draft={draft}
-        fields={fields.data ?? []}
-        states={states.data ?? []}
-        defaultState={states.data?.find((state) => state.default)?.id ?? ""}
-        disabled={disabled || !ready}
-        ready={ready}
-        onChange={onChange}
-      />
       {choosingDependencies && (
         <ExistingIssuesListModal
           workspaceSlug={slug}
@@ -166,7 +221,7 @@ export function NewTaskProjectFields({
           }}
         />
       )}
-    </ProjectFieldsContent>
+    </>
   );
 }
 

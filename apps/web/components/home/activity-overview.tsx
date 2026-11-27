@@ -155,7 +155,8 @@ const ActivityOverviewContent = observer(function ActivityOverviewContent({
             <ProfileCreateTaskButton
               workspaceSlug={workspaceSlug}
               userId={user.id}
-              label="New task"
+              label="New schedule"
+              scheduleDate={today}
               className="rounded-full! bg-[#135DDD]!"
             />
           ) : undefined
